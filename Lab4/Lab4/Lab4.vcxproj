@@ -133,6 +133,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="d3dUtil.cpp" />
+    <ClCompile Include="DDSTextureLoader.cpp" />
     <ClCompile Include="DX12App.cpp" />
     <ClCompile Include="game_timer.cpp" />
     <ClCompile Include="window_class.cpp" />
@@ -140,9 +141,11 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="d3dUtil.h" />
+    <ClInclude Include="DDSTextureLoader.h" />
     <ClInclude Include="DX12App.h" />
     <ClInclude Include="game_timer.h" />
     <ClInclude Include="object_constants.h" />
+    <ClInclude Include="texture.h" />
     <ClInclude Include="throw_if_failed.h" />
     <ClInclude Include="upload_buffer.h" />
     <ClInclude Include="vertex.h" />

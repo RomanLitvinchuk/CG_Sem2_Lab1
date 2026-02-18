@@ -142,6 +142,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	MyFramework.CreateRTVAndDSVDescriptorHeaps();
 	MyFramework.CreateRTV();
 	MyFramework.CreateDSV();
+    MyFramework.CreateSRV();
 	MyFramework.SetViewport();
 	MyFramework.SetScissor();
 	MyFramework.SetTopology();

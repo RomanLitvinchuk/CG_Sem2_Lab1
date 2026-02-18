@@ -160,6 +160,15 @@ void DX12App::CreateDSV() {
 	m_device_->CreateDepthStencilView(m_DSV_buffer.Get(), nullptr, GetDSV());
 }
 
+void DX12App::CreateSRV() {
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.NumDescriptors = 3;
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	ThrowIfFailed(m_device_->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_SRV_heap_)));
+	std::cout << "SRV heap is created" << std::endl;
+}
+
 void DX12App::SetViewport() {
 	vp_.TopLeftX = 0.0f;
 	vp_.TopLeftY = 0.0f;
@@ -492,7 +501,7 @@ void DX12App::CreatePSO() {
 }
 
 void DX12App::ParseFile() {
-	sponza = aiImportFile("sponza.obj", aiProcessPreset_TargetRealtime_MaxQuality);
+	sponza = aiImportFile("cargo.obj", aiProcessPreset_TargetRealtime_MaxQuality);
 	std::cout << "Num Meshes : " << std::to_string(sponza->mNumMeshes) << std::endl;
 	ParseNode(sponza->mRootNode, sponza, vertices, indices);
 	std::cout << "sponza.obj is parsed" << std::endl;

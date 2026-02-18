@@ -34,6 +34,7 @@ public:
 	D3D12_CPU_DESCRIPTOR_HANDLE GetDSV() const;
 	void CreateRTV();
 	void CreateDSV();
+	void CreateSRV();
 	void SetViewport();
 	void SetScissor();
 
@@ -95,6 +96,7 @@ private:
 	ComPtr<ID3D12DescriptorHeap> m_RTV_heap_;
 	ComPtr<ID3D12DescriptorHeap> m_DSV_heap_;
 	ComPtr<ID3D12DescriptorHeap> m_CBV_heap_;
+	ComPtr<ID3D12DescriptorHeap> m_SRV_heap_;
 	int m_current_back_buffer_ = 0;
 
 	ComPtr<ID3D12Resource> m_swap_chain_buffer_[2];
