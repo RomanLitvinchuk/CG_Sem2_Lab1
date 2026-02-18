@@ -2,6 +2,8 @@ cbuffer cbPerObject : register(b0)
 {
     float4x4 mWorldViewProj;
 }
+Texture2D DiffuseMap : register(t0);
+SamplerState Sampler : register(s0);
 
 struct VS_INPUT
 {
@@ -28,7 +30,6 @@ VS_OUTPUT VS(VS_INPUT input)
 
 float4 PS(VS_OUTPUT input) : SV_TARGET
 {
-    float3 color = input.normal * 0.5f + 0.5f;
-    return float4(color, 1.0f);
-   
+    float4 color = DiffuseMap.Sample(Sampler, input.uv.xy);
+    return color;
 }

@@ -143,6 +143,7 @@ private:
 	const aiScene* sponza;
 	std::vector<Vertex> vertices;
 	std::vector<std::uint32_t> indices;
+	std::unique_ptr<Texture> m_texture;
 };
 
 #endif //DX12APP_
