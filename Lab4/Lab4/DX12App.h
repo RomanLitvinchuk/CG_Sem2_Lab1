@@ -1,5 +1,6 @@
 #ifndef DX12APP_
 #define DX12APP_
+
 #include <Windows.h>
 #include <d3d12.h>
 #include <DirectXHelpers.h>
@@ -13,6 +14,9 @@
 #include "upload_buffer.h"
 #include "object_constants.h"
 #include "vertex.h"
+#include <assimp/cimport.h>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -59,6 +63,8 @@ public:
 	void CreatePSO();
 
 	void ParseFile();
+	void ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
+	void ParseMesh(aiMesh* mesh, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
 
 	ComPtr<ID3D12Device> GetDevice() const { return m_device_; }
 	ComPtr<ID3D12GraphicsCommandList> GetCommandList() const { return m_command_list_; }
@@ -129,7 +135,9 @@ private:
 	float mRadius_ = 5.0f;   
 
 
-	ObjLoader objParser;
+	const aiScene* sponza;
+	std::vector<Vertex> vertices;
+	std::vector<std::uint32_t> indices;
 };
 
 #endif //DX12APP_

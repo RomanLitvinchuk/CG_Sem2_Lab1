@@ -241,7 +241,7 @@ void DX12App::Draw(const GameTimer& gt)
 	m_command_list_->SetGraphicsRootDescriptorTable(0, m_CBV_heap_->GetGPUDescriptorHandleForHeapStart());
 
 	m_command_list_->DrawIndexedInstanced(
-		objParser.GetIndexCount(),
+		indices.size(),
 		1, 0, 0, 0);
 
 	CD3DX12_RESOURCE_BARRIER barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -292,7 +292,6 @@ void DX12App::CreateVertexBuffer() {
 	//	{ Vector3(+1.0f, -1.0f, +1.0f), Vector4(Colors::Green) },
 	//	{ Vector3(0.0f, +1.0f, 0.0f), Vector4(Colors::Red)}
 	//};
-	const auto& vertices = objParser.GetVertices();
 	UINT vbByteSize = (UINT)(vertices.size() * sizeof(Vertex));
 	ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
 	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
@@ -321,8 +320,7 @@ void DX12App::CreateIndexBuffer() {
 	//	2, 3, 4,
 	//	3, 1, 4
 	//};
-	const auto& indices = objParser.GetIndices();
-	UINT ibByteSize = (UINT)(indices.size() * sizeof(std::uint16_t));
+	UINT ibByteSize = (UINT)(indices.size() * sizeof(std::uint32_t));
 	ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
 	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
 	IndexBufferGPU_ = d3dUtil::CreateDefaultBuffer(m_device_.Get(), m_command_list_.Get(), indices.data(), ibByteSize, IndexBufferUploader_);
@@ -333,7 +331,6 @@ void DX12App::CreateIndexBuffer() {
 	ibv.BufferLocation = IndexBufferGPU_->GetGPUVirtualAddress();
 	ibv.SizeInBytes = ibByteSize;
 	ibv.Format = DXGI_FORMAT_R32_UINT;
-	objParser.SetIndexCount(indices.size());
 	std::cout << "Index buffer is set" << std::endl;
 }
 
@@ -463,7 +460,8 @@ void DX12App::BuildLayout() {
 	m_input_layout_ =
 	{
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
 	};
 	std::cout << "Layout is builded" << std::endl;
 }
@@ -494,6 +492,59 @@ void DX12App::CreatePSO() {
 }
 
 void DX12App::ParseFile() {
-	objParser.Load("sponza.obj");
+	sponza = aiImportFile("sponza.obj", aiProcessPreset_TargetRealtime_MaxQuality);
+	std::cout << "Num Meshes : " << std::to_string(sponza->mNumMeshes) << std::endl;
+	ParseNode(sponza->mRootNode, sponza, vertices, indices);
 	std::cout << "sponza.obj is parsed" << std::endl;
+	std::cout << "Num Vertices is:" << std::to_string(vertices.size()) << std::endl;
+	std::cout << "Num Faces is: " << std::to_string(sponza->mMeshes[0]->mNumFaces) << std::endl;
+	std::cout << "Num indices is:" << std::to_string(indices.size()) << std::endl;
+}
+
+void DX12App::ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
+	for (int i = 0; i < node->mNumMeshes; i++) {
+		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
+		ParseMesh(mesh, vertices, indices);
+	}
+
+	for (int i = 0; i < node->mNumChildren; i++) {
+		ParseNode(node->mChildren[i], scene, vertices, indices);
+	}
+}
+
+void DX12App::ParseMesh(aiMesh* mesh, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
+	size_t vertexOffset = vertices.size();
+
+	for (int i = 0; i < mesh->mNumVertices; ++i) {
+		Vertex vertex;
+
+		vertex.pos.x = mesh->mVertices[i].x;
+		vertex.pos.y = mesh->mVertices[i].y;
+		vertex.pos.z = mesh->mVertices[i].z;
+
+		if (mesh->HasNormals()) {
+			vertex.normal.x = mesh->mNormals[i].x;
+			vertex.normal.y = mesh->mNormals[i].y;
+			vertex.normal.z = mesh->mNormals[i].z;
+		}
+		else {
+			vertex.normal = Vector3(0.0f, 1.0f, 0.0f);
+		}
+		if (mesh->HasTextureCoords(0)) {
+			vertex.uv.x = mesh->mTextureCoords[0][i].x;
+			vertex.uv.y = 1.0f - mesh->mTextureCoords[0][i].y;
+		}
+		else {
+			vertex.uv = Vector2(0.0f, 0.0f);
+		}
+
+		vertices.push_back(vertex);
+
+	}
+	for (int i = 0; i < mesh->mNumFaces; ++i) {
+		aiFace face = mesh->mFaces[i];
+		for (int j = 0; j < face.mNumIndices; ++j) {
+			indices.push_back(face.mIndices[j] + vertexOffset);
+		}
+	}
 }

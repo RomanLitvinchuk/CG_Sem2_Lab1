@@ -60,4 +60,9 @@
   <ItemGroup>
     <None Include="packages.config" />
   </ItemGroup>
+  <ItemGroup>
+    <FxCompile Include="shaders.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
+  </ItemGroup>
 </Project>

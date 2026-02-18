@@ -3,16 +3,32 @@ cbuffer cbPerObject : register(b0)
     float4x4 mWorldViewProj;
 }
 
-void VS(float3 iPosL : POSITION,
-        float4 iColor : COLOR,
-        out float4 oPosH : SV_POSITION,
-        out float4 oColor : COLOR)
+struct VS_INPUT
 {
-    oPosH = mul(float4(iPosL, 1.0f), mWorldViewProj);
-    oColor = iColor;
+    float3 pos : POSITION;
+    float3 normal : NORMAL;
+    float2 uv : TEXCOORD;
+};
+
+struct VS_OUTPUT
+{
+    float4 pos : SV_POSITION;
+    float3 normal : NORMAL;
+    float2 uv : TEXCOORD;
+};
+
+VS_OUTPUT VS(VS_INPUT input)
+{
+    VS_OUTPUT output;
+    output.pos = mul(float4(input.pos, 1.0f), mWorldViewProj);
+    output.normal = input.normal;
+    output.uv = input.uv;
+    return output;
 }
 
-float4 PS(float4 oPosH : SV_POSITION, float4 Color : COLOR) : SV_TARGET
+float4 PS(VS_OUTPUT input) : SV_TARGET
 {
-    return Color;
+    float3 color = input.normal * 0.5f + 0.5f;
+    return float4(color, 1.0f);
+   
 }

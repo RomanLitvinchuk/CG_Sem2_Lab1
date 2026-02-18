@@ -6,24 +6,26 @@ cbuffer cbPerObject : register(b0)
 struct VSInput
 {
     float3 Pos : POSITION;
-    float4 Color : COLOR;
+    float3 Normal : NORMAL;
+    float2 uv : TEXCOORD;
 };
 
 struct PSInput
 {
-    float4 PosH : SV_POSITION;
-    float4 Color : COLOR;
+    float3 Pos : POSITION;
+    float3 Normal : NORMAL;
+    float2 uv : TEXCOORD;
 };
 
 PSInput VS(VSInput vin)
 {
     PSInput vout;
-    vout.PosH = mul(float4(vin.Pos, 1.0f), mWorldViewProj);
-    vout.Color = vin.Color;
+    vout.Pos = mul(float4(vin.Pos, 1.0f), mWorldViewProj);
+    //vout.Color = vin.Color;
     return vout;
 }
 
 float4 PS(PSInput pin) : SV_TARGET
 {
-    return pin.Color;
+    return float4(0.0f, 0.0f, 0.0f, 0.0f);
 }
