@@ -169,12 +169,6 @@ void DX12App::CreateSRV() {
 	cargoTex->filepath = L"textures/texture.dds";
 	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_device_.Get(), m_command_list_.Get(),
 		cargoTex->filepath.c_str(), cargoTex->Resource, cargoTex->UploadHeap));
-	auto barrier = CD3DX12_RESOURCE_BARRIER::Transition(
-		m_texture->Resource.Get(),
-		D3D12_RESOURCE_STATE_COPY_DEST,
-		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-
-	m_command_list_->ResourceBarrier(1, &barrier);
 	std::cout << "Texture is loaded" << std::endl;
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_CBV_SRV_heap_->GetCPUDescriptorHandleForHeapStart());
