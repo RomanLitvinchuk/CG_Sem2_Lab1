@@ -105,12 +105,12 @@ void DX12App::CreateRTVAndDSVDescriptorHeaps() {
 }
 
 void DX12App::CreateCBVDescriptorHeap() {
-	D3D12_DESCRIPTOR_HEAP_DESC CBVHeapDesc;
-	CBVHeapDesc.NumDescriptors = 1;
-	CBVHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	CBVHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	CBVHeapDesc.NodeMask = 0;
-	ThrowIfFailed(m_device_->CreateDescriptorHeap(&CBVHeapDesc, IID_PPV_ARGS(&m_CBV_heap_)));
+	D3D12_DESCRIPTOR_HEAP_DESC CBV_SRV_HeapDesc;
+	CBV_SRV_HeapDesc.NumDescriptors = 2;
+	CBV_SRV_HeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	CBV_SRV_HeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	CBV_SRV_HeapDesc.NodeMask = 0;
+	ThrowIfFailed(m_device_->CreateDescriptorHeap(&CBV_SRV_HeapDesc, IID_PPV_ARGS(&m_CBV_SRV_heap_)));
 	std::cout << "CBV heap is created" << std::endl;
 }
 
@@ -162,12 +162,6 @@ void DX12App::CreateDSV() {
 }
 
 void DX12App::CreateSRV() {
-	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 3;
-	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-	ThrowIfFailed(m_device_->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_SRV_heap_)));
-	std::cout << "SRV heap is created" << std::endl;
 
 	auto cargoTex = std::make_unique<Texture>();
 	cargoTex->name_ = "cargoTex";
@@ -177,7 +171,8 @@ void DX12App::CreateSRV() {
 	std::cout << "Texture is loaded" << std::endl;
 
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_SRV_heap_->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_CBV_SRV_heap_->GetCPUDescriptorHandleForHeapStart());
+	hDescriptor.Offset(1, m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Format = cargoTex->Resource->GetDesc().Format;
@@ -187,6 +182,28 @@ void DX12App::CreateSRV() {
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	m_device_->CreateShaderResourceView(cargoTex->Resource.Get(), &srvDesc, hDescriptor);
 	std::cout << "SRV is created" << std::endl;
+}
+
+void DX12App::CreateSamplerHeap() {
+	D3D12_DESCRIPTOR_HEAP_DESC sampHeapDesc = {};
+	sampHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	sampHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+	sampHeapDesc.NumDescriptors = 1;
+	ThrowIfFailed(m_device_->CreateDescriptorHeap(&sampHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&m_sampler_heap));
+	std::cout << "Sampler heap is created" << std::endl;
+
+	D3D12_SAMPLER_DESC sampDesc = {};
+	sampDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	sampDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	sampDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_WRAP;
+	sampDesc.MinLOD = 0;
+	sampDesc.MaxLOD = D3D12_FLOAT32_MAX;
+	sampDesc.MipLODBias = 0.0f;
+	sampDesc.MaxAnisotropy = 1;
+	sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+	m_device_->CreateSampler(&sampDesc, m_sampler_heap->GetCPUDescriptorHandleForHeapStart());
+	std::cout << "Sampler Descriptor is created" << std::endl;
 }
 
 void DX12App::SetViewport() {
@@ -258,7 +275,7 @@ void DX12App::Draw(const GameTimer& gt)
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv = GetDSV();
 	m_command_list_->OMSetRenderTargets(1, &bb, true, &dsv);
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_CBV_heap_.Get(), m_SRV_heap_.Get()};
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_CBV_SRV_heap_.Get(), m_sampler_heap.Get()};
 	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	m_command_list_->SetGraphicsRootSignature(m_root_signature_.Get());
@@ -266,9 +283,12 @@ void DX12App::Draw(const GameTimer& gt)
 	m_command_list_->IASetVertexBuffers(0, 1, &VertexBuffers[0]);
 	m_command_list_->IASetIndexBuffer(&ibv);
 	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	m_command_list_->SetGraphicsRootDescriptorTable(0, m_CBV_heap_->GetGPUDescriptorHandleForHeapStart());
-	m_command_list_->SetGraphicsRootDescriptorTable(1, m_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
+	CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle(m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
+	m_command_list_->SetGraphicsRootDescriptorTable(0, cbvHandle);
+	CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
+	srvHandle.Offset(1, m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+	m_command_list_->SetGraphicsRootDescriptorTable(1, srvHandle);
+	m_command_list_->SetGraphicsRootDescriptorTable(2, m_sampler_heap->GetGPUDescriptorHandleForHeapStart());
 
 	m_command_list_->DrawIndexedInstanced(
 		indices.size(),
@@ -432,21 +452,24 @@ void DX12App::CreateConstantBufferView() {
 	D3D12_CONSTANT_BUFFER_VIEW_DESC cbDesc;
 	cbDesc.BufferLocation = cbAddress;
 	cbDesc.SizeInBytes = cbByteSize;
-	m_device_->CreateConstantBufferView(&cbDesc, m_CBV_heap_->GetCPUDescriptorHandleForHeapStart());
+	m_device_->CreateConstantBufferView(&cbDesc, m_CBV_SRV_heap_->GetCPUDescriptorHandleForHeapStart());
 	std::cout << "Constant buffer view is created" << std::endl;
 }
 
 void DX12App::CreateRootSignature() {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[3];
 	CD3DX12_DESCRIPTOR_RANGE cbvTable;
 	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 	CD3DX12_DESCRIPTOR_RANGE srvTable;
 	srvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable);
-	slotRootParameter[1].InitAsDescriptorTable(1, &srvTable);
+	CD3DX12_DESCRIPTOR_RANGE samplerTable;
+	samplerTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable, D3D12_SHADER_VISIBILITY_ALL);
+	slotRootParameter[1].InitAsDescriptorTable(1, &srvTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	slotRootParameter[2].InitAsDescriptorTable(1, &samplerTable, D3D12_SHADER_VISIBILITY_PIXEL);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
-		2, slotRootParameter,
+		3, slotRootParameter,
 		0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 	);

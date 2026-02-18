@@ -142,7 +142,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	MyFramework.CreateRTVAndDSVDescriptorHeaps();
 	MyFramework.CreateRTV();
 	MyFramework.CreateDSV();
+    MyFramework.CreateCBVDescriptorHeap();
     MyFramework.CreateSRV();
+    MyFramework.CreateSamplerHeap();
 	MyFramework.SetViewport();
 	MyFramework.SetScissor();
 	MyFramework.SetTopology();
@@ -152,7 +154,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	MyFramework.CreateVertexBuffer();
 	MyFramework.CreateIndexBuffer();
 	MyFramework.InitUploadBuffer();
-	MyFramework.CreateCBVDescriptorHeap();
 	MyFramework.CreateConstantBufferView();
 	MyFramework.CreateRootSignature();
 	MyFramework.CompileShaders();
