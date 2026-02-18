@@ -14,6 +14,7 @@
 #include "upload_buffer.h"
 #include "object_constants.h"
 #include "vertex.h"
+#include "texture.h"
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>

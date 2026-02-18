@@ -6,6 +6,7 @@
 #include <SimpleMath.h>
 #include "d3dUtil.h"
 #include "vertex.h"
+#include "DDSTextureLoader.h"
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -167,6 +168,25 @@ void DX12App::CreateSRV() {
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(m_device_->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&m_SRV_heap_)));
 	std::cout << "SRV heap is created" << std::endl;
+
+	auto cargoTex = std::make_unique<Texture>();
+	cargoTex->name_ = "cargoTex";
+	cargoTex->filepath = L"textures/texture.dds";
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_device_.Get(), m_command_list_.Get(),
+		cargoTex->filepath.c_str(), cargoTex->Resource, cargoTex->UploadHeap));
+	std::cout << "Texture is loaded" << std::endl;
+
+
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_SRV_heap_->GetCPUDescriptorHandleForHeapStart());
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = cargoTex->Resource->GetDesc().Format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = cargoTex->Resource->GetDesc().MipLevels;
+	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+	m_device_->CreateShaderResourceView(cargoTex->Resource.Get(), &srvDesc, hDescriptor);
+	std::cout << "SRV is created" << std::endl;
 }
 
 void DX12App::SetViewport() {
