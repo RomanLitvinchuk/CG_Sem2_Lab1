@@ -258,7 +258,7 @@ void DX12App::Draw(const GameTimer& gt)
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv = GetDSV();
 	m_command_list_->OMSetRenderTargets(1, &bb, true, &dsv);
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_CBV_heap_.Get() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_CBV_heap_.Get(), m_SRV_heap_.Get()};
 	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	m_command_list_->SetGraphicsRootSignature(m_root_signature_.Get());
@@ -268,6 +268,7 @@ void DX12App::Draw(const GameTimer& gt)
 	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	m_command_list_->SetGraphicsRootDescriptorTable(0, m_CBV_heap_->GetGPUDescriptorHandleForHeapStart());
+	m_command_list_->SetGraphicsRootDescriptorTable(1, m_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
 
 	m_command_list_->DrawIndexedInstanced(
 		indices.size(),
@@ -436,13 +437,16 @@ void DX12App::CreateConstantBufferView() {
 }
 
 void DX12App::CreateRootSignature() {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[1];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
 	CD3DX12_DESCRIPTOR_RANGE cbvTable;
 	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+	CD3DX12_DESCRIPTOR_RANGE srvTable;
+	srvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable);
+	slotRootParameter[1].InitAsDescriptorTable(1, &srvTable);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
-		1, slotRootParameter,
+		2, slotRootParameter,
 		0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 	);
