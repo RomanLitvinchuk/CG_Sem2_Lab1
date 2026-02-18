@@ -32,4 +32,5 @@ float4 PS(VS_OUTPUT input) : SV_TARGET
 {
     float4 color = DiffuseMap.Sample(Sampler, input.uv.xy);
     return color;
+    //return DiffuseMap.Load(int3(100, 100, 0));
 }

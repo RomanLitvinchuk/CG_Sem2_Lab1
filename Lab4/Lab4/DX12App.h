@@ -15,6 +15,7 @@
 #include "object_constants.h"
 #include "vertex.h"
 #include "texture.h"
+#include <unordered_map>
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -35,6 +36,7 @@ public:
 	D3D12_CPU_DESCRIPTOR_HANDLE GetDSV() const;
 	void CreateRTV();
 	void CreateDSV();
+	void LoadTexture();
 	void CreateSRV();
 	void CreateSamplerHeap();
 
@@ -143,7 +145,7 @@ private:
 	const aiScene* sponza;
 	std::vector<Vertex> vertices;
 	std::vector<std::uint32_t> indices;
-	std::unique_ptr<Texture> m_texture;
+	std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
 };
 
 #endif //DX12APP_

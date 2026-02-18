@@ -161,26 +161,35 @@ void DX12App::CreateDSV() {
 	m_device_->CreateDepthStencilView(m_DSV_buffer.Get(), nullptr, GetDSV());
 }
 
-void DX12App::CreateSRV() {
-
-	m_texture = std::make_unique<Texture>();
-	auto& cargoTex = m_texture;
+void DX12App::LoadTexture() {
+	auto cargoTex = std::make_unique<Texture>();
 	cargoTex->name_ = "cargoTex";
 	cargoTex->filepath = L"textures/texture.dds";
+	std::cout << m_command_list_->GetType() << std::endl;
+	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
 	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_device_.Get(), m_command_list_.Get(),
 		cargoTex->filepath.c_str(), cargoTex->Resource, cargoTex->UploadHeap));
+	ThrowIfFailed(m_command_list_->Close());
+	ID3D12CommandList* ppCommandLists[] = { m_command_list_.Get() };
+	m_command_queue_->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	FlushCommandQueue();
 	std::cout << "Texture is loaded" << std::endl;
+	mTextures[cargoTex->name_] = std::move(cargoTex);
+}
 
+void DX12App::CreateSRV() {
+
+	auto cargoTex = mTextures["cargoTex"]->Resource;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_CBV_SRV_heap_->GetCPUDescriptorHandleForHeapStart());
 	hDescriptor.Offset(1, m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = cargoTex->Resource->GetDesc().Format;
+	srvDesc.Format = cargoTex->GetDesc().Format;
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = cargoTex->Resource->GetDesc().MipLevels;
+	srvDesc.Texture2D.MipLevels = cargoTex->GetDesc().MipLevels;
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	m_device_->CreateShaderResourceView(cargoTex->Resource.Get(), &srvDesc, hDescriptor);
+	m_device_->CreateShaderResourceView(cargoTex.Get(), &srvDesc, hDescriptor);
 	std::cout << "SRV is created" << std::endl;
 }
 

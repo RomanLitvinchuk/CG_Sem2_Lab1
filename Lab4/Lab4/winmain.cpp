@@ -143,6 +143,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	MyFramework.CreateRTV();
 	MyFramework.CreateDSV();
     MyFramework.CreateCBVDescriptorHeap();
+    MyFramework.LoadTexture();
     MyFramework.CreateSRV();
     MyFramework.CreateSamplerHeap();
 	MyFramework.SetViewport();
