@@ -456,12 +456,14 @@ void DX12App::Update(const GameTimer& gt) {
 
 	ObjectConstants obj;
 	obj.mWorldViewProj = WorldViewProj;
-
+	obj.mTexTransform = Matrix::Identity;
 	CBUploadBuffer->CopyData(0, obj);
 
 	for (int i = 0; i < materialData.size(); ++i) {
+		materialData[i].MatTransform = Matrix::Identity;
 		MaterialCB->CopyData(i, materialData[i]);
 	}
+
 }
 
 void DX12App::InitUploadBuffers() {
