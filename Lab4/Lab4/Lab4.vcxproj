@@ -144,6 +144,7 @@
     <ClInclude Include="DDSTextureLoader.h" />
     <ClInclude Include="DX12App.h" />
     <ClInclude Include="game_timer.h" />
+    <ClInclude Include="materials.h" />
     <ClInclude Include="object_constants.h" />
     <ClInclude Include="texture.h" />
     <ClInclude Include="throw_if_failed.h" />

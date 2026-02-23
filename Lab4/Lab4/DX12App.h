@@ -15,6 +15,7 @@
 #include "object_constants.h"
 #include "vertex.h"
 #include "texture.h"
+#include "materials.h"
 #include <unordered_map>
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
@@ -70,7 +71,7 @@ public:
 
 	void ParseFile();
 	void ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
-	void ParseMesh(aiMesh* mesh, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
+	void ParseMesh(const aiScene* scene, aiMesh* mesh, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
 
 	ComPtr<ID3D12Device> GetDevice() const { return m_device_; }
 	ComPtr<ID3D12GraphicsCommandList> GetCommandList() const { return m_command_list_; }
@@ -146,6 +147,7 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<std::uint32_t> indices;
 	std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
+	std::unordered_map<std::string, aiMaterial*> mMaterials;
 };
 
 #endif //DX12APP_

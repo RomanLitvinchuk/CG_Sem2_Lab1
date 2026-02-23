@@ -569,7 +569,7 @@ void DX12App::ParseFile() {
 void DX12App::ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
 	for (int i = 0; i < node->mNumMeshes; i++) {
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-		ParseMesh(mesh, vertices, indices);
+		ParseMesh(scene, mesh, vertices, indices);
 	}
 
 	for (int i = 0; i < node->mNumChildren; i++) {
@@ -577,7 +577,7 @@ void DX12App::ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>&
 	}
 }
 
-void DX12App::ParseMesh(aiMesh* mesh, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
+void DX12App::ParseMesh(const aiScene* scene, aiMesh* mesh, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
 	size_t vertexOffset = vertices.size();
 
 	for (int i = 0; i < mesh->mNumVertices; ++i) {
@@ -611,5 +611,13 @@ void DX12App::ParseMesh(aiMesh* mesh, std::vector<Vertex>& vertices, std::vector
 		for (int j = 0; j < face.mNumIndices; ++j) {
 			indices.push_back(face.mIndices[j] + vertexOffset);
 		}
+	}
+
+	int MaterialIndex = mesh->mMaterialIndex;
+	if (MaterialIndex < scene->mNumMaterials) {
+		aiMaterial* material = scene->mMaterials[MaterialIndex];
+		aiString material_name = material->GetName();
+		std::cout << "Material name is: " << material_name.C_Str() << std::endl;
+		mMaterials[material_name.C_Str()] = std::move(material);
 	}
 }
