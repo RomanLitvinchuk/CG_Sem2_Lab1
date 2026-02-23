@@ -422,7 +422,6 @@ void DX12App::OnMouseMove(WPARAM btnState, int dx, int dy) {
 }
 
 void DX12App::Update(const GameTimer& gt) {
-	std::cout << "Phi_" << std::to_string(mPhi_) << "Theta" << std::to_string(mTheta_) << std::endl;
 	float x = mRadius_ * sinf(mPhi_) * cosf(mTheta_);
 	float z = mRadius_ * sinf(mPhi_) * sinf(mTheta_);
 	float y = mRadius_ * cosf(mPhi_);
@@ -445,12 +444,13 @@ void DX12App::Update(const GameTimer& gt) {
 	CBUploadBuffer->CopyData(0, obj);
 }
 
-void DX12App::InitUploadBuffer() {
+void DX12App::InitUploadBuffers() {
 	CBUploadBuffer = std::make_unique<UploadBuffer<ObjectConstants>>(
 		m_device_.Get(),
 		1,
 		true
 	);
+	MaterialCB = std::make_unique<UploadBuffer<MaterialConstants>>(m_device_.Get(), 100, true);
 }
 
 void DX12App::CreateConstantBufferView() {
@@ -614,10 +614,45 @@ void DX12App::ParseMesh(const aiScene* scene, aiMesh* mesh, std::vector<Vertex>&
 	}
 
 	int MaterialIndex = mesh->mMaterialIndex;
+	mMeshesMaterialIndex.push_back(MaterialIndex);
+	std::cout << "Material index is:" << std::to_string(MaterialIndex) << std::endl;
 	if (MaterialIndex < scene->mNumMaterials) {
 		aiMaterial* material = scene->mMaterials[MaterialIndex];
-		aiString material_name = material->GetName();
-		std::cout << "Material name is: " << material_name.C_Str() << std::endl;
-		mMaterials[material_name.C_Str()] = std::move(material);
+		mMaterials_.push_back(material);
+		ExtractMaterialData(MaterialIndex, material);
 	}
+}
+
+void DX12App::ExtractMaterialData(int MaterialIndex, aiMaterial* material) {
+	MaterialConstants MatConst;
+
+	aiColor3D color = { 1.0f, 1.0f, 1.0f };
+	float parameter = 0.0f;
+	if (material->Get(AI_MATKEY_COLOR_DIFFUSE, color) == AI_SUCCESS) {
+		MatConst.DiffuseColor = { color.r, color.g, color.b, 1.0f };
+	}
+	if (material->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS) {
+		MatConst.AmbientColor = { color.r, color.g, color.b, 1.0f };
+	}
+	if (material->Get(AI_MATKEY_COLOR_SPECULAR, color) == AI_SUCCESS) {
+		MatConst.SpecularColor = { color.r, color.g, color.b, 1.0f };
+	}
+	if (material->Get(AI_MATKEY_COLOR_EMISSIVE, color) == AI_SUCCESS) {
+		MatConst.EmissiveColor = { color.r, color.g, color.b, 1.0f };
+	}
+	if (material->Get(AI_MATKEY_COLOR_TRANSPARENT, color) == AI_SUCCESS) {
+		MatConst.TransparentColor = { color.r, color.g, color.b, 1.0f };
+	}
+	if (material->Get(AI_MATKEY_SHININESS, parameter) == AI_SUCCESS) {
+		MatConst.Shininess = parameter;
+	}
+	if (material->Get(AI_MATKEY_OPACITY, parameter) == AI_SUCCESS) {
+		MatConst.Opacity = parameter;
+	}
+
+	if (materialData.size() <= MaterialIndex) {
+		materialData.resize(MaterialIndex + 1);
+	}
+
+	materialData[MaterialIndex] = MatConst;
 }

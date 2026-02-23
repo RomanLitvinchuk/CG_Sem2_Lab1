@@ -154,7 +154,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     MyFramework.ParseFile();
 	MyFramework.CreateVertexBuffer();
 	MyFramework.CreateIndexBuffer();
-	MyFramework.InitUploadBuffer();
+	MyFramework.InitUploadBuffers();
 	MyFramework.CreateConstantBufferView();
 	MyFramework.CreateRootSignature();
 	MyFramework.CompileShaders();

@@ -60,7 +60,7 @@ public:
 
 	void Update(const GameTimer& gt);
 
-	void InitUploadBuffer();
+	void InitUploadBuffers();
 	void CreateConstantBufferView();
 
 	void CreateRootSignature();
@@ -72,6 +72,7 @@ public:
 	void ParseFile();
 	void ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
 	void ParseMesh(const aiScene* scene, aiMesh* mesh, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
+	void ExtractMaterialData(int MaterialIndex, aiMaterial* material);
 
 	ComPtr<ID3D12Device> GetDevice() const { return m_device_; }
 	ComPtr<ID3D12GraphicsCommandList> GetCommandList() const { return m_command_list_; }
@@ -121,6 +122,7 @@ private:
 
 
 	std::unique_ptr<UploadBuffer<ObjectConstants>> CBUploadBuffer;
+	std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialCB = nullptr;
 
 	ComPtr<ID3DBlob> serializedRootSig_ = nullptr;
 	ComPtr<ID3DBlob> errorBlob_ = nullptr;
@@ -147,7 +149,9 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<std::uint32_t> indices;
 	std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
-	std::unordered_map<std::string, aiMaterial*> mMaterials;
+	std::vector<aiMaterial*> mMaterials_;
+	std::vector<int> mMeshesMaterialIndex;
+	std::vector<MaterialConstants> materialData;
 };
 
 #endif //DX12APP_

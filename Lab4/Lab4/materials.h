@@ -7,17 +7,21 @@
 using namespace DirectX;
 using namespace SimpleMath;
 
+struct MaterialConstants
+{
+    Vector4 DiffuseColor;
+    Vector4 AmbientColor;
+    Vector4 SpecularColor;
+    Vector4 EmissiveColor;
+    Vector4 TransparentColor;
 
-struct Material {
-	std::string name_;
-	int matCBindex_ = -1;
-	int diffuseSRVHeapDesc_ = -1;
-	Vector4 diffuseAlbedo_ = { 1.0f, 1.0f, 1.0f, 1.0f };
-	Vector3 fresnelR0 = { 0.01f, 0.01f, 0.01f };
-	float roughness_ = 0.25f;
+    float Shininess;
+    float Opacity;
+    float RefractionIndex;
 
-	Matrix matTransform_ = Matrix::Identity;
-	
+
+
+    Matrix MatTransform = Matrix::Identity;
 };
 
 
