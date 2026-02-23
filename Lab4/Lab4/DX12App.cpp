@@ -106,7 +106,7 @@ void DX12App::CreateRTVAndDSVDescriptorHeaps() {
 
 void DX12App::CreateCBVDescriptorHeap() {
 	D3D12_DESCRIPTOR_HEAP_DESC CBV_SRV_HeapDesc;
-	CBV_SRV_HeapDesc.NumDescriptors = 2;
+	CBV_SRV_HeapDesc.NumDescriptors = 3;
 	CBV_SRV_HeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	CBV_SRV_HeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	CBV_SRV_HeapDesc.NodeMask = 0;
@@ -191,6 +191,20 @@ void DX12App::CreateSRV() {
 	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
 	m_device_->CreateShaderResourceView(cargoTex.Get(), &srvDesc, hDescriptor);
 	std::cout << "SRV is created" << std::endl;
+}
+
+void DX12App::CreateMatView()
+{
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hMaterial(m_CBV_SRV_heap_->GetCPUDescriptorHandleForHeapStart());
+	hMaterial.Offset(2, m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+	UINT matBufferSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
+	D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress();
+
+	D3D12_CONSTANT_BUFFER_VIEW_DESC matDesc = {};
+	matDesc.BufferLocation = matAddress;
+	matDesc.SizeInBytes = matBufferSize;
+
+	m_device_->CreateConstantBufferView(&matDesc, hMaterial);
 }
 
 void DX12App::CreateSamplerHeap() {
@@ -296,9 +310,11 @@ void DX12App::Draw(const GameTimer& gt)
 	m_command_list_->SetGraphicsRootDescriptorTable(0, cbvHandle);
 	CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
 	srvHandle.Offset(1, m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
+	CD3DX12_GPU_DESCRIPTOR_HANDLE matHandle(m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
+	matHandle.Offset(2, m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 	m_command_list_->SetGraphicsRootDescriptorTable(1, srvHandle);
 	m_command_list_->SetGraphicsRootDescriptorTable(2, m_sampler_heap->GetGPUDescriptorHandleForHeapStart());
-
+	m_command_list_->SetGraphicsRootDescriptorTable(3, matHandle);
 	m_command_list_->DrawIndexedInstanced(
 		indices.size(),
 		1, 0, 0, 0);
@@ -411,7 +427,7 @@ void DX12App::OnMouseMove(WPARAM btnState, int dx, int dy) {
 		mPhi_ += XMConvertToRadians(0.25f * static_cast<float>(dy));
 
 		mPhi_ = mPhi_ < 0.1f ? 0.1f : (mPhi_ > XM_PI ? XM_PI : mPhi_);
-		std::cout << "PHI:" << std::to_string(mPhi_) << " THETA:" << std::to_string(mTheta_);
+		//std::cout << "PHI:" << std::to_string(mPhi_) << " THETA:" << std::to_string(mTheta_);
 	}
 	else if ((btnState & MK_RBUTTON) != 0)
 	{
@@ -442,6 +458,10 @@ void DX12App::Update(const GameTimer& gt) {
 	obj.mWorldViewProj = WorldViewProj;
 
 	CBUploadBuffer->CopyData(0, obj);
+
+	for (int i = 0; i < materialData.size(); ++i) {
+		MaterialCB->CopyData(i, materialData[i]);
+	}
 }
 
 void DX12App::InitUploadBuffers() {
@@ -466,19 +486,22 @@ void DX12App::CreateConstantBufferView() {
 }
 
 void DX12App::CreateRootSignature() {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[3];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
 	CD3DX12_DESCRIPTOR_RANGE cbvTable;
 	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 	CD3DX12_DESCRIPTOR_RANGE srvTable;
 	srvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	CD3DX12_DESCRIPTOR_RANGE samplerTable;
 	samplerTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+	CD3DX12_DESCRIPTOR_RANGE matTable;
+	matTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
 	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable, D3D12_SHADER_VISIBILITY_ALL);
 	slotRootParameter[1].InitAsDescriptorTable(1, &srvTable, D3D12_SHADER_VISIBILITY_PIXEL);
 	slotRootParameter[2].InitAsDescriptorTable(1, &samplerTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	slotRootParameter[3].InitAsDescriptorTable(1, &matTable, D3D12_SHADER_VISIBILITY_ALL);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
-		3, slotRootParameter,
+		4, slotRootParameter,
 		0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 	);
@@ -564,6 +587,7 @@ void DX12App::ParseFile() {
 	std::cout << "Num Vertices is:" << std::to_string(vertices.size()) << std::endl;
 	std::cout << "Num Faces is: " << std::to_string(sponza->mMeshes[0]->mNumFaces) << std::endl;
 	std::cout << "Num indices is:" << std::to_string(indices.size()) << std::endl;
+
 }
 
 void DX12App::ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
@@ -612,6 +636,7 @@ void DX12App::ParseMesh(const aiScene* scene, aiMesh* mesh, std::vector<Vertex>&
 			indices.push_back(face.mIndices[j] + vertexOffset);
 		}
 	}
+	MeshIndexCounts.push_back(mesh->mNumFaces * 3);
 
 	int MaterialIndex = mesh->mMaterialIndex;
 	mMeshesMaterialIndex.push_back(MaterialIndex);
@@ -645,9 +670,11 @@ void DX12App::ExtractMaterialData(int MaterialIndex, aiMaterial* material) {
 	}
 	if (material->Get(AI_MATKEY_SHININESS, parameter) == AI_SUCCESS) {
 		MatConst.Shininess = parameter;
+		std::cout << "shininess is:" << std::to_string(parameter) << std::endl;
 	}
 	if (material->Get(AI_MATKEY_OPACITY, parameter) == AI_SUCCESS) {
 		MatConst.Opacity = parameter;
+		std::cout << "opacity is:" << std::to_string(parameter) << std::endl;
 	}
 
 	if (materialData.size() <= MaterialIndex) {

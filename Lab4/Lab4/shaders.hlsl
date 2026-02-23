@@ -2,6 +2,22 @@ cbuffer cbPerObject : register(b0)
 {
     float4x4 mWorldViewProj;
 }
+
+cbuffer cbMaterial : register(b1)
+{
+    float4 gDiffuseColor;
+    float4 gAmbientColor;
+    float4 gSpecularColor;
+    float4 gEmissiveColor;
+    float4 gTransparentColor;
+
+    float gShininess;
+    float gOpacity;
+    float gRefractionIndex;
+    
+    float4x4 mMatTransform;
+}
+
 Texture2D DiffuseMap : register(t0);
 SamplerState Sampler : register(s0);
 

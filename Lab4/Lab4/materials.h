@@ -24,6 +24,8 @@ struct MaterialConstants
     Matrix MatTransform = Matrix::Identity;
 };
 
+//static_assert(sizeof(MaterialConstants) == 160,
+//    "MaterialConstants should be 160 bytes (16*5 + 4*3 + 4 + 64)");
 
 
 #endif //MATERIALS_H_

@@ -39,6 +39,7 @@ public:
 	void CreateDSV();
 	void LoadTexture();
 	void CreateSRV();
+	void CreateMatView();
 	void CreateSamplerHeap();
 
 	void SetViewport();
@@ -148,6 +149,7 @@ private:
 	const aiScene* sponza;
 	std::vector<Vertex> vertices;
 	std::vector<std::uint32_t> indices;
+	std::vector<UINT> MeshIndexCounts;
 	std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
 	std::vector<aiMaterial*> mMaterials_;
 	std::vector<int> mMeshesMaterialIndex;
