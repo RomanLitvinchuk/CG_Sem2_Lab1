@@ -9,6 +9,9 @@ using namespace SimpleMath;
 
 struct MaterialConstants
 {
+
+    Matrix MatTransform = Matrix::Identity;
+
     Vector4 DiffuseColor;
     Vector4 AmbientColor;
     Vector4 SpecularColor;
@@ -18,10 +21,8 @@ struct MaterialConstants
     float Shininess;
     float Opacity;
     float RefractionIndex;
+    float Padding;
 
-
-
-    Matrix MatTransform = Matrix::Identity;
 };
 
 //static_assert(sizeof(MaterialConstants) == 160,

@@ -193,20 +193,6 @@ void DX12App::CreateSRV() {
 	std::cout << "SRV is created" << std::endl;
 }
 
-void DX12App::CreateMatView()
-{
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hMaterial(m_CBV_SRV_heap_->GetCPUDescriptorHandleForHeapStart());
-	hMaterial.Offset(2, m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
-	UINT matBufferSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
-	D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress();
-
-	D3D12_CONSTANT_BUFFER_VIEW_DESC matDesc = {};
-	matDesc.BufferLocation = matAddress;
-	matDesc.SizeInBytes = matBufferSize;
-
-	m_device_->CreateConstantBufferView(&matDesc, hMaterial);
-}
-
 void DX12App::CreateSamplerHeap() {
 	D3D12_DESCRIPTOR_HEAP_DESC sampHeapDesc = {};
 	sampHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -310,11 +296,12 @@ void DX12App::Draw(const GameTimer& gt)
 	m_command_list_->SetGraphicsRootDescriptorTable(0, cbvHandle);
 	CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
 	srvHandle.Offset(1, m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
-	CD3DX12_GPU_DESCRIPTOR_HANDLE matHandle(m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
-	matHandle.Offset(2, m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
 	m_command_list_->SetGraphicsRootDescriptorTable(1, srvHandle);
 	m_command_list_->SetGraphicsRootDescriptorTable(2, m_sampler_heap->GetGPUDescriptorHandleForHeapStart());
-	m_command_list_->SetGraphicsRootDescriptorTable(3, matHandle);
+	UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
+	D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress();
+	m_command_list_->SetGraphicsRootConstantBufferView(3, matAddress);
+
 	m_command_list_->DrawIndexedInstanced(
 		indices.size(),
 		1, 0, 0, 0);
@@ -495,12 +482,10 @@ void DX12App::CreateRootSignature() {
 	srvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	CD3DX12_DESCRIPTOR_RANGE samplerTable;
 	samplerTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
-	CD3DX12_DESCRIPTOR_RANGE matTable;
-	matTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 1);
 	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable, D3D12_SHADER_VISIBILITY_ALL);
 	slotRootParameter[1].InitAsDescriptorTable(1, &srvTable, D3D12_SHADER_VISIBILITY_PIXEL);
 	slotRootParameter[2].InitAsDescriptorTable(1, &samplerTable, D3D12_SHADER_VISIBILITY_PIXEL);
-	slotRootParameter[3].InitAsDescriptorTable(1, &matTable, D3D12_SHADER_VISIBILITY_ALL);
+	slotRootParameter[3].InitAsConstantBufferView(1);;
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
 		4, slotRootParameter,

@@ -39,7 +39,6 @@ public:
 	void CreateDSV();
 	void LoadTexture();
 	void CreateSRV();
-	void CreateMatView();
 	void CreateSamplerHeap();
 
 	void SetViewport();

@@ -6,6 +6,9 @@ cbuffer cbPerObject : register(b0)
 
 cbuffer cbMaterial : register(b1)
 {
+    
+    float4x4 mMatTransform;
+    
     float4 gDiffuseColor;
     float4 gAmbientColor;
     float4 gSpecularColor;
@@ -16,7 +19,6 @@ cbuffer cbMaterial : register(b1)
     float gOpacity;
     float gRefractionIndex;
     
-    float4x4 mMatTransform;
 }
 
 Texture2D DiffuseMap : register(t0);
@@ -52,6 +54,6 @@ float4 PS(VS_OUTPUT input) : SV_TARGET
     float4 color = DiffuseMap.Sample(Sampler, input.uv.xy);
     return color;
     //return DiffuseMap.Load(int3(100, 100, 0));
-    //float testValue = mTexTransform._11;
-    //return float4(testValue, testValue, testValue, 1.0f);
+    //float testValue = mMatTransform._11;
+    //return float4(gOpacity, gOpacity, gOpacity, 1.0f);
 }
