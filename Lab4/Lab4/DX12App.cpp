@@ -444,10 +444,22 @@ void DX12App::Update(const GameTimer& gt) {
 	ObjectConstants obj;
 	obj.mWorldViewProj = WorldViewProj;
 	obj.mTexTransform = Matrix::Identity;
+	obj.mTexTransform = Matrix::CreateScale(5.0f, 5.0f, 1.0f);
 	CBUploadBuffer->CopyData(0, obj);
 
 	for (int i = 0; i < materialData.size(); ++i) {
-		materialData[i].MatTransform = Matrix::Identity;
+		//materialData[i].MatTransform = Matrix::Identity;
+		float tu = materialData[i].MatTransform(1, 0);
+		float tv = materialData[i].MatTransform(1, 1);
+		tu += 0.1f * gt.DeltaTime();
+		tv += 0.02f * gt.DeltaTime();
+
+		if (tu >= 1.0f)
+			tu -= 1.0f;
+		if (tv >= 1.0f)
+			tv -= 1.0f;
+		materialData[i].MatTransform(1, 0) = tu;
+		materialData[i].MatTransform(1, 1) = tv;
 		MaterialCB->CopyData(i, materialData[i]);
 	}
 
