@@ -1270,7 +1270,8 @@ static HRESULT CreateD3DResources12(
 		texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
         CD3DX12_HEAP_PROPERTIES heap_d = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		hr = device->CreateCommittedResource(
+		hr = device->
+            CreateCommittedResource(
 			&heap_d,
 			D3D12_HEAP_FLAG_NONE,
 			&texDesc,

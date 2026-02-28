@@ -2,6 +2,8 @@ cbuffer cbPerObject : register(b0)
 {
     float4x4 mWorldViewProj;
     float4x4 mTexTransform;
+    float gTime;
+    float pad[3];
 }
 
 cbuffer cbMaterial : register(b1)
@@ -18,6 +20,11 @@ cbuffer cbMaterial : register(b1)
     float gShininess;
     float gOpacity;
     float gRefractionIndex;
+    int gHasDiffuseTexture;
+    
+    int gIsLion;
+    int gDiffuseTextureIndex;
+    int3 gMaterialPad;
     
 }
 
@@ -41,6 +48,12 @@ struct VS_OUTPUT
 VS_OUTPUT VS(VS_INPUT input)
 {
     VS_OUTPUT output;
+    if (gIsLion == 1)
+    {
+        
+        float offset = sin(gTime * 8.0f + input.pos.y * 0.7f) * 1.0f;
+        input.pos += input.normal * offset;
+    }
     output.pos = mul(float4(input.pos, 1.0f), mWorldViewProj);
     output.normal = input.normal;
     float4 texC = mul(float4(input.uv, 0.0f, 1.0f), mTexTransform);
@@ -52,8 +65,4 @@ float4 PS(VS_OUTPUT input) : SV_TARGET
 {
     float4 color = DiffuseMap.Sample(Sampler, input.uv.xy);
     return color;
-    //float tu = mMatTransform._41; // элементы 3,0 Ч это _41 в column-major
-    //float tv = mMatTransform._42; // элементы 3,1 Ч это _42
-
-    //return float4(tu, tv, 0.0f, 1.0f);
 }

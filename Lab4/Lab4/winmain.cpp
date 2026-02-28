@@ -13,7 +13,6 @@
 HWND g_hWnd = 0;
 DX12App MyFramework;
 
-//
 using namespace DirectX;
 using namespace DX12;
 using namespace Microsoft::WRL;
@@ -50,7 +49,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
         if (raw->header.dwType == RIM_TYPEMOUSE)
         {
-            // Относительное движение
             short dx = raw->data.mouse.lLastX;
             short dy = raw->data.mouse.lLastY;
 
@@ -142,8 +140,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	MyFramework.CreateRTVAndDSVDescriptorHeaps();
 	MyFramework.CreateRTV();
 	MyFramework.CreateDSV();
+    MyFramework.LoadTextures();
     MyFramework.CreateCBVDescriptorHeap();
-    MyFramework.LoadTexture();
     MyFramework.CreateSRV();
     MyFramework.CreateSamplerHeap();
 	MyFramework.SetViewport();

@@ -6,6 +6,7 @@
 #include <SimpleMath.h>
 #include "d3dUtil.h"
 #include "vertex.h"
+#include <filesystem>
 #include "DDSTextureLoader.h"
 
 using namespace DirectX;
@@ -106,7 +107,7 @@ void DX12App::CreateRTVAndDSVDescriptorHeaps() {
 
 void DX12App::CreateCBVDescriptorHeap() {
 	D3D12_DESCRIPTOR_HEAP_DESC CBV_SRV_HeapDesc;
-	CBV_SRV_HeapDesc.NumDescriptors = 3;
+	CBV_SRV_HeapDesc.NumDescriptors = 1 + mTextures.size();
 	CBV_SRV_HeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	CBV_SRV_HeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	CBV_SRV_HeapDesc.NodeMask = 0;
@@ -161,36 +162,62 @@ void DX12App::CreateDSV() {
 	m_device_->CreateDepthStencilView(m_DSV_buffer.Get(), nullptr, GetDSV());
 }
 
-void DX12App::LoadTexture() {
-	auto cargoTex = std::make_unique<Texture>();
-	cargoTex->name_ = "cargoTex";
-	cargoTex->filepath = L"textures/texture.dds";
-	std::cout << m_command_list_->GetType() << std::endl;
+void DX12App::LoadTextures()
+{
 	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
-	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(m_device_.Get(), m_command_list_.Get(),
-		cargoTex->filepath.c_str(), cargoTex->Resource, cargoTex->UploadHeap));
+	UINT index = 0;
+
+	for (auto& entry : std::filesystem::directory_iterator(L"textures"))
+	{
+		auto path = entry.path();
+		if (path.extension() != L".dds") continue;
+
+		std::wstring name = path.stem().wstring();
+		std::transform(name.begin(), name.end(), name.begin(), ::towlower);
+
+		auto tex = std::make_unique<Texture>();
+		tex->name_ = std::string(name.begin(), name.end());
+		tex->filepath = path.wstring();
+		tex->srvHeapIndex = index++;
+
+		ThrowIfFailed(CreateDDSTextureFromFile12(
+			m_device_.Get(),
+			m_command_list_.Get(),
+			tex->filepath.c_str(),
+			tex->Resource,
+			tex->UploadHeap));
+
+		std::wcout << L"Loaded texture: [" << name << L"] to index: " << tex->srvHeapIndex << std::endl;
+
+		mTextures[name] = std::move(tex);
+	}
+
 	ThrowIfFailed(m_command_list_->Close());
-	ID3D12CommandList* ppCommandLists[] = { m_command_list_.Get() };
-	m_command_queue_->ExecuteCommandLists(_countof(ppCommandLists), ppCommandLists);
+	ID3D12CommandList* lists[] = { m_command_list_.Get() };
+	m_command_queue_->ExecuteCommandLists(1, lists);
 	FlushCommandQueue();
-	std::cout << "Texture is loaded" << std::endl;
-	mTextures[cargoTex->name_] = std::move(cargoTex);
 }
+
 
 void DX12App::CreateSRV() {
 
-	auto cargoTex = mTextures["cargoTex"]->Resource;
-	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(m_CBV_SRV_heap_->GetCPUDescriptorHandleForHeapStart());
-	hDescriptor.Offset(1, m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
-	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-	srvDesc.Format = cargoTex->GetDesc().Format;
-	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-	srvDesc.Texture2D.MostDetailedMip = 0;
-	srvDesc.Texture2D.MipLevels = cargoTex->GetDesc().MipLevels;
-	srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
-	m_device_->CreateShaderResourceView(cargoTex.Get(), &srvDesc, hDescriptor);
-	std::cout << "SRV is created" << std::endl;
+	auto handle = m_CBV_SRV_heap_->GetCPUDescriptorHandleForHeapStart();
+
+	for (auto& [name, tex] : mTextures)
+	{
+		CD3DX12_CPU_DESCRIPTOR_HANDLE h(handle,
+			tex->srvHeapIndex + 1,
+			m_CbvSrvUav_descriptor_size_);
+
+		D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
+		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+		desc.Format = tex->Resource->GetDesc().Format;
+		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+		desc.Texture2D.MipLevels = tex->Resource->GetDesc().MipLevels;
+
+		m_device_->CreateShaderResourceView(tex->Resource.Get(), &desc, h);
+		std::cout << "SRV is created" << std::endl;
+	}
 }
 
 void DX12App::CreateSamplerHeap() {
@@ -292,19 +319,41 @@ void DX12App::Draw(const GameTimer& gt)
 	m_command_list_->IASetVertexBuffers(0, 1, &VertexBuffers[0]);
 	m_command_list_->IASetIndexBuffer(&ibv);
 	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle(m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
-	m_command_list_->SetGraphicsRootDescriptorTable(0, cbvHandle);
-	CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
-	srvHandle.Offset(1, m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV));
-	m_command_list_->SetGraphicsRootDescriptorTable(1, srvHandle);
-	m_command_list_->SetGraphicsRootDescriptorTable(2, m_sampler_heap->GetGPUDescriptorHandleForHeapStart());
-	UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
-	D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress();
-	m_command_list_->SetGraphicsRootConstantBufferView(3, matAddress);
 
-	m_command_list_->DrawIndexedInstanced(
-		indices.size(),
-		1, 0, 0, 0);
+	CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle(
+		m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
+
+	m_command_list_->SetGraphicsRootDescriptorTable(0, cbvHandle);
+
+	m_command_list_->SetGraphicsRootDescriptorTable(
+		2,
+		m_sampler_heap->GetGPUDescriptorHandleForHeapStart());
+
+	UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
+
+	for (auto& sm : mSubmeshes)
+	{
+		UINT matIndex = sm.materialIndex;
+		UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
+		D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress() + matIndex * matSize;
+		m_command_list_->SetGraphicsRootConstantBufferView(3, matAddress);
+
+		int texHeapIndex = materialData[matIndex].diffuseTextureIndex + 1;
+
+		CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(
+			m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart(),
+			texHeapIndex,
+			m_CbvSrvUav_descriptor_size_);
+
+		m_command_list_->SetGraphicsRootDescriptorTable(1, srvHandle);
+
+		m_command_list_->DrawIndexedInstanced(
+			sm.indexCount,
+			1,
+			sm.startIndiceIndex,
+			sm.startVerticeIndex,
+			0);
+	}
 
 	CD3DX12_RESOURCE_BARRIER barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
@@ -331,7 +380,7 @@ void DX12App::InitProjectionMatrix() {
 	mProj_ = Matrix::CreatePerspectiveFieldOfView(
 		XMConvertToRadians(60.0f),  
 		aspectRatio,                
-		0.01f,                       
+		1.0f,                       
 		100000.0f                    
 	);
 
@@ -387,10 +436,16 @@ void DX12App::OnMouseUp() {
 void DX12App::OnMouseMove(WPARAM btnState, int dx, int dy) {
 	if ((btnState & MK_LBUTTON) != 0)
 	{
-		mTheta_ += XMConvertToRadians(0.25f * static_cast<float>(dx));
-		mPhi_ += XMConvertToRadians(0.25f * static_cast<float>(dy));
+		mCameraYaw += static_cast<float>(dx) * mCameraRotationSpeed * 0.01f * -1.0f;
+		mCameraPitch -= static_cast<float>(dy) * mCameraRotationSpeed * 0.01f * -1.0f;
 
-		mPhi_ = mPhi_ < 0.1f ? 0.1f : (mPhi_ > XM_PI ? XM_PI : mPhi_);
+		const float limit = XM_PIDIV2 - 0.01f;
+		mCameraPitch = std::clamp(mCameraPitch, -limit, limit);
+
+		mCameraTarget.x = cos(mCameraPitch) * sin(mCameraYaw);
+		mCameraTarget.y = sin(mCameraPitch);
+		mCameraTarget.z = cos(mCameraPitch) * cos(mCameraYaw);
+		mCameraTarget.Normalize();
 	}
 	else if ((btnState & MK_RBUTTON) != 0)
 	{
@@ -401,16 +456,18 @@ void DX12App::OnMouseMove(WPARAM btnState, int dx, int dy) {
 }
 
 void DX12App::Update(const GameTimer& gt) {
-	float x = mRadius_ * sinf(mPhi_) * cosf(mTheta_);
-	float z = mRadius_ * sinf(mPhi_) * sinf(mTheta_);
-	float y = mRadius_ * cosf(mPhi_);
+	float dt = gt.DeltaTime();
+	if (GetAsyncKeyState('W') & 0x8000) mCameraPos += mCameraTarget * mCameraSpeed * dt;
+	if (GetAsyncKeyState('S') & 0x8000) mCameraPos -= mCameraTarget * mCameraSpeed * dt;
+	if (GetAsyncKeyState('A') & 0x8000) mCameraPos -= mCameraTarget.Cross(mCameraUp) * mCameraSpeed * dt;
+	if (GetAsyncKeyState('D') & 0x8000) mCameraPos += mCameraTarget.Cross(mCameraUp) * mCameraSpeed * dt;
 
+	Vector3 targetPos = mCameraPos + mCameraTarget;
+	if (mCameraPos == targetPos) {
+		targetPos += Vector3(0.001f, 0.0f, 0.0f);
+	}
 
-	Vector3 pos(x, y, z);
-	Vector3 target(0.0f, 0.0f, 0.0f);
-	Vector3 up(0.0f, 1.0f, 0.0f);
-
-	mView_ = Matrix::CreateLookAt(pos, target, up);
+	mView_ = Matrix::CreateLookAt(mCameraPos, mCameraPos + mCameraTarget, mCameraUp);
 
 
 	Matrix WorldViewProj = mWorld_ * mView_ * mProj_;
@@ -420,22 +477,10 @@ void DX12App::Update(const GameTimer& gt) {
 	ObjectConstants obj;
 	obj.mWorldViewProj = WorldViewProj;
 	obj.mTexTransform = Matrix::Identity;
-	obj.mTexTransform = Matrix::CreateScale(5.0f, 5.0f, 1.0f);
+	obj.gTime = gt.TotalTime();
 	CBUploadBuffer->CopyData(0, obj);
 
 	for (int i = 0; i < materialData.size(); ++i) {
-		//materialData[i].MatTransform = Matrix::Identity;
-		float tu = materialData[i].MatTransform(1, 0);
-		float tv = materialData[i].MatTransform(1, 1);
-		tu += 0.1f * gt.DeltaTime();
-		tv += 0.02f * gt.DeltaTime();
-
-		if (tu >= 1.0f)
-			tu -= 1.0f;
-		if (tv >= 1.0f)
-			tv -= 1.0f;
-		materialData[i].MatTransform(1, 0) = tu;
-		materialData[i].MatTransform(1, 1) = tv;
 		MaterialCB->CopyData(i, materialData[i]);
 	}
 
@@ -447,7 +492,7 @@ void DX12App::InitUploadBuffers() {
 		1,
 		true
 	);
-	MaterialCB = std::make_unique<UploadBuffer<MaterialConstants>>(m_device_.Get(), 100, true);
+	MaterialCB = std::make_unique<UploadBuffer<MaterialConstants>>(m_device_.Get(), 300, true);
 }
 
 void DX12App::CreateConstantBufferView() {
@@ -553,4 +598,3 @@ void DX12App::CreatePSO() {
 	ThrowIfFailed(m_device_->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&PSO_)));
 	std::cout << "PSO is created" << std::endl;
 }
-

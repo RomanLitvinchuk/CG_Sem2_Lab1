@@ -16,6 +16,7 @@
 #include "vertex.h"
 #include "texture.h"
 #include "materials.h"
+#include "submesh.h"
 #include <unordered_map>
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
@@ -37,7 +38,8 @@ public:
 	D3D12_CPU_DESCRIPTOR_HANDLE GetDSV() const;
 	void CreateRTV();
 	void CreateDSV();
-	void LoadTexture();
+	void LoadTextures();
+	void CreateDefaultTexture();
 	void CreateSRV();
 	void CreateSamplerHeap();
 
@@ -140,8 +142,13 @@ private:
 	Matrix mProj_ = Matrix::Identity;
 
 	POINT m_mouse_last_pos_;
-	float mTheta_ = XM_PIDIV4;   // 45°
-	float mPhi_ = XM_PIDIV4;   // 45°
+	float mCameraYaw;
+	float mCameraPitch;
+	Vector3 mCameraPos = { 0.0f, 2.0f, -10.0f };
+	Vector3 mCameraTarget = { 0.0f, 0.0f, 1.0f }; 
+	Vector3 mCameraUp = { 0.0f, 1.0f, 0.0f };      
+	float mCameraSpeed = 200.0f;
+	float mCameraRotationSpeed = 0.3f;
 	float mRadius_ = 5.0f;   
 
 
@@ -149,10 +156,13 @@ private:
 	std::vector<Vertex> vertices;
 	std::vector<std::uint32_t> indices;
 	std::vector<UINT> MeshIndexCounts;
-	std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
+	std::unordered_map<std::wstring, std::unique_ptr<Texture>> mTextures;
 	std::vector<aiMaterial*> mMaterials_;
 	std::vector<int> mMeshesMaterialIndex;
 	std::vector<MaterialConstants> materialData;
+	std::vector<Submesh> mSubmeshes;
+	ComPtr<ID3D12Resource> mDefaultTexture;
+	std::vector<std::string> materialNames;
 };
 
 #endif //DX12APP_

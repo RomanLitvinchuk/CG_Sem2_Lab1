@@ -12,6 +12,7 @@ struct Texture
 	std::wstring filepath;
 	ComPtr<ID3D12Resource> Resource = nullptr;
 	ComPtr<ID3D12Resource> UploadHeap = nullptr;
+	UINT srvHeapIndex = 0;
 };
 
 
