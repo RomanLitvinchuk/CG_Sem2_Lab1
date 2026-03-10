@@ -303,10 +303,10 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	//D3D12_CPU_DESCRIPTOR_HANDLE bb = GetBackBuffer();
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvs[] = {
-		g_buffer->DiffuseTex.rtvHandle, g_buffer->NormalTex.rtvHandle, g_buffer->WorldPositionTex.rtvHandle
+		g_buffer->DiffuseTex.rtvHandle, g_buffer->NormalTex.rtvHandle
 	};
-	D3D12_CPU_DESCRIPTOR_HANDLE dsv = GetDSV();
-	m_command_list_->OMSetRenderTargets(3, rtvs, true, &dsv);
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv = g_buffer->DepthTex.dsvHandle;
+	m_command_list_->OMSetRenderTargets(2, rtvs, true, &dsv);
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { m_CBV_SRV_heap_.Get(), m_sampler_heap.Get() };
 	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -366,7 +366,7 @@ void DX12App::Draw(const GameTimer& gt)
 
 	m_command_list_->ClearRenderTargetView(g_buffer->DiffuseTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
 	m_command_list_->ClearRenderTargetView(g_buffer->NormalTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
-	m_command_list_->ClearRenderTargetView(g_buffer->WorldPositionTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+	m_command_list_->ClearDepthStencilView(g_buffer->DepthTex.dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
 	DrawToGBuffer(m_command_list_);
 	g_buffer->TransitToLightsRenderingState(m_command_list_);
@@ -603,13 +603,12 @@ void DX12App::CreatePSO() {
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.SampleMask = UINT_MAX;
 	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	psoDesc.NumRenderTargets = 3;
+	psoDesc.NumRenderTargets = 2;
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.RTVFormats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT;
-	psoDesc.RTVFormats[2] = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleDesc.Quality = 0;
-	psoDesc.DSVFormat = m_depth_stencil_format_;
+	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	ThrowIfFailed(m_device_->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&PSO_)));
 	std::cout << "PSO is created" << std::endl;
 }

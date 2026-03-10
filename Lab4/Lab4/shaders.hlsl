@@ -68,7 +68,6 @@ struct gBufferOutput
 {
     float4 Diffuse : SV_Target0;
     float4 Normal : SV_Target1;
-    float4 WorldPos : SV_Target2;
 };
 
 gBufferOutput PS(VS_OUTPUT input)
@@ -76,6 +75,5 @@ gBufferOutput PS(VS_OUTPUT input)
     gBufferOutput ret;
     ret.Diffuse = DiffuseMap.Sample(Sampler, input.uv.xy);
     ret.Normal = float4(input.normal.x, input.normal.y, input.normal.z, 0.0f);
-    ret.WorldPos = input.pos;
     return ret;
 }

@@ -16,25 +16,27 @@ struct GBufferTexture {
 	ComPtr<ID3D12Resource> Resource = nullptr;
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle = {};
 	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle = {};
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
 };
 
 
 struct GBuffer {
 	GBufferTexture DiffuseTex;
 	GBufferTexture NormalTex;
-	GBufferTexture WorldPositionTex;
+	GBufferTexture DepthTex;
 
 	ComPtr<ID3D12DescriptorHeap> RTVDescriptorHeap;
 	ComPtr<ID3D12DescriptorHeap> SRVDescriptorHeap;
+	ComPtr<ID3D12DescriptorHeap> DSVDescriptorHeap;
 
 	void CreateTextures(int width, int height, ComPtr<ID3D12Device> device);
 	void CreateSRV(ComPtr<ID3D12Device> device);
-	void CreateRTV(ComPtr<ID3D12Device> device);
+	void CreateRTVandDSV(ComPtr<ID3D12Device> device);
 
 	GBuffer(int width, int height, ComPtr<ID3D12Device> device) {
 		D3D12_DESCRIPTOR_HEAP_DESC rtvDesc = {};
 		rtvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		rtvDesc.NumDescriptors = 3;
+		rtvDesc.NumDescriptors = 2;
 		rtvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		ThrowIfFailed(device->CreateDescriptorHeap(&rtvDesc, IID_PPV_ARGS(&RTVDescriptorHeap)));
 		
@@ -44,9 +46,15 @@ struct GBuffer {
 		srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		ThrowIfFailed(device->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&SRVDescriptorHeap)));
 
+		D3D12_DESCRIPTOR_HEAP_DESC dsvDesc = {};
+		dsvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+		dsvDesc.NumDescriptors = 1;
+		dsvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+		ThrowIfFailed(device->CreateDescriptorHeap(&dsvDesc, IID_PPV_ARGS(&DSVDescriptorHeap)));
+
 		CreateTextures(width, height, device);
 		CreateSRV(device);
-		CreateRTV(device);
+		CreateRTVandDSV(device);
 		
 	};
 

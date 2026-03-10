@@ -19,14 +19,15 @@ void GBuffer::CreateTextures(int width, int height, ComPtr<ID3D12Device> device)
 		&clearValue, IID_PPV_ARGS(&NormalTex.Resource)));
 	NormalTex.Resource->SetName(L"Normal texture");
 
-	clearValue.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	resDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+	clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	resDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
+	resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 	ThrowIfFailed(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
-		&clearValue, IID_PPV_ARGS(&WorldPositionTex.Resource)));
-	WorldPositionTex.Resource->SetName(L"WorldPosition texture");
+		&clearValue, IID_PPV_ARGS(&DepthTex.Resource)));
+	DepthTex.Resource->SetName(L"Depth texture");
 }
 
-void GBuffer::CreateRTV(ComPtr<ID3D12Device> device) {
+void GBuffer::CreateRTVandDSV(ComPtr<ID3D12Device> device) {
 	D3D12_RENDER_TARGET_VIEW_DESC rtvTexDesc = {};
 	rtvTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	rtvTexDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -40,10 +41,15 @@ void GBuffer::CreateRTV(ComPtr<ID3D12Device> device) {
 	rtvHandle.Offset(1, RtvIncSize);
 	NormalTex.rtvHandle = rtvHandle;
 	device->CreateRenderTargetView(NormalTex.Resource.Get(), &rtvTexDesc, NormalTex.rtvHandle);
-	rtvTexDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-	rtvHandle.Offset(1, RtvIncSize);
-	WorldPositionTex.rtvHandle = rtvHandle;
-	device->CreateRenderTargetView(WorldPositionTex.Resource.Get(), &rtvTexDesc, WorldPositionTex.rtvHandle);
+
+	D3D12_DEPTH_STENCIL_VIEW_DESC dsvTexDesc = {};
+	dsvTexDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	dsvTexDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+	dsvTexDesc.Texture2D.MipSlice = 0;
+	auto DsvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+	DepthTex.dsvHandle = dsvHandle;
+	device->CreateDepthStencilView(DepthTex.Resource.Get(), &dsvTexDesc, DepthTex.dsvHandle);
 }
 
 void GBuffer::CreateSRV(ComPtr<ID3D12Device> device) {
@@ -56,14 +62,16 @@ void GBuffer::CreateSRV(ComPtr<ID3D12Device> device) {
 	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle(SRVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
 	DiffuseTex.srvHandle = srvHandle;
 	device->CreateShaderResourceView(DiffuseTex.Resource.Get(), &srvTexDesc, DiffuseTex.srvHandle);
+
 	srvTexDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	srvHandle.Offset(1, SrvIncSize);
 	NormalTex.srvHandle = srvHandle;
 	device->CreateShaderResourceView(NormalTex.Resource.Get(), &srvTexDesc, NormalTex.srvHandle);
-	srvTexDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+	srvTexDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 	srvHandle.Offset(1, SrvIncSize);
-	WorldPositionTex.srvHandle = srvHandle;
-	device->CreateShaderResourceView(WorldPositionTex.Resource.Get(), &srvTexDesc, WorldPositionTex.srvHandle);
+	DepthTex.srvHandle = srvHandle;
+	device->CreateShaderResourceView(DepthTex.Resource.Get(), &srvTexDesc, DepthTex.srvHandle);
 }
 
 void GBuffer::TransitToOpaqueRenderingState(ComPtr<ID3D12GraphicsCommandList> commandList) {
@@ -71,9 +79,9 @@ void GBuffer::TransitToOpaqueRenderingState(ComPtr<ID3D12GraphicsCommandList> co
 		D3D12_RESOURCE_STATE_RENDER_TARGET);
 	CD3DX12_RESOURCE_BARRIER normalBarrier = CD3DX12_RESOURCE_BARRIER::Transition(NormalTex.Resource.Get(), D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
 		D3D12_RESOURCE_STATE_RENDER_TARGET);
-	CD3DX12_RESOURCE_BARRIER worldPosBarrier = CD3DX12_RESOURCE_BARRIER::Transition(WorldPositionTex.Resource.Get(), D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
-		D3D12_RESOURCE_STATE_RENDER_TARGET);
-	D3D12_RESOURCE_BARRIER barriers[] = { diffuseBarrier, normalBarrier, worldPosBarrier };
+	CD3DX12_RESOURCE_BARRIER depthBarrier = CD3DX12_RESOURCE_BARRIER::Transition(DepthTex.Resource.Get(), D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
+		D3D12_RESOURCE_STATE_DEPTH_WRITE);
+	D3D12_RESOURCE_BARRIER barriers[] = { diffuseBarrier, normalBarrier, depthBarrier };
 	commandList->ResourceBarrier(3, barriers);
 }
 
@@ -82,18 +90,18 @@ void GBuffer::TransitToLightsRenderingState(ComPtr<ID3D12GraphicsCommandList> co
 		D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
 	CD3DX12_RESOURCE_BARRIER normalBarrier = CD3DX12_RESOURCE_BARRIER::Transition(NormalTex.Resource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 		D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
-	CD3DX12_RESOURCE_BARRIER worldPosBarrier = CD3DX12_RESOURCE_BARRIER::Transition(WorldPositionTex.Resource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
-		D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
-	D3D12_RESOURCE_BARRIER barriers[] = { diffuseBarrier, normalBarrier, worldPosBarrier };
+	CD3DX12_RESOURCE_BARRIER depthBarrier = CD3DX12_RESOURCE_BARRIER::Transition(DepthTex.Resource.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE,
+		D3D12_RESOURCE_STATE_DEPTH_READ);
+	D3D12_RESOURCE_BARRIER barriers[] = { diffuseBarrier, normalBarrier, depthBarrier };
 	commandList->ResourceBarrier(3, barriers);
 }
 
 void GBuffer::OnResize(int width, int height, ComPtr<ID3D12Device> device) {
 	DiffuseTex.Resource.Reset();
 	NormalTex.Resource.Reset();
-	WorldPositionTex.Resource.Reset();
+	DepthTex.Resource.Reset();
 
 	CreateTextures(width, height, device);
-	CreateRTV(device);
+	CreateRTVandDSV(device);
 	CreateSRV(device);
 }
