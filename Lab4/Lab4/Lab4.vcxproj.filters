@@ -74,6 +74,9 @@
     <ClInclude Include="submesh.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="g_buffer.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

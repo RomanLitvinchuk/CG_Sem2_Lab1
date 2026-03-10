@@ -290,17 +290,11 @@ void DX12App::FlushCommandQueue()
 	}
 }
 
-
-void DX12App::Draw(const GameTimer& gt)
-{
-	ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
-
-	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), PSO_.Get()));
-
+void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->RSSetViewports(1, &vp_);
 	m_command_list_->RSSetScissorRects(1, &m_scissor_rect_);
 
-	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(), 
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	m_command_list_->ResourceBarrier(1, &barrier);
 
@@ -311,7 +305,7 @@ void DX12App::Draw(const GameTimer& gt)
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv = GetDSV();
 	m_command_list_->OMSetRenderTargets(1, &bb, true, &dsv);
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { m_CBV_SRV_heap_.Get(), m_sampler_heap.Get()};
+	ID3D12DescriptorHeap* descriptorHeaps[] = { m_CBV_SRV_heap_.Get(), m_sampler_heap.Get() };
 	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	m_command_list_->SetGraphicsRootSignature(m_root_signature_.Get());
@@ -360,6 +354,15 @@ void DX12App::Draw(const GameTimer& gt)
 	m_command_list_->ResourceBarrier(1, &barrier2);
 
 	ThrowIfFailed(m_command_list_->Close());
+}
+
+void DX12App::Draw(const GameTimer& gt)
+{
+	ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
+
+	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), PSO_.Get()));
+
+	DrawToGBuffer(m_command_list_);
 
 	ID3D12CommandList* cmdsLists[] = { m_command_list_.Get() };
 	m_command_queue_->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);

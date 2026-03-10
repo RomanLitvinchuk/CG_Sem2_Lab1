@@ -39,7 +39,6 @@ public:
 	void CreateRTV();
 	void CreateDSV();
 	void LoadTextures();
-	void CreateDefaultTexture();
 	void CreateSRV();
 	void CreateSamplerHeap();
 
@@ -48,6 +47,7 @@ public:
 
 	void CalculateGameStats(GameTimer& gt, HWND hWnd);
 	void Draw(const GameTimer& gt);
+	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 
 	void FlushCommandQueue();
 	void SetTopology();

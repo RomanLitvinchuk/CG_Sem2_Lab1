@@ -9,10 +9,6 @@ void DX12App::ParseFile() {
 	std::cout << "Num Meshes : " << std::to_string(sponza->mNumMeshes) << std::endl;
 	ParseNode(sponza->mRootNode, sponza, vertices, indices);
 	std::cout << "sponza.obj is parsed" << std::endl;
-	//std::cout << "Num Vertices is:" << std::to_string(vertices.size()) << std::endl;
-	//std::cout << "Num Faces is: " << std::to_string(sponza->mMeshes[0]->mNumFaces) << std::endl;
-	//std::cout << "Num indices is:" << std::to_string(indices.size()) << std::endl;
-
 }
 
 void DX12App::ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
@@ -43,7 +39,6 @@ void DX12App::ParseMesh(const aiScene* scene, aiMesh* mesh, std::vector<Vertex>&
 			vertex.normal.x = mesh->mNormals[i].x;
 			vertex.normal.y = mesh->mNormals[i].y;
 			vertex.normal.z = mesh->mNormals[i].z;
-			//std::cout << vertex.normal.x << vertex.normal.y << vertex.normal.z << std::endl;
 		}
 		else {
 			vertex.normal = Vector3(0.0f, 1.0f, 0.0f);
@@ -101,7 +96,6 @@ void DX12App::ExtractMaterialData(int MaterialIndex, aiMaterial* material) {
 	aiString texPath;
 	bool foundPath = false;
 	if (material->GetTexture(aiTextureType_DIFFUSE, 0, &texPath) == AI_SUCCESS) foundPath = true;
-	else if (material->GetTexture(aiTextureType_BASE_COLOR, 0, &texPath) == AI_SUCCESS) foundPath = true;
 
 	if (foundPath) {
 		std::filesystem::path p(texPath.C_Str());
@@ -136,11 +130,9 @@ void DX12App::ExtractMaterialData(int MaterialIndex, aiMaterial* material) {
 	}
 	if (material->Get(AI_MATKEY_SHININESS, parameter) == AI_SUCCESS) {
 		MatConst.Shininess = parameter;
-		//std::cout << "shininess is:" << std::to_string(parameter) << std::endl;
 	}
 	if (material->Get(AI_MATKEY_OPACITY, parameter) == AI_SUCCESS) {
 		MatConst.Opacity = parameter;
-		//std::cout << "opacity is:" << std::to_string(parameter) << std::endl;
 	}
 
 	if (materialData.size() <= MaterialIndex) {
