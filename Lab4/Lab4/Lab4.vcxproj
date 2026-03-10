@@ -137,6 +137,7 @@
     <ClCompile Include="DDSTextureLoader.cpp" />
     <ClCompile Include="DX12App.cpp" />
     <ClCompile Include="game_timer.cpp" />
+    <ClCompile Include="g_buffer.cpp" />
     <ClCompile Include="parse.cpp" />
     <ClCompile Include="window_class.cpp" />
     <ClCompile Include="winmain.cpp" />
