@@ -8,7 +8,8 @@ using namespace DirectX::SimpleMath;
 
 
 struct ObjectConstants {
-	Matrix mWorldViewProj;
+	Matrix mWorld;
+	Matrix mViewProj;
 	Matrix mTexTransform = Matrix::Identity;
 	float gTime;
 	float pad[3];

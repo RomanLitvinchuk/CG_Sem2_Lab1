@@ -301,9 +301,12 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->ClearRenderTargetView(GetBackBuffer(), Colors::LightSteelBlue, 0, nullptr);
 	m_command_list_->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	D3D12_CPU_DESCRIPTOR_HANDLE bb = GetBackBuffer();
+	//D3D12_CPU_DESCRIPTOR_HANDLE bb = GetBackBuffer();
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvs[] = {
+		g_buffer->DiffuseTex.rtvHandle, g_buffer->NormalTex.rtvHandle, g_buffer->WorldPositionTex.rtvHandle
+	};
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv = GetDSV();
-	m_command_list_->OMSetRenderTargets(1, &bb, true, &dsv);
+	m_command_list_->OMSetRenderTargets(3, rtvs, true, &dsv);
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { m_CBV_SRV_heap_.Get(), m_sampler_heap.Get() };
 	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -352,18 +355,24 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	CD3DX12_RESOURCE_BARRIER barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
 	m_command_list_->ResourceBarrier(1, &barrier2);
-
-	ThrowIfFailed(m_command_list_->Close());
 }
 
 void DX12App::Draw(const GameTimer& gt)
 {
 	ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
-
 	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), PSO_.Get()));
 
-	DrawToGBuffer(m_command_list_);
+	g_buffer->TransitToOpaqueRenderingState(m_command_list_);
 
+	m_command_list_->ClearRenderTargetView(g_buffer->DiffuseTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+	m_command_list_->ClearRenderTargetView(g_buffer->NormalTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+	m_command_list_->ClearRenderTargetView(g_buffer->WorldPositionTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+
+	DrawToGBuffer(m_command_list_);
+	g_buffer->TransitToLightsRenderingState(m_command_list_);
+	//DrawLights();
+
+	ThrowIfFailed(m_command_list_->Close());
 	ID3D12CommandList* cmdsLists[] = { m_command_list_.Get() };
 	m_command_queue_->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 
@@ -473,12 +482,13 @@ void DX12App::Update(const GameTimer& gt) {
 	mView_ = Matrix::CreateLookAt(mCameraPos, mCameraPos + mCameraTarget, mCameraUp);
 
 
-	Matrix WorldViewProj = mWorld_ * mView_ * mProj_;
-	WorldViewProj = WorldViewProj.Transpose();
+	Matrix ViewProj = mView_ * mProj_;
+	ViewProj = ViewProj.Transpose();
 
 
 	ObjectConstants obj;
-	obj.mWorldViewProj = WorldViewProj;
+	obj.mWorld = mWorld_;
+	obj.mViewProj = ViewProj;
 	obj.mTexTransform = Matrix::Identity;
 	obj.gTime = gt.TotalTime();
 	CBUploadBuffer->CopyData(0, obj);
@@ -593,11 +603,32 @@ void DX12App::CreatePSO() {
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.SampleMask = UINT_MAX;
 	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	psoDesc.NumRenderTargets = 1;
-	psoDesc.RTVFormats[0] = m_back_buffer_format_;
+	psoDesc.NumRenderTargets = 3;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	psoDesc.RTVFormats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	psoDesc.RTVFormats[2] = DXGI_FORMAT_R32G32B32A32_FLOAT;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = m_depth_stencil_format_;
 	ThrowIfFailed(m_device_->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&PSO_)));
 	std::cout << "PSO is created" << std::endl;
+}
+
+void DX12App::InitGBuffer() {
+	g_buffer = new GBuffer(m_client_width_, m_client_height_, m_device_);
+}
+
+void DX12App::OnResize() {
+	FlushCommandQueue();
+	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
+	m_swap_chain_buffer_[0].Reset();
+	m_swap_chain_buffer_[1].Reset();
+
+	ThrowIfFailed(m_swap_chain_->ResizeBuffers(2, m_client_width_, m_client_height_, m_back_buffer_format_, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
+
+	m_current_back_buffer_ = 0;
+	CreateRTV();
+	CreateDSV();
+	g_buffer->OnResize(m_client_width_, m_client_height_, m_device_);
+	SetViewport();
 }

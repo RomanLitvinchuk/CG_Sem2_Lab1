@@ -17,6 +17,7 @@
 #include "texture.h"
 #include "materials.h"
 #include "submesh.h"
+#include "g_buffer.h"
 #include <unordered_map>
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
@@ -42,8 +43,10 @@ public:
 	void CreateSRV();
 	void CreateSamplerHeap();
 
+	void OnResize();
 	void SetViewport();
 	void SetScissor();
+	void InitGBuffer();
 
 	void CalculateGameStats(GameTimer& gt, HWND hWnd);
 	void Draw(const GameTimer& gt);
@@ -70,7 +73,6 @@ public:
 	void BuildLayout();
 
 	void CreatePSO();
-
 	void ParseFile();
 	void ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
 	void ParseMesh(const aiScene* scene, aiMesh* mesh, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
@@ -78,6 +80,11 @@ public:
 
 	ComPtr<ID3D12Device> GetDevice() const { return m_device_; }
 	ComPtr<ID3D12GraphicsCommandList> GetCommandList() const { return m_command_list_; }
+
+	void SetClientWH(int width, int height) {
+		m_client_width_ = width;
+		m_client_height_ = height;
+	}
 private:
 	void EnableDebug();
 
@@ -85,7 +92,6 @@ private:
 	DXGI_FORMAT m_depth_stencil_format_ = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	int m_client_width_ = 800;
 	int m_client_height_ = 600;
-
 	ComPtr<IDXGIFactory4> m_dxgi_factory_;
 	ComPtr<ID3D12Device> m_device_;
 	ComPtr<ID3D12Fence> m_fence_;
@@ -163,6 +169,8 @@ private:
 	std::vector<Submesh> mSubmeshes;
 	ComPtr<ID3D12Resource> mDefaultTexture;
 	std::vector<std::string> materialNames;
+
+	GBuffer* g_buffer = nullptr;
 };
 
 #endif //DX12APP_

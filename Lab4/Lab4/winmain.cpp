@@ -80,6 +80,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
         return 0;
     }
 
+    /*case WM_SIZE:
+    {
+        MyFramework.SetClientWH(LOWORD(lParam), HIWORD(lParam));
+        MyFramework.OnResize();
+    }*/
+
     case WM_PAINT:
     {
         PAINTSTRUCT ps;
@@ -144,6 +150,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     MyFramework.CreateCBVDescriptorHeap();
     MyFramework.CreateSRV();
     MyFramework.CreateSamplerHeap();
+    MyFramework.InitGBuffer();
 	MyFramework.SetViewport();
 	MyFramework.SetScissor();
 	MyFramework.SetTopology();
