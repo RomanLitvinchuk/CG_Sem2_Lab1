@@ -17,6 +17,9 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> opaqueVS_ = nullptr;
 	ComPtr<ID3DBlob> opaquePS_ = nullptr;
 
+	ComPtr<ID3DBlob> lightVS_ = nullptr;
+	ComPtr<ID3DBlob> lightPS_ = nullptr;
+
 	GBuffer* g_buffer = nullptr;
 
 	void CreateOpaqueRS(ComPtr<ID3D12Device> device);

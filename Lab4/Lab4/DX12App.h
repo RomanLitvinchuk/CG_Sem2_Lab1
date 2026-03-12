@@ -47,7 +47,6 @@ public:
 	void OnResize();
 	void SetViewport();
 	void SetScissor();
-	//void InitGBuffer();
 
 	void CalculateGameStats(GameTimer& gt, HWND hWnd);
 	void Draw(const GameTimer& gt);
@@ -69,11 +68,9 @@ public:
 	void InitUploadBuffers();
 	void CreateConstantBufferView();
 
-	void CreateRootSignature();
 	void CompileShaders();
 	void BuildLayout();
 
-	void CreatePSO();
 	void InitRenderSystem();
 	void ParseFile();
 	void ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
@@ -94,8 +91,8 @@ private:
 	DXGI_FORMAT m_depth_stencil_format_ = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	int m_client_width_ = 800;
 	int m_client_height_ = 600;
-	ComPtr<IDXGIFactory4> m_dxgi_factory_;
-	ComPtr<ID3D12Device> m_device_;
+	ComPtr<IDXGIFactory4> m_dxgi_factory_ = nullptr;
+	ComPtr<ID3D12Device> m_device_ = nullptr;
 	ComPtr<ID3D12Fence> m_fence_;
 	UINT64 m_current_fence_ = 0;
 	UINT m_RTV_descriptor_size_ = 0;
@@ -103,21 +100,20 @@ private:
 	UINT m_CbvSrvUav_descriptor_size_ = 0;
 	D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels_;
 	
-
-	ComPtr<ID3D12CommandQueue> m_command_queue_;
-	ComPtr<ID3D12CommandAllocator> m_direct_cmd_list_alloc_;
-	ComPtr<ID3D12GraphicsCommandList> m_command_list_;
+	ComPtr<ID3D12CommandQueue> m_command_queue_ = nullptr;
+	ComPtr<ID3D12CommandAllocator> m_direct_cmd_list_alloc_ = nullptr;
+	ComPtr<ID3D12GraphicsCommandList> m_command_list_ = nullptr;
 	
-	ComPtr<IDXGISwapChain> m_swap_chain_;
+	ComPtr<IDXGISwapChain> m_swap_chain_ = nullptr;
 
-	ComPtr<ID3D12DescriptorHeap> m_RTV_heap_;
-	ComPtr<ID3D12DescriptorHeap> m_DSV_heap_;
-	ComPtr<ID3D12DescriptorHeap> m_CBV_SRV_heap_;
-	ComPtr<ID3D12DescriptorHeap> m_sampler_heap;
+	ComPtr<ID3D12DescriptorHeap> m_RTV_heap_ = nullptr;
+	ComPtr<ID3D12DescriptorHeap> m_DSV_heap_ = nullptr;
+	ComPtr<ID3D12DescriptorHeap> m_CBV_SRV_heap_ = nullptr;
+	ComPtr<ID3D12DescriptorHeap> m_sampler_heap = nullptr;
 	int m_current_back_buffer_ = 0;
 
 	ComPtr<ID3D12Resource> m_swap_chain_buffer_[2];
-	ComPtr<ID3D12Resource> m_DSV_buffer;
+	ComPtr<ID3D12Resource> m_DSV_buffer = nullptr;
 
 	D3D12_VIEWPORT vp_;
 	D3D12_RECT m_scissor_rect_;
@@ -130,20 +126,11 @@ private:
 	ComPtr<ID3D12Resource> IndexBufferUploader_ = nullptr;
 	D3D12_INDEX_BUFFER_VIEW ibv;
 
-
-	std::unique_ptr<UploadBuffer<ObjectConstants>> CBUploadBuffer;
+	std::unique_ptr<UploadBuffer<ObjectConstants>> CBUploadBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialCB = nullptr;
-
-	ComPtr<ID3DBlob> serializedRootSig_ = nullptr;
-	ComPtr<ID3DBlob> errorBlob_ = nullptr;
-	ComPtr<ID3D12RootSignature> m_root_signature_;
-
-	ComPtr<ID3DBlob> mvsByteCode_ = nullptr;
-	ComPtr<ID3DBlob> mpsByteCode_ = nullptr;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout_;
 
-	ComPtr<ID3D12PipelineState> PSO_;
 
 	Matrix mWorld_ = Matrix::Identity;
 	Matrix mView_ = Matrix::Identity;
@@ -172,7 +159,6 @@ private:
 	ComPtr<ID3D12Resource> mDefaultTexture;
 	std::vector<std::string> materialNames;
 
-	//GBuffer* g_buffer = nullptr;
 	RenderingSystem* renderSystem = nullptr;
 };
 

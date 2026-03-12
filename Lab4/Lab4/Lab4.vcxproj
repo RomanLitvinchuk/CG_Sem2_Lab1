@@ -149,6 +149,7 @@
     <ClInclude Include="DX12App.h" />
     <ClInclude Include="game_timer.h" />
     <ClInclude Include="g_buffer.h" />
+    <ClInclude Include="light.h" />
     <ClInclude Include="materials.h" />
     <ClInclude Include="object_constants.h" />
     <ClInclude Include="rendering_system.h" />
@@ -163,6 +164,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="light.hlsl" />
     <FxCompile Include="opaque.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

@@ -361,7 +361,7 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 void DX12App::Draw(const GameTimer& gt)
 {
 	ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
-	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), PSO_.Get()));
+	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), renderSystem->opaquePSO_.Get()));
 
 	renderSystem->g_buffer->TransitToOpaqueRenderingState(m_command_list_);
 
@@ -521,63 +521,6 @@ void DX12App::CreateConstantBufferView() {
 	std::cout << "Constant buffer view is created" << std::endl;
 }
 
-//void DX12App::CreateRootSignature() {
-//	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
-//	CD3DX12_DESCRIPTOR_RANGE cbvTable;
-//	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
-//	CD3DX12_DESCRIPTOR_RANGE srvTable;
-//	srvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
-//	CD3DX12_DESCRIPTOR_RANGE samplerTable;
-//	samplerTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
-//	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable, D3D12_SHADER_VISIBILITY_ALL);
-//	slotRootParameter[1].InitAsDescriptorTable(1, &srvTable, D3D12_SHADER_VISIBILITY_PIXEL);
-//	slotRootParameter[2].InitAsDescriptorTable(1, &samplerTable, D3D12_SHADER_VISIBILITY_PIXEL);
-//	slotRootParameter[3].InitAsConstantBufferView(1);;
-//
-//	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
-//		4, slotRootParameter,
-//		0, nullptr,
-//		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
-//	);
-//
-//	ComPtr<ID3DBlob> serializedRootSig = nullptr;
-//	ComPtr<ID3DBlob> errorBlob = nullptr;
-//
-//	HRESULT hr = D3D12SerializeRootSignature(
-//		&rootSigDesc,
-//		D3D_ROOT_SIGNATURE_VERSION_1,
-//		serializedRootSig.GetAddressOf(),
-//		errorBlob.GetAddressOf()
-//	);
-//
-//	if (errorBlob != nullptr) {
-//		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
-//	}
-//
-//	ThrowIfFailed(hr);
-//	ThrowIfFailed(m_device_->CreateRootSignature(
-//		0,
-//		serializedRootSig->GetBufferPointer(),
-//		serializedRootSig->GetBufferSize(),
-//		IID_PPV_ARGS(&m_root_signature_)
-//	));
-//
-//	std::cout << "Root Signature is created" << std::endl;
-//}
-
-//void DX12App::CompileShaders() {
-//	DWORD fileAttr = GetFileAttributes(L"shaders.hlsl");
-//	if (fileAttr == INVALID_FILE_ATTRIBUTES) {
-//		std::wcout << L"ERROR: Shader file not found!" << std::endl;
-//		MessageBox(NULL, L"Shader file not found!", L"Error", MB_OK);
-//		return;
-//	}
-//	mvsByteCode_ = d3dUtil::CompileShader(L"shaders.hlsl", nullptr, "VS", "vs_5_0");
-//	std::cout << "Vertex shader are compiled" << std::endl;
-//	mpsByteCode_ = d3dUtil::CompileShader(L"shaders.hlsl", nullptr, "PS", "ps_5_0");
-//	std::cout << "Pixel shader are compiled" << std::endl;
-//}
-
 void DX12App::BuildLayout() {
 	m_input_layout_ =
 	{
@@ -587,36 +530,6 @@ void DX12App::BuildLayout() {
 	};
 	std::cout << "Layout is builded" << std::endl;
 }
-
-//void DX12App::CreatePSO() {
-//	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
-//	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-//	psoDesc.InputLayout = { m_input_layout_.data(), (UINT)m_input_layout_.size() };
-//	psoDesc.pRootSignature = m_root_signature_.Get();
-//	psoDesc.VS = { reinterpret_cast<BYTE*>(mvsByteCode_->GetBufferPointer()), mvsByteCode_->GetBufferSize() };
-//	psoDesc.PS = { reinterpret_cast<BYTE*>(mpsByteCode_->GetBufferPointer()), mpsByteCode_->GetBufferSize() };
-//	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
-//	//rastDesc.CullMode = D3D12_CULL_MODE_NONE;
-//	rastDesc.FrontCounterClockwise = true; 
-//	psoDesc.RasterizerState = rastDesc;
-//	//psoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
-//	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-//	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-//	psoDesc.SampleMask = UINT_MAX;
-//	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-//	psoDesc.NumRenderTargets = 2;
-//	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-//	psoDesc.RTVFormats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT;
-//	psoDesc.SampleDesc.Count = 1;
-//	psoDesc.SampleDesc.Quality = 0;
-//	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-//	ThrowIfFailed(m_device_->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&PSO_)));
-//	std::cout << "PSO is created" << std::endl;
-//}
-
-//void DX12App::InitGBuffer() {
-//	g_buffer = new GBuffer(m_client_width_, m_client_height_, m_device_);
-//}
 
 void DX12App::OnResize() {
 	FlushCommandQueue();
