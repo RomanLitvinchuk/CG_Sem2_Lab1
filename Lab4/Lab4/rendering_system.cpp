@@ -145,7 +145,7 @@ void RenderingSystem::CreateLightPSO(ComPtr<ID3D12Device> device, std::vector<D3
 	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
 	psoDesc.RasterizerState = rastDesc;
 	psoDesc.BlendState = blendDesc;
-	psoDesc.DepthStencilState.DepthEnable = true;
+	psoDesc.DepthStencilState.DepthEnable = false;
 	psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
 	psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;
 	psoDesc.SampleMask = UINT_MAX;

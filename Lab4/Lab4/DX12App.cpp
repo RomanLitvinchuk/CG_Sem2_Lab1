@@ -293,11 +293,6 @@ void DX12App::FlushCommandQueue()
 void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->SetPipelineState(renderSystem->opaquePSO_.Get());
 
-	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
-		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	m_command_list_->ResourceBarrier(1, &barrier);
-
-	m_command_list_->ClearRenderTargetView(GetBackBuffer(), Colors::LightSteelBlue, 0, nullptr);
 	m_command_list_->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	//D3D12_CPU_DESCRIPTOR_HANDLE bb = GetBackBuffer();
@@ -350,10 +345,6 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 			sm.startVerticeIndex,
 			0);
 	}
-
-	CD3DX12_RESOURCE_BARRIER barrier2 = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PRESENT);
-	m_command_list_->ResourceBarrier(1, &barrier2);
 }
 
 void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
@@ -365,17 +356,16 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->ResourceBarrier(1, &barrier);
 
 	m_command_list_->ClearRenderTargetView(GetBackBuffer(), Colors::Black, 0, nullptr);
-	m_command_list_->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE bb = GetBackBuffer();
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv = renderSystem->g_buffer->DepthTex.dsvHandle;
 	m_command_list_->OMSetRenderTargets(1, &bb, true, &dsv);
-	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->g_buffer->SRVDescriptorHeap.Get(), m_sampler_heap.Get() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->g_buffer->SRVDescriptorHeap.Get(), renderSystem->samplerHeap.Get() };
 	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	m_command_list_->SetGraphicsRootConstantBufferView(0, CameraCB->Resource()->GetGPUVirtualAddress());
 	m_command_list_->SetGraphicsRootDescriptorTable(2, renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
-	m_command_list_->SetGraphicsRootDescriptorTable(3, m_sampler_heap->GetGPUDescriptorHandleForHeapStart());
+	m_command_list_->SetGraphicsRootDescriptorTable(3, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
 	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
@@ -521,8 +511,9 @@ void DX12App::Update(const GameTimer& gt) {
 
 
 	Matrix ViewProj = mView_ * mProj_;
+	Matrix InvViewProj = ViewProj.Invert();
 	ViewProj = ViewProj.Transpose();
-
+	InvViewProj = InvViewProj.Transpose();
 
 	ObjectConstants obj;
 	obj.mWorld = mWorld_;
@@ -535,6 +526,14 @@ void DX12App::Update(const GameTimer& gt) {
 		MaterialCB->CopyData(i, materialData[i]);
 	}
 
+	CameraConstants camConst;
+	camConst.invViewProj = InvViewProj;
+	camConst.cameraPos = mCameraPos;
+	CameraCB->CopyData(0, camConst);
+
+	for (int i = 0; i < renderSystem->sceneLights_.size(); ++i) {
+		LightCB->CopyData(i, renderSystem->sceneLights_[i]);
+	}
 }
 
 void DX12App::InitUploadBuffers() {
