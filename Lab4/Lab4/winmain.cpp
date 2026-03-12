@@ -150,7 +150,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     MyFramework.CreateCBVDescriptorHeap();
     MyFramework.CreateSRV();
     MyFramework.CreateSamplerHeap();
-    MyFramework.InitGBuffer();
 	MyFramework.SetViewport();
 	MyFramework.SetScissor();
 	MyFramework.SetTopology();
@@ -161,9 +160,10 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	MyFramework.CreateIndexBuffer();
 	MyFramework.InitUploadBuffers();
 	MyFramework.CreateConstantBufferView();
-	MyFramework.CreateRootSignature();
-	MyFramework.CompileShaders();
-	MyFramework.CreatePSO();
+	//MyFramework.CreateRootSignature();
+	//MyFramework.CompileShaders();
+	//MyFramework.CreatePSO();
+    MyFramework.InitRenderSystem();
 	GameTimer gt;
 
 

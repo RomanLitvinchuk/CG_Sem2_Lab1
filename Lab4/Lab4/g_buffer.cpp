@@ -91,7 +91,7 @@ void GBuffer::TransitToLightsRenderingState(ComPtr<ID3D12GraphicsCommandList> co
 	CD3DX12_RESOURCE_BARRIER normalBarrier = CD3DX12_RESOURCE_BARRIER::Transition(NormalTex.Resource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 		D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
 	CD3DX12_RESOURCE_BARRIER depthBarrier = CD3DX12_RESOURCE_BARRIER::Transition(DepthTex.Resource.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE,
-		D3D12_RESOURCE_STATE_DEPTH_READ);
+		D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
 	D3D12_RESOURCE_BARRIER barriers[] = { diffuseBarrier, normalBarrier, depthBarrier };
 	commandList->ResourceBarrier(3, barriers);
 }

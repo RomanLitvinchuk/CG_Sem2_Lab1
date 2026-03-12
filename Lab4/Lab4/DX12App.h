@@ -17,7 +17,8 @@
 #include "texture.h"
 #include "materials.h"
 #include "submesh.h"
-#include "g_buffer.h"
+#include "g_buffer.h"4
+#include "rendering_system.h"
 #include <unordered_map>
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
@@ -46,7 +47,7 @@ public:
 	void OnResize();
 	void SetViewport();
 	void SetScissor();
-	void InitGBuffer();
+	//void InitGBuffer();
 
 	void CalculateGameStats(GameTimer& gt, HWND hWnd);
 	void Draw(const GameTimer& gt);
@@ -73,6 +74,7 @@ public:
 	void BuildLayout();
 
 	void CreatePSO();
+	void InitRenderSystem();
 	void ParseFile();
 	void ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
 	void ParseMesh(const aiScene* scene, aiMesh* mesh, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
@@ -170,7 +172,8 @@ private:
 	ComPtr<ID3D12Resource> mDefaultTexture;
 	std::vector<std::string> materialNames;
 
-	GBuffer* g_buffer = nullptr;
+	//GBuffer* g_buffer = nullptr;
+	RenderingSystem* renderSystem = nullptr;
 };
 
 #endif //DX12APP_
