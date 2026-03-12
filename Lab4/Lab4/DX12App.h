@@ -17,8 +17,9 @@
 #include "texture.h"
 #include "materials.h"
 #include "submesh.h"
-#include "g_buffer.h"4
+#include "g_buffer.h"
 #include "rendering_system.h"
+#include "light.h"
 #include <unordered_map>
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
@@ -49,8 +50,10 @@ public:
 	void SetScissor();
 
 	void CalculateGameStats(GameTimer& gt, HWND hWnd);
+
 	void Draw(const GameTimer& gt);
 	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
+	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 
 	void FlushCommandQueue();
 	void SetTopology();
@@ -128,6 +131,8 @@ private:
 
 	std::unique_ptr<UploadBuffer<ObjectConstants>> CBUploadBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialCB = nullptr;
+	std::unique_ptr<UploadBuffer<LightConstants>> LightCB = nullptr;
+	std::unique_ptr<UploadBuffer<CameraConstants>> CameraCB = nullptr;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout_;
 

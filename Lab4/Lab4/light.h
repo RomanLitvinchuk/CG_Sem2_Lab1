@@ -6,18 +6,26 @@
 using namespace DirectX;
 using namespace SimpleMath;
 
-struct Light {
-	Vector3 strength_;
-	float fallOfStart_;
+struct LightConstants {
+	Vector3 lightColor;
+	int lightType;
 
-	Vector3 direction_;
-	float FallofEnd;
+	Vector3 lightPosition;
+	float lightRange;
 
-	Vector3 position_;
-	float spotPower;
+	Vector3 lightDirection;
+	float SpotCosInner;
 
+	float SpotCosOuter;
+	Vector3 padding;
 };
 
+struct CameraConstants {
+	Matrix invViewProj;
+
+	Vector3 cameraPos;
+	float padding;
+};
 
 
 #endif //LIGHT_H_
