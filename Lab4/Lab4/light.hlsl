@@ -20,7 +20,6 @@ cbuffer LightCB : register(b1)
     float3 padding2;
 };
 
-
 Texture2D t_Diffuse : register(t0);
 Texture2D t_Normal : register(t1);
 Texture2D t_Depth : register(t2);

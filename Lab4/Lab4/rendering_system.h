@@ -25,6 +25,8 @@ struct RenderingSystem {
 	void CreateOpaqueRS(ComPtr<ID3D12Device> device);
 	void CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
 	void CompileShaders();
+	void CreateLightRS(ComPtr<ID3D12Device> device);
+	void CreateLightPSO(ComPtr<ID3D12Device>, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
 
 	RenderingSystem(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout, int width, int height) {
 		CreateOpaqueRS(device);
