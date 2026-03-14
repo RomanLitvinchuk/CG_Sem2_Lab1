@@ -10,13 +10,13 @@ cbuffer LightCB : register(b1)
     float3 g_LightColor;
     int g_LightType; // 0 = Directional, 1 = Point, 2 = Spot
     
-    float3 g_LightPosition; // Позиция (для Point и Spot)
-    float g_LightRange; // Радиус действия (для Point и Spot)
+    float3 g_LightPosition; 
+    float g_LightRange;
     
-    float3 g_LightDirection; // Направление (для Directional и Spot)
-    float g_SpotCosInner; // Косинус внутреннего угла (для Spot)
+    float3 g_LightDirection; 
+    float g_SpotCosInner; 
     
-    float g_SpotCosOuter; // Косинус внешнего угла (для Spot)
+    float g_SpotCosOuter;
     float3 padding2;
 };
 

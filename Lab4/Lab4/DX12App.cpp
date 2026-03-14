@@ -509,7 +509,7 @@ void DX12App::Update(const GameTimer& gt) {
 
 	mView_ = Matrix::CreateLookAt(mCameraPos, mCameraPos + mCameraTarget, mCameraUp);
 
-
+	std::cout << "CameraPos:" << mCameraPos.x << " " << mCameraPos.y << " " << mCameraPos.z << std::endl;
 	Matrix ViewProj = mView_ * mProj_;
 	Matrix InvViewProj = ViewProj.Invert();
 	ViewProj = ViewProj.Transpose();
@@ -533,6 +533,22 @@ void DX12App::Update(const GameTimer& gt) {
 
 	for (int i = 0; i < renderSystem->sceneLights_.size(); ++i) {
 		LightCB->CopyData(i, renderSystem->sceneLights_[i]);
+	}
+
+	for (int i = 0; i < materialData.size(); ++i) {
+		//materialData[i].MatTransform = Matrix::Identity;
+		float tu = materialData[i].MatTransform(1, 0);
+		float tv = materialData[i].MatTransform(1, 1);
+		tu += 0.1f * gt.DeltaTime();
+		tv += 0.02f * gt.DeltaTime();
+
+		if (tu >= 1.0f)
+			tu -= 1.0f;
+		if (tv >= 1.0f)
+			tv -= 1.0f;
+		materialData[i].MatTransform(1, 0) = tu;
+		materialData[i].MatTransform(1, 1) = tv;
+		MaterialCB->CopyData(i, materialData[i]);
 	}
 }
 

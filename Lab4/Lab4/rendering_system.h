@@ -44,25 +44,25 @@ struct RenderingSystem {
 
 		LightConstants sun = {};
 		sun.lightType = 0; // Directional
-		sun.lightDirection = { 0.5f, -1.0f, 0.5f };
+		sun.lightDirection = { 0.0f, 0.0f, 1.0f };
 		sun.lightColor = { 1.0f, 0.9f, 0.8f };
 		sceneLights_.push_back(sun);
 
 		LightConstants bulb = {};
 		bulb.lightType = 1; // Point
-		bulb.lightPosition = { 10.0f, 5.0f, 0.0f };
-		bulb.lightRange = 20.0f;
+		bulb.lightPosition = { 0.0f, 3.0f, -10.0f };
+		bulb.lightRange = 500.0f;
 		bulb.lightColor = { 1.0f, 0.0f, 0.0f };
 		sceneLights_.push_back(bulb);
 
 		LightConstants flashLight = {};
 		flashLight.lightType = 2;
-		flashLight.lightColor = { 1.0f, 1.0f, 1.0f };
-		flashLight.lightPosition = { 0.0f, 2.0f, 0.0f };
-		flashLight.lightDirection = { 0.0f, 0.0f, 1.0f };
-		flashLight.lightRange = 50.0f;
-		flashLight.SpotCosInner = cosf(DirectX::XMConvertToRadians(15.0f));
-		flashLight.SpotCosOuter = cosf(DirectX::XMConvertToRadians(30.0f));
+		flashLight.lightColor = { 0.0f, 0.0f, 1.0f };
+		flashLight.lightPosition = { -185.0f, 135.0f, -550.0f };
+		flashLight.lightDirection = { 0.0f, 0.0f, -1.0f };
+		flashLight.lightRange = 500.0f;
+		flashLight.SpotCosInner = cosf(DirectX::XMConvertToRadians(45.0f));
+		flashLight.SpotCosOuter = cosf(DirectX::XMConvertToRadians(60.0f));
 		sceneLights_.push_back(flashLight);
 
 
