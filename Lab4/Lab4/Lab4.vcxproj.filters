@@ -42,6 +42,9 @@
     <ClCompile Include="rendering_system.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="bulb.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="window_class.h">
@@ -98,6 +101,9 @@
       <Filter>Исходные файлы</Filter>
     </FxCompile>
     <FxCompile Include="light.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
+    <FxCompile Include="bulb.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
   </ItemGroup>

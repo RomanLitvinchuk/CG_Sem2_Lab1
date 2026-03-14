@@ -7,17 +7,7 @@ cbuffer CameraCB : register(b0)
 
 cbuffer LightCB : register(b1)
 {
-    float3 g_LightColor;
-    int g_LightType; // 0 = Directional, 1 = Point, 2 = Spot
-    
-    float3 g_LightPosition; 
-    float g_LightRange;
-    
-    float3 g_LightDirection; 
-    float g_SpotCosInner; 
-    
-    float g_SpotCosOuter;
-    float3 padding2;
+    uint lightCount;
 };
 
 Texture2D t_Diffuse : register(t0);
@@ -25,6 +15,19 @@ Texture2D t_Normal : register(t1);
 Texture2D t_Depth : register(t2);
 
 SamplerState s_PointClamp : register(s0);
+
+struct LightData
+{
+    float3 g_LightColor;
+    int g_LightType;
+    float3 g_LightPosition;
+    float g_LightRange;
+    float3 g_LightDirection;
+    float g_SpotCosInner;
+    float g_SpotCosOuter;
+    float3 padding2;
+};
+StructuredBuffer<LightData> Lights : register(t3);
 
 struct PS_INPUT
 {
@@ -57,64 +60,62 @@ float3 ReconstructWorldPos(float2 texCoord, float depth)
 float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
 {
     float depth = t_Depth.Sample(s_PointClamp, input.TexCoord).r;
-    
     if (depth >= 1.0f)
         discard;
 
     float3 diffuse = t_Diffuse.Sample(s_PointClamp, input.TexCoord).rgb;
-    
     float3 normal = t_Normal.Sample(s_PointClamp, input.TexCoord).xyz;
     normal = normalize(normal * 2.0f - 1.0f);
-
     float3 worldPos = ReconstructWorldPos(input.TexCoord, depth);
     float3 viewDir = normalize(g_CameraPos - worldPos);
 
     float3 finalLight = float3(0.0f, 0.0f, 0.0f);
-
-    if (g_LightType == 0)
+    for (uint i = 0; i < lightCount; i++)
     {
-        float3 lightDir = normalize(-g_LightDirection);
-        float NdotL = max(dot(normal, lightDir), 0.0f);
+        LightData light = Lights[i];
         
-        finalLight = diffuse * g_LightColor * NdotL;
-    }
-    else if (g_LightType == 1)
-    {
-        float3 lightVec = g_LightPosition - worldPos;
-        float distance = length(lightVec);
-        
-        if (distance < g_LightRange)
+        if (light.g_LightType == 0) // Directional
         {
-            float3 lightDir = lightVec / distance;
-            
-            float attenuation = max(0.0f, 1.0f - (distance / g_LightRange));
-            attenuation = attenuation * attenuation;
-            
+            float3 lightDir = normalize(-light.g_LightDirection);
             float NdotL = max(dot(normal, lightDir), 0.0f);
-            
-            finalLight = diffuse * g_LightColor * NdotL * attenuation;
+            finalLight += diffuse * light.g_LightColor * NdotL;
         }
-    }
-    else if (g_LightType == 2)
-    {
-        float3 lightVec = g_LightPosition - worldPos;
-        float distance = length(lightVec);
-        
-        if (distance < g_LightRange)
+        else if (light.g_LightType == 1) // Point
         {
-            float3 lightDir = lightVec / distance;
+            float3 lightVec = light.g_LightPosition - worldPos;
+            float distance = length(lightVec);
             
-            float attenuation = max(0.0f, 1.0f - (distance / g_LightRange));
-            attenuation = attenuation * attenuation;
-            
-            float theta = dot(lightDir, normalize(-g_LightDirection));
-            float spotIntensity = smoothstep(g_SpotCosOuter, g_SpotCosInner, theta);
-            
-            float NdotL = max(dot(normal, lightDir), 0.0f);
-            
-            finalLight = diffuse * g_LightColor * NdotL * attenuation * spotIntensity;
+            if (distance < light.g_LightRange)
+            {
+                float3 lightDir = lightVec / distance;
+                float attenuation = max(0.0f, 1.0f - (distance / light.g_LightRange));
+                attenuation *= attenuation;
+                float NdotL = max(dot(normal, lightDir), 0.0f);
+                finalLight += diffuse * light.g_LightColor * NdotL * attenuation;
+            }
         }
-    }
+        else if (light.g_LightType == 2) //Spot
+        {
+            float3 lightVec = light.g_LightPosition - worldPos;
+            float distance = length(lightVec);
+            
+            if (distance < light.g_LightRange)
+            {
+                float3 lightDir = lightVec / distance;
+                
+                float attenuation = max(0.0f, 1.0f - (distance / light.g_LightRange));
+                attenuation = attenuation * attenuation;
+                
+                float theta = dot(lightDir, normalize(-light.g_LightDirection));
+                float spotIntensity = smoothstep(light.g_SpotCosOuter, light.g_SpotCosInner, theta);
+                float NdotL = max(dot(normal, lightDir), 0.0f);
+                
+                finalLight += diffuse * light.g_LightColor * NdotL * attenuation * spotIntensity;
 
+            }
+
+        }
+
+    }
     return float4(finalLight, 1.0f);
 }

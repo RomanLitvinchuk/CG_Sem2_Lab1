@@ -351,6 +351,10 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->SetPipelineState(renderSystem->lightPSO_.Get());
 	m_command_list_->SetGraphicsRootSignature(renderSystem->lightRS_.Get());
 
+	for (int i = 0; i < renderSystem->sceneLights_.size(); ++i) {
+		LightBuffer->CopyData(i, renderSystem->sceneLights_[i]);
+	}
+
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	m_command_list_->ResourceBarrier(1, &barrier);
@@ -364,18 +368,13 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	m_command_list_->SetGraphicsRootConstantBufferView(0, CameraCB->Resource()->GetGPUVirtualAddress());
+	UINT count = (UINT)renderSystem->sceneLights_.size();
+	m_command_list_->SetGraphicsRoot32BitConstant(1, count, 0);
 	m_command_list_->SetGraphicsRootDescriptorTable(2, renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 	m_command_list_->SetGraphicsRootDescriptorTable(3, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
 	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	for (int i = 0; i < renderSystem->sceneLights_.size(); i++) {
-		D3D12_GPU_VIRTUAL_ADDRESS lightCBAddress = LightCB->Resource()->GetGPUVirtualAddress() + 
-			(i * d3dUtil::CalcConstantBufferSize(sizeof(LightConstants)));
-		m_command_list_->SetGraphicsRootConstantBufferView(1, lightCBAddress);
-
-		m_command_list_->DrawInstanced(3, 1, 0, 0);
-	}
+	m_command_list_->DrawInstanced(3, 1, 0, 0);
 	CD3DX12_RESOURCE_BARRIER barrierBack = CD3DX12_RESOURCE_BARRIER::Transition(
 		CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
@@ -399,6 +398,21 @@ void DX12App::Draw(const GameTimer& gt)
 	DrawToGBuffer(m_command_list_);
 	renderSystem->g_buffer->TransitToLightsRenderingState(m_command_list_);
 	DrawLights(m_command_list_);
+
+	m_command_list_->SetPipelineState(renderSystem->bulbPSO_.Get());
+	m_command_list_->SetGraphicsRootSignature(renderSystem->bulbRS_.Get());
+
+	m_command_list_->SetGraphicsRootConstantBufferView(0, CBUploadBuffer->Resource()->GetGPUVirtualAddress());
+
+	auto handle = renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	CD3DX12_GPU_DESCRIPTOR_HANDLE lightSrvHandle(handle, 3, size);
+	m_command_list_->SetGraphicsRootDescriptorTable(1, lightSrvHandle);
+
+	m_command_list_->IASetVertexBuffers(0, 1, &mSphereVbv);
+	m_command_list_->IASetIndexBuffer(&mSphereIbv);
+
+	m_command_list_->DrawIndexedInstanced(mSphereIndexCount, 500, 0, 0, 0);
 
 	ThrowIfFailed(m_command_list_->Close());
 	ID3D12CommandList* cmdsLists[] = { m_command_list_.Get() };
@@ -531,24 +545,38 @@ void DX12App::Update(const GameTimer& gt) {
 	camConst.cameraPos = mCameraPos;
 	CameraCB->CopyData(0, camConst);
 
-	for (int i = 0; i < renderSystem->sceneLights_.size(); ++i) {
-		LightCB->CopyData(i, renderSystem->sceneLights_[i]);
-	}
-
 	for (int i = 0; i < materialData.size(); ++i) {
 		//materialData[i].MatTransform = Matrix::Identity;
-		float tu = materialData[i].MatTransform(1, 0);
-		float tv = materialData[i].MatTransform(1, 1);
-		tu += 0.1f * gt.DeltaTime();
-		tv += 0.02f * gt.DeltaTime();
+		if (materialData[i].isTree != 1) {
+			float tu = materialData[i].MatTransform(1, 0);
+			float tv = materialData[i].MatTransform(1, 1);
+			tu += 0.1f * gt.DeltaTime();
+			tv += 0.02f * gt.DeltaTime();
 
-		if (tu >= 1.0f)
-			tu -= 1.0f;
-		if (tv >= 1.0f)
-			tv -= 1.0f;
-		materialData[i].MatTransform(1, 0) = tu;
-		materialData[i].MatTransform(1, 1) = tv;
+			if (tu >= 1.0f)
+				tu -= 1.0f;
+			if (tv >= 1.0f)
+				tv -= 1.0f;
+			materialData[i].MatTransform(1, 0) = tu;
+			materialData[i].MatTransform(1, 1) = tv;
+		}
 		MaterialCB->CopyData(i, materialData[i]);
+	}
+
+	static float timeAccumulator = 0.0f;
+	timeAccumulator += gt.DeltaTime();
+
+	if (timeAccumulator >= 1.0f) {
+		timeAccumulator = 0.0f;
+
+		for (int i = 0; i < renderSystem->sceneLights_.size(); i++) {
+			if (renderSystem->sceneLights_[i].lightType == 1) {
+				renderSystem->sceneLights_[i].lightColor.x = static_cast<float>(rand()) / RAND_MAX;
+				renderSystem->sceneLights_[i].lightColor.y = static_cast<float>(rand()) / RAND_MAX;
+				renderSystem->sceneLights_[i].lightColor.z = static_cast<float>(rand()) / RAND_MAX;
+			}
+			LightBuffer->CopyData(i, renderSystem->sceneLights_[i]);
+		}
 	}
 }
 
@@ -559,8 +587,8 @@ void DX12App::InitUploadBuffers() {
 		true
 	);
 	MaterialCB = std::make_unique<UploadBuffer<MaterialConstants>>(m_device_.Get(), 300, true);
-	LightCB = std::make_unique<UploadBuffer<LightConstants>>(m_device_.Get(), 10, true);
 	CameraCB = std::make_unique<UploadBuffer<CameraConstants>>(m_device_.Get(), 1, true);
+	LightBuffer = std::make_unique<UploadBuffer<LightConstants>>(m_device_.Get(), 1000, false);
 }
 
 void DX12App::CreateConstantBufferView() {
@@ -602,4 +630,35 @@ void DX12App::OnResize() {
 
 void DX12App::InitRenderSystem() {
 	renderSystem = new RenderingSystem(m_device_, m_input_layout_, m_client_width_, m_client_height_);
+
+	CreateLightBufferSRV();
+}
+
+
+void DX12App::Parsing() {
+	ParseFile("sponza.obj", Matrix::Identity);
+
+	Matrix treeTransform = Matrix::CreateScale(0.2f) * Matrix::CreateRotationX(-3.14 / 2) * Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
+	ParseFile("Christmas Tree Color mm.obj", treeTransform);
+}
+
+void DX12App::CreateLightBufferSRV() {
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Buffer.NumElements = 1000;
+	srvDesc.Buffer.StructureByteStride = sizeof(LightConstants);
+	srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
+
+	// Берем кучу из уже созданного G-буфера
+	auto handle = renderSystem->g_buffer->SRVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+
+	// Смещение 3 (0-Diffuse, 1-Normal, 2-Depth)
+	CD3DX12_CPU_DESCRIPTOR_HANDLE lightSrvHandle(handle, 3, size);
+
+	m_device_->CreateShaderResourceView(LightBuffer->Resource(), &srvDesc, lightSrvHandle);
+
+	std::cout << "StructuredBuffer SRV created in G-Buffer heap at slot 3" << std::endl;
 }

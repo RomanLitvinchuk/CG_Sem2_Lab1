@@ -70,14 +70,17 @@ public:
 
 	void InitUploadBuffers();
 	void CreateConstantBufferView();
+	void CreateLightBufferSRV();
 
 	void CompileShaders();
 	void BuildLayout();
 
+	void BuildBulbGeometry();
 	void InitRenderSystem();
-	void ParseFile();
-	void ParseNode(aiNode* node, const aiScene* scene, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
-	void ParseMesh(const aiScene* scene, aiMesh* mesh, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
+	void Parsing();
+	void ParseFile(const std::string& filename, const Matrix& transform);
+	void ParseNode(aiNode* node, const aiScene* scene, const Matrix& transform, int materialOffset, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
+	void ParseMesh(const aiScene* scene, aiMesh* mesh, const Matrix& transform, int materialOffset, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
 	void ExtractMaterialData(int MaterialIndex, aiMaterial* material);
 
 	ComPtr<ID3D12Device> GetDevice() const { return m_device_; }
@@ -131,7 +134,7 @@ private:
 
 	std::unique_ptr<UploadBuffer<ObjectConstants>> CBUploadBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialCB = nullptr;
-	std::unique_ptr<UploadBuffer<LightConstants>> LightCB = nullptr;
+	std::unique_ptr<UploadBuffer<LightConstants>> LightBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<CameraConstants>> CameraCB = nullptr;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout_;
@@ -165,6 +168,12 @@ private:
 	std::vector<std::string> materialNames;
 
 	RenderingSystem* renderSystem = nullptr;
+
+	ComPtr<ID3D12Resource> mSphereVB = nullptr;
+	ComPtr<ID3D12Resource> mSphereIB = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW mSphereVbv;
+	D3D12_INDEX_BUFFER_VIEW mSphereIbv;
+	UINT mSphereIndexCount = 0;
 };
 
 #endif //DX12APP_

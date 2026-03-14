@@ -5,6 +5,7 @@
 #include <DirectXHelpers.h>
 #include <comdef.h>
 #include "window_class.h"
+#include <SimpleMath.h>
 #include "DX12App.h"
 #include "game_timer.h"
 #include "vertex.h"
@@ -155,14 +156,12 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	MyFramework.SetTopology();
 	MyFramework.BuildLayout();
 	MyFramework.InitProjectionMatrix();
-    MyFramework.ParseFile();
+    MyFramework.Parsing();
+    MyFramework.BuildBulbGeometry();
 	MyFramework.CreateVertexBuffer();
 	MyFramework.CreateIndexBuffer();
 	MyFramework.InitUploadBuffers();
 	MyFramework.CreateConstantBufferView();
-	//MyFramework.CreateRootSignature();
-	//MyFramework.CompileShaders();
-	//MyFramework.CreatePSO();
     MyFramework.InitRenderSystem();
 	GameTimer gt;
 

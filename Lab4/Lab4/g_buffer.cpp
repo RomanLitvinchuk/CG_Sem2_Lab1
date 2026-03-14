@@ -1,4 +1,5 @@
 #include "g_buffer.h"
+#include "DX12App.h"
 
 void GBuffer::CreateTextures(int width, int height, ComPtr<ID3D12Device> device) {
 	auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);

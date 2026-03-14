@@ -133,6 +133,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="bulb.cpp" />
     <ClCompile Include="d3dUtil.cpp" />
     <ClCompile Include="DDSTextureLoader.cpp" />
     <ClCompile Include="DX12App.cpp" />
@@ -164,6 +165,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
+    <FxCompile Include="bulb.hlsl" />
     <FxCompile Include="light.hlsl" />
     <FxCompile Include="opaque.hlsl" />
   </ItemGroup>

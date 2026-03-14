@@ -24,8 +24,9 @@ cbuffer cbMaterial : register(b1)
     int gHasDiffuseTexture;
     
     int gIsLion;
+    int gIsTree;
     int gDiffuseTextureIndex;
-    int3 gMaterialPad;
+    int gMaterialPad;
     
 }
 

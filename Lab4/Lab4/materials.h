@@ -24,8 +24,9 @@ struct MaterialConstants
     int HasDiffuseTexture;  
 
     int isLion = 0;
+    int isTree = 0;
     int diffuseTextureIndex = 0; 
-    int padding[3];          
+    int padding;          
 };
 
 //static_assert(sizeof(MaterialConstants) == 160,

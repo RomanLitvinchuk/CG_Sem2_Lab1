@@ -23,6 +23,11 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> lightVS_ = nullptr;
 	ComPtr<ID3DBlob> lightPS_ = nullptr;
 
+	ComPtr<ID3D12RootSignature> bulbRS_ = nullptr;
+	ComPtr<ID3D12PipelineState> bulbPSO_ = nullptr;
+	ComPtr<ID3DBlob> bulbVS_ = nullptr;
+	ComPtr<ID3DBlob> bulbPS_ = nullptr;
+
 	GBuffer* g_buffer = nullptr;
 
 	std::vector<LightConstants> sceneLights_;
@@ -34,12 +39,19 @@ struct RenderingSystem {
 	void CreateLightRS(ComPtr<ID3D12Device> device);
 	void CreateLightPSO(ComPtr<ID3D12Device>, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
 
+	void CreateBulbRS(ComPtr<ID3D12Device> device);
+	void CreateBulbPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
+
+	void GenerateTreeLights(std::vector<LightConstants>& lightsArray, Vector3 treeBasePosition, float treeHeight, float treeBaseRadius, int count);
+
 	RenderingSystem(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout, int width, int height) {
 		CreateOpaqueRS(device);
 		CompileShaders();
 		CreateOpaquePSO(device, layout);
+
 		CreateLightRS(device);
 		CreateLightPSO(device, layout);
+
 		g_buffer = new GBuffer(width, height, device);
 
 		LightConstants sun = {};
@@ -48,22 +60,10 @@ struct RenderingSystem {
 		sun.lightColor = { 1.0f, 0.9f, 0.8f };
 		sceneLights_.push_back(sun);
 
-		LightConstants bulb = {};
-		bulb.lightType = 1; // Point
-		bulb.lightPosition = { 0.0f, 3.0f, -10.0f };
-		bulb.lightRange = 500.0f;
-		bulb.lightColor = { 1.0f, 0.0f, 0.0f };
-		sceneLights_.push_back(bulb);
+		GenerateTreeLights(sceneLights_, { 10.0f, 0.0f, -60.0f }, 350.0f, 100.0f, 500);
 
-		LightConstants flashLight = {};
-		flashLight.lightType = 2;
-		flashLight.lightColor = { 0.0f, 0.0f, 1.0f };
-		flashLight.lightPosition = { -185.0f, 135.0f, -550.0f };
-		flashLight.lightDirection = { 0.0f, 0.0f, -1.0f };
-		flashLight.lightRange = 500.0f;
-		flashLight.SpotCosInner = cosf(DirectX::XMConvertToRadians(45.0f));
-		flashLight.SpotCosOuter = cosf(DirectX::XMConvertToRadians(60.0f));
-		sceneLights_.push_back(flashLight);
+		CreateBulbRS(device);
+		CreateBulbPSO(device, layout);
 
 
 		D3D12_DESCRIPTOR_HEAP_DESC sampHeapDesc = {};
