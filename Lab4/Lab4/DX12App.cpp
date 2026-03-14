@@ -355,10 +355,6 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		LightBuffer->CopyData(i, renderSystem->sceneLights_[i]);
 	}
 
-	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
-		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	m_command_list_->ResourceBarrier(1, &barrier);
-
 	m_command_list_->ClearRenderTargetView(GetBackBuffer(), Colors::Black, 0, nullptr);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE bb = GetBackBuffer();
@@ -375,11 +371,6 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_command_list_->DrawInstanced(3, 1, 0, 0);
-	CD3DX12_RESOURCE_BARRIER barrierBack = CD3DX12_RESOURCE_BARRIER::Transition(
-		CurrentBackBuffer(),
-		D3D12_RESOURCE_STATE_RENDER_TARGET,
-		D3D12_RESOURCE_STATE_PRESENT);
-	m_command_list_->ResourceBarrier(1, &barrierBack);
 }
 
 void DX12App::Draw(const GameTimer& gt)
@@ -397,6 +388,9 @@ void DX12App::Draw(const GameTimer& gt)
 
 	DrawToGBuffer(m_command_list_);
 	renderSystem->g_buffer->TransitToLightsRenderingState(m_command_list_);
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
+		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	m_command_list_->ResourceBarrier(1, &barrier);
 	DrawLights(m_command_list_);
 
 	m_command_list_->SetPipelineState(renderSystem->bulbPSO_.Get());
@@ -413,7 +407,11 @@ void DX12App::Draw(const GameTimer& gt)
 	m_command_list_->IASetIndexBuffer(&mSphereIbv);
 
 	m_command_list_->DrawIndexedInstanced(mSphereIndexCount, 500, 0, 0, 0);
-
+	CD3DX12_RESOURCE_BARRIER barrierBack = CD3DX12_RESOURCE_BARRIER::Transition(
+		CurrentBackBuffer(),
+		D3D12_RESOURCE_STATE_RENDER_TARGET,
+		D3D12_RESOURCE_STATE_PRESENT);
+	m_command_list_->ResourceBarrier(1, &barrierBack);
 	ThrowIfFailed(m_command_list_->Close());
 	ID3D12CommandList* cmdsLists[] = { m_command_list_.Get() };
 	m_command_queue_->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
