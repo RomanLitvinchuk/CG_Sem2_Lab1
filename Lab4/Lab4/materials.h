@@ -21,12 +21,14 @@ struct MaterialConstants
     float Shininess;
     float Opacity;
     float RefractionIndex;
-    int HasDiffuseTexture;  
+    int hasNormalTexture = 0;
 
     int isLion = 0;
     int isTree = 0;
     int diffuseTextureIndex = 0; 
-    int padding;          
+    int normalTextureIndex = 0;        
+
+
 };
 
 //static_assert(sizeof(MaterialConstants) == 160,

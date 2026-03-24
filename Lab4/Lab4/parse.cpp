@@ -124,13 +124,32 @@ void DX12App::ExtractMaterialData(int GlobalMaterialIndex, aiMaterial* material)
 
 		if (mTextures.count(wName)) {
 			MatConst.diffuseTextureIndex = mTextures[wName]->srvHeapIndex;
-			MatConst.HasDiffuseTexture = 1;
 		}
 		else {
 			std::cout << "   NOT FOUND in mTextures map!" << std::endl;
 		}
 	}
+	foundPath = false;
+	aiString normPath;
+	if (material->GetTexture(aiTextureType_DISPLACEMENT, 0, &normPath) == AI_SUCCESS) foundPath = true;
 
+	if (foundPath) {
+		std::filesystem::path p(normPath.C_Str());
+		std::wstring wName = p.stem().wstring();
+		std::transform(wName.begin(), wName.end(), wName.begin(), ::towlower);
+		std::string sName(wName.begin(), wName.end());
+		std::cout << "   Looking for: " << sName << std::endl;
+
+		if (mTextures.count(wName)) {
+			MatConst.normalTextureIndex = mTextures[wName]->srvHeapIndex;
+			MatConst.hasNormalTexture = 1;
+			std::wcout << L"FOUND NORMAL MAP " << wName << std::endl;
+		}
+		else {
+			std::cout << "   NOT FOUND in mTextures map!" << std::endl;
+		}
+	}
+	else std::cout << "DON'T FIND NORMAL MAP" << std::endl;
 	if (material->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS) {
 		MatConst.AmbientColor = { color.r, color.g, color.b, 1.0f };
 	}

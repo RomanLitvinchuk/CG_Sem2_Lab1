@@ -21,16 +21,18 @@ cbuffer cbMaterial : register(b1)
     float gShininess;
     float gOpacity;
     float gRefractionIndex;
-    int gHasDiffuseTexture;
+    int hasNormalTexture;
     
     int gIsLion;
     int gIsTree;
     int gDiffuseTextureIndex;
-    int gMaterialPad;
+    int normalTextureIndex;        
     
 }
 
 Texture2D DiffuseMap : register(t0);
+Texture2D NormalMap : register(t1);
+
 SamplerState Sampler : register(s0);
 
 struct VS_INPUT
@@ -59,6 +61,7 @@ VS_OUTPUT VS(VS_INPUT input)
     }
     output.Wpos = mul(float4(input.pos, 1.0f), mWorld);
     output.pos = mul(output.Wpos, mViewProj);
+    //output.normalW = mul(input.normal, (float3x3)mWorld);
     output.normal = input.normal;
     float4 texC = mul(float4(input.uv, 0.0f, 1.0f), mTexTransform);
     output.uv = mul(texC, mMatTransform).xy;
@@ -75,6 +78,15 @@ gBufferOutput PS(VS_OUTPUT input)
 {
     gBufferOutput ret;
     ret.Diffuse = DiffuseMap.Sample(Sampler, input.uv.xy);
+    //if (hasNormalTexture == 1)
+    //{
+        //float4 texNormal = NormalMap.Sample(Sampler, input.uv.xy);
+        //ret.Normal = normalize(texNormal * 2.0f - 1.0f);
+    //}
+    //else
+    //{
+        //ret.Normal = float4(input.normal.x, input.normal.y, input.normal.z, 0.0f);
+    //}
     ret.Normal = float4(input.normal.x, input.normal.y, input.normal.z, 0.0f);
     return ret;
 }
