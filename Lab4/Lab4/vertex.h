@@ -15,6 +15,8 @@ struct Vertex
     Vector3 pos;
     Vector3 normal;
     Vector2 uv;
+    Vector3 tangent;
+    Vector3 biNormal;
 };
 
 #endif //VERTEX_H_

@@ -5,7 +5,8 @@ void DX12App::ParseFile(const std::string& filename, const Matrix& transform) {
 	const aiScene* scene = aiImportFile(
 		filename.c_str(),
 		aiProcessPreset_TargetRealtime_MaxQuality |
-		aiProcess_Triangulate);
+		aiProcess_Triangulate | 
+		aiProcess_CalcTangentSpace);
 
 	if (!scene) {
 		std::cout << "Error loading " << filename << std::endl;
@@ -57,6 +58,14 @@ void DX12App::ParseMesh(const aiScene* scene, aiMesh* mesh, const Matrix& transf
 		}
 		else {
 			vertex.uv = Vector2(0.0f, 0.0f);
+		}
+
+		if (mesh->mTangents) {
+			vertex.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
+		}
+
+		if (mesh->mBitangents) {
+			vertex.biNormal = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
 		}
 
 		vertices.push_back(vertex);
