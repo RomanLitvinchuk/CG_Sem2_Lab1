@@ -47,32 +47,32 @@ void RenderingSystem::CreateOpaqueRS(ComPtr<ID3D12Device> device) {
 }
 
 void RenderingSystem::CompileShaders() {
-	DWORD fileAttr = GetFileAttributes(L"opaque.hlsl");
+	DWORD fileAttr = GetFileAttributes(L"shaders/opaque.hlsl");
 	if (fileAttr == INVALID_FILE_ATTRIBUTES) {
 		std::wcout << L"ERROR: Shader file not found!" << std::endl;
 		MessageBox(NULL, L"Shader file not found!", L"Error", MB_OK);
 		return;
 	}
-	opaqueVS_ = d3dUtil::CompileShader(L"opaque.hlsl", nullptr, "VS", "vs_5_0");
-	opaquePS_ = d3dUtil::CompileShader(L"opaque.hlsl", nullptr, "PS", "ps_5_0");
+	opaqueVS_ = d3dUtil::CompileShader(L"shaders/opaque.hlsl", nullptr, "VS", "vs_5_0");
+	opaquePS_ = d3dUtil::CompileShader(L"shaders/opaque.hlsl", nullptr, "PS", "ps_5_0");
 
-	fileAttr = GetFileAttributes(L"light.hlsl");
+	fileAttr = GetFileAttributes(L"shaders/light.hlsl");
 	if (fileAttr == INVALID_FILE_ATTRIBUTES) {
 		std::wcout << L"ERROR: Shader light.hlsl not found!" << std::endl;
 		MessageBox(NULL, L"Shader light.hlsl not found!", L"Error", MB_OK);
 		return;
 	}
-	lightVS_ = d3dUtil::CompileShader(L"light.hlsl", nullptr, "VS_FullScreenTriangle", "vs_5_0");
-	lightPS_ = d3dUtil::CompileShader(L"light.hlsl", nullptr, "PS_DeferredLighting", "ps_5_0");
+	lightVS_ = d3dUtil::CompileShader(L"shaders/light.hlsl", nullptr, "VS_FullScreenTriangle", "vs_5_0");
+	lightPS_ = d3dUtil::CompileShader(L"shaders/light.hlsl", nullptr, "PS_DeferredLighting", "ps_5_0");
 
-	fileAttr = GetFileAttributes(L"bulb.hlsl");
+	fileAttr = GetFileAttributes(L"shaders/bulb.hlsl");
 	if (fileAttr == INVALID_FILE_ATTRIBUTES) {
 		std::wcout << L"ERROR: Bulb.hlsl not found" << std::endl;
 		MessageBox(NULL, L"Shader bulb.hlsl not found", L"Error", MB_OK);
 		return;
 	}
-	bulbVS_ = d3dUtil::CompileShader(L"bulb.hlsl", nullptr, "VS", "vs_5_0");
-	bulbPS_ = d3dUtil::CompileShader(L"bulb.hlsl", nullptr, "PS", "ps_5_0");
+	bulbVS_ = d3dUtil::CompileShader(L"shaders/bulb.hlsl", nullptr, "VS", "vs_5_0");
+	bulbPS_ = d3dUtil::CompileShader(L"shaders/bulb.hlsl", nullptr, "PS", "ps_5_0");
 }
 
 void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {

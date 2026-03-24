@@ -630,10 +630,10 @@ void DX12App::InitRenderSystem() {
 
 
 void DX12App::Parsing() {
-	ParseFile("sponza.obj", Matrix::Identity);
+	ParseFile("models/sponza.obj", Matrix::Identity);
 
 	Matrix treeTransform = Matrix::CreateScale(0.2f) * Matrix::CreateRotationX(-3.14 / 2) * Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
-	ParseFile("Christmas Tree Color mm.obj", treeTransform);
+	ParseFile("models/Christmas Tree Color mm.obj", treeTransform);
 }
 
 void DX12App::CreateLightBufferSRV() {

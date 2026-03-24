@@ -165,9 +165,9 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="bulb.hlsl" />
-    <FxCompile Include="light.hlsl" />
-    <FxCompile Include="opaque.hlsl" />
+    <FxCompile Include="shaders\bulb.hlsl" />
+    <FxCompile Include="shaders\light.hlsl" />
+    <FxCompile Include="shaders\opaque.hlsl" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
