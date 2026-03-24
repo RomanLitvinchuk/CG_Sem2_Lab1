@@ -153,7 +153,6 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     MyFramework.CreateSamplerHeap();
 	MyFramework.SetViewport();
 	MyFramework.SetScissor();
-	MyFramework.SetTopology();
 	MyFramework.BuildLayout();
 	MyFramework.InitProjectionMatrix();
     MyFramework.Parsing();

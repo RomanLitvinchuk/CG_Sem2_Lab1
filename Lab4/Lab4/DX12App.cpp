@@ -422,10 +422,6 @@ void DX12App::Draw(const GameTimer& gt)
 	FlushCommandQueue();
 }
 
-void DX12App::SetTopology() {
-	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-}
-
 void DX12App::InitProjectionMatrix() {
 	float aspectRatio = static_cast<float>(m_client_width_) / m_client_height_;
 
@@ -649,11 +645,9 @@ void DX12App::CreateLightBufferSRV() {
 	srvDesc.Buffer.StructureByteStride = sizeof(LightConstants);
 	srvDesc.Buffer.Flags = D3D12_BUFFER_SRV_FLAG_NONE;
 
-	// Берем кучу из уже созданного G-буфера
 	auto handle = renderSystem->g_buffer->SRVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	// Смещение 3 (0-Diffuse, 1-Normal, 2-Depth)
 	CD3DX12_CPU_DESCRIPTOR_HANDLE lightSrvHandle(handle, 3, size);
 
 	m_device_->CreateShaderResourceView(LightBuffer->Resource(), &srvDesc, lightSrvHandle);

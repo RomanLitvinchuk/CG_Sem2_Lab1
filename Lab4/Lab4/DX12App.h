@@ -56,7 +56,6 @@ public:
 	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 
 	void FlushCommandQueue();
-	void SetTopology();
 
 	void InitProjectionMatrix();
 	void CreateVertexBuffer();

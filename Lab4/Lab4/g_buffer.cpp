@@ -21,9 +21,11 @@ void GBuffer::CreateTextures(int width, int height, ComPtr<ID3D12Device> device)
 	NormalTex.Resource->SetName(L"Normal texture");
 
 	clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	clearValue.DepthStencil.Depth = 1.0f;
+	clearValue.DepthStencil.Stencil = 0;
 	resDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
 	resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-	ThrowIfFailed(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
+	ThrowIfFailed(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_DEPTH_READ,
 		&clearValue, IID_PPV_ARGS(&DepthTex.Resource)));
 	DepthTex.Resource->SetName(L"Depth texture");
 }
@@ -81,7 +83,7 @@ void GBuffer::TransitToOpaqueRenderingState(ComPtr<ID3D12GraphicsCommandList> co
 	CD3DX12_RESOURCE_BARRIER normalBarrier = CD3DX12_RESOURCE_BARRIER::Transition(NormalTex.Resource.Get(), D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
 		D3D12_RESOURCE_STATE_RENDER_TARGET);
 	CD3DX12_RESOURCE_BARRIER depthBarrier = CD3DX12_RESOURCE_BARRIER::Transition(DepthTex.Resource.Get(), 
-		D3D12_RESOURCE_STATE_DEPTH_READ | D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_DEPTH_READ,
 		D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	D3D12_RESOURCE_BARRIER barriers[] = { diffuseBarrier, normalBarrier, depthBarrier };
 	commandList->ResourceBarrier(3, barriers);
