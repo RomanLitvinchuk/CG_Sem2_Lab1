@@ -17,22 +17,22 @@ void DX12App::ParseFile(const std::string& filename, const Matrix& transform) {
 
 	int materialOffset = static_cast<int>(materialData.size());
 
-	ParseNode(scene->mRootNode, scene, transform, materialOffset, vertices, indices);
+	ParseNode(filename, scene->mRootNode, scene, transform, materialOffset, vertices, indices);
 	std::cout << filename << " is parsed!" << std::endl;
 }
 
-void DX12App::ParseNode(aiNode* node, const aiScene* scene, const Matrix& transform, int materialOffset, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
+void DX12App::ParseNode(const std::string& filename, aiNode* node, const aiScene* scene, const Matrix& transform, int materialOffset, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
 	for (int i = 0; i < node->mNumMeshes; i++) {
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
-		ParseMesh(scene, mesh, transform, materialOffset, vertices, indices);
+		ParseMesh(filename, scene, mesh, transform, materialOffset, vertices, indices);
 	}
 
 	for (int i = 0; i < node->mNumChildren; i++) {
-		ParseNode(node->mChildren[i], scene, transform, materialOffset, vertices, indices);
+		ParseNode(filename, node->mChildren[i], scene, transform, materialOffset, vertices, indices);
 	}
 }
 
-void DX12App::ParseMesh(const aiScene* scene, aiMesh* mesh, const Matrix& transform, int materialOffset, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
+void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMesh* mesh, const Matrix& transform, int materialOffset, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
 	size_t vertexOffset = vertices.size();
 	UINT baseVertex = static_cast<UINT>(vertices.size());
 	UINT startIndex = static_cast<UINT>(indices.size());
@@ -88,13 +88,13 @@ void DX12App::ParseMesh(const aiScene* scene, aiMesh* mesh, const Matrix& transf
 	if (mesh->mMaterialIndex >= 0 && mesh->mMaterialIndex < scene->mNumMaterials) {
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
 
-		ExtractMaterialData(mesh->mMaterialIndex + materialOffset, material);
+		ExtractMaterialData(filename, mesh->mMaterialIndex + materialOffset, material);
 	}
 
 	mSubmeshes.push_back(submesh);
 }
 
-void DX12App::ExtractMaterialData(int GlobalMaterialIndex, aiMaterial* material) {
+void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMaterialIndex, aiMaterial* material) {
 	if (materialData.size() <= GlobalMaterialIndex) {
 		materialData.resize(GlobalMaterialIndex + 1);
 		materialNames.resize(GlobalMaterialIndex + 1); 
@@ -124,23 +124,50 @@ void DX12App::ExtractMaterialData(int GlobalMaterialIndex, aiMaterial* material)
 
 		if (wName.find(L"lion") != std::wstring::npos) {
 			MatConst.isLion = 1;
-			std::cout << "LION IS DETECTED" << std::endl;
 		}
 		if (wName.find(L"christmas tree color mm_0") != std::wstring::npos) {
 			MatConst.isTree = 1;
-			std::cout << "TREE DETECTED" << std::endl;
 		}
 
 		if (mTextures.count(wName)) {
 			MatConst.diffuseTextureIndex = mTextures[wName]->srvHeapIndex;
 		}
 		else {
-			std::cout << "   NOT FOUND in mTextures map!" << std::endl;
+			std::cout << "DO NOT FIND DIFFUSE TEXTURE" << std::endl;
 		}
 	}
 	foundPath = false;
+	aiString dispPath;
+
+	if (material->GetTexture(aiTextureType_DISPLACEMENT, 0, &dispPath) == AI_SUCCESS) foundPath = true;
+	else if (material->GetTexture(aiTextureType_HEIGHT, 0, &dispPath) == AI_SUCCESS) foundPath = true;
+
+	if (foundPath) {
+		std::filesystem::path p(dispPath.C_Str());
+		std::wstring wName = p.stem().wstring();
+		std::transform(wName.begin(), wName.end(), wName.begin(), ::towlower);
+		std::string sName(wName.begin(), wName.end());
+		std::cout << "   Looking for: " << sName << std::endl;
+
+		if (mTextures.count(wName)) {
+			if (filename.find("sponza") != std::string::npos) {
+				MatConst.normalTextureIndex = mTextures[wName]->srvHeapIndex;
+				MatConst.hasNormalTexture = 1;
+			}
+			else {
+				MatConst.displacementTextureIndex = mTextures[wName]->srvHeapIndex;
+				MatConst.hasDisplacementTexture = 1;
+				
+			}
+		}
+		else {
+			std::cout << "DO NOT FIND DISP TEXTURE" << std::endl;
+		}
+	}
+
+	foundPath = false;
 	aiString normPath;
-	if (material->GetTexture(aiTextureType_DISPLACEMENT, 0, &normPath) == AI_SUCCESS) foundPath = true;
+	if (material->GetTexture(aiTextureType_NORMALS, 0, &normPath) == AI_SUCCESS) foundPath = true;
 
 	if (foundPath) {
 		std::filesystem::path p(normPath.C_Str());
@@ -152,13 +179,21 @@ void DX12App::ExtractMaterialData(int GlobalMaterialIndex, aiMaterial* material)
 		if (mTextures.count(wName)) {
 			MatConst.normalTextureIndex = mTextures[wName]->srvHeapIndex;
 			MatConst.hasNormalTexture = 1;
-			std::wcout << L"FOUND NORMAL MAP " << wName << std::endl;
 		}
 		else {
-			std::cout << "   NOT FOUND in mTextures map!" << std::endl;
+			std::cout << "DO NOT FIND NORMAL TEXTURE" << std::endl;
 		}
 	}
-	else std::cout << "DON'T FIND NORMAL MAP" << std::endl;
+
+	if (filename.find("Sketchfab") != std::string::npos) {
+		std::wstring wName = L"Stone_Pathway_Normal";
+		std::transform(wName.begin(), wName.end(), wName.begin(), ::towlower);
+		if (mTextures.count(wName)) {
+			MatConst.normalTextureIndex = mTextures[wName]->srvHeapIndex;
+			MatConst.hasNormalTexture = 1;
+		}
+	}
+
 	if (material->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS) {
 		MatConst.AmbientColor = { color.r, color.g, color.b, 1.0f };
 	}

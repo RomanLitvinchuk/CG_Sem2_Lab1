@@ -338,6 +338,15 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 		m_command_list_->SetGraphicsRootDescriptorTable(1, srvHandle);
 
+		int normHeapIndex = materialData[matIndex].normalTextureIndex + 1;
+
+		CD3DX12_GPU_DESCRIPTOR_HANDLE normHandle(
+			m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart(),
+			normHeapIndex,
+			m_CbvSrvUav_descriptor_size_);
+
+		m_command_list_->SetGraphicsRootDescriptorTable(4, normHandle);
+
 		m_command_list_->DrawIndexedInstanced(
 			sm.indexCount,
 			1,
@@ -543,7 +552,7 @@ void DX12App::Update(const GameTimer& gt) {
 
 	for (int i = 0; i < materialData.size(); ++i) {
 		//materialData[i].MatTransform = Matrix::Identity;
-		if (materialData[i].isTree != 1) {
+		if (materialData[i].isTree == 1) {
 			float tu = materialData[i].MatTransform(1, 0);
 			float tv = materialData[i].MatTransform(1, 1);
 			tu += 0.1f * gt.DeltaTime();
@@ -636,8 +645,12 @@ void DX12App::InitRenderSystem() {
 void DX12App::Parsing() {
 	ParseFile("models/sponza.obj", Matrix::Identity);
 
-	Matrix treeTransform = Matrix::CreateScale(0.2f) * Matrix::CreateRotationX(-3.14 / 2) * Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
-	ParseFile("models/Christmas Tree Color mm.obj", treeTransform);
+	Matrix Transform = Matrix::CreateScale(0.2f) * Matrix::CreateRotationX(-3.14 / 2) * Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
+	ParseFile("models/Christmas Tree Color mm.obj", Transform);
+
+	Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(100.0f, 500.0f, 0.0f);
+	ParseFile("models/Sketchfab.fbx", Transform);
+
 }
 
 void DX12App::CreateLightBufferSRV() {
