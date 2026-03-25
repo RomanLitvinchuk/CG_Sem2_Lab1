@@ -29,10 +29,14 @@ cbuffer cbMaterial : register(b1)
     int gDiffuseTextureIndex;
     int normalTextureIndex;        
     
+    int gDisplacementTextureIndex;
+    int gHasDisplacementTexture;
+    int2 padding;
 }
 
 Texture2D DiffuseMap : register(t0);
 Texture2D NormalMap : register(t1);
+Texture2D DisplacementMap : register(t2);
 
 SamplerState Sampler : register(s0);
 
@@ -46,14 +50,23 @@ struct VS_INPUT
 
 struct VS_OUTPUT
 {
-    float4 pos : SV_POSITION;
-    float4 Wpos : POSITION;
+    float4 pos : POSITION;
+    float4 Wpos : WORLDPOS;
     float3 normal : NORMAL0;
     float3 normalW : NORMAL1;
     float2 uv : TEXCOORD;
     float3 tangentW : TANGENT;
 };
 
+struct DS_OUTPUT
+{
+    float4 pos : SV_POSITION;
+    float3 normal : NORMAL0;
+    float3 normalW : NORMAL1;
+    float2 uv : TEXCOORD0;
+    float3 tangentW : TANGENT;
+    float3 worldPos : WORLDPOS;
+};
 
 
 float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, float3 tangentW)
@@ -82,7 +95,8 @@ VS_OUTPUT VS(VS_INPUT input)
         input.pos += input.normal * offset;
     }
     output.Wpos = mul(float4(input.pos, 1.0f), mWorld);
-    output.pos = mul(output.Wpos, mViewProj);
+    //output.pos = mul(output.Wpos, mViewProj);
+    output.pos = float4(input.pos, 1.0f);
     output.normal = input.normal;
     output.normalW = mul(input.normal, (float3x3)mInvTWorld);
     output.tangentW = mul(input.tangent, (float3x3)mInvTWorld);
@@ -97,7 +111,7 @@ struct gBufferOutput
     float4 Normal : SV_Target1;
 };
 
-gBufferOutput PS(VS_OUTPUT input)
+gBufferOutput PS(DS_OUTPUT input)
 {
     gBufferOutput ret;
     ret.Diffuse = DiffuseMap.Sample(Sampler, input.uv.xy);

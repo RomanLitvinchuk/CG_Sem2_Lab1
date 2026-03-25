@@ -5,23 +5,26 @@
 #include <random>
 
 void RenderingSystem::CreateOpaqueRS(ComPtr<ID3D12Device> device) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[5];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[6];
 	CD3DX12_DESCRIPTOR_RANGE cbvTable;
 	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 	CD3DX12_DESCRIPTOR_RANGE diffuseTable;
 	diffuseTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	CD3DX12_DESCRIPTOR_RANGE normalTable;
 	normalTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+	CD3DX12_DESCRIPTOR_RANGE dispTable;
+	dispTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
 	CD3DX12_DESCRIPTOR_RANGE samplerTable;
 	samplerTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable, D3D12_SHADER_VISIBILITY_ALL);
 	slotRootParameter[1].InitAsDescriptorTable(1, &diffuseTable, D3D12_SHADER_VISIBILITY_ALL);
-	slotRootParameter[2].InitAsDescriptorTable(1, &samplerTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	slotRootParameter[2].InitAsDescriptorTable(1, &samplerTable, D3D12_SHADER_VISIBILITY_ALL);
 	slotRootParameter[3].InitAsConstantBufferView(1);
 	slotRootParameter[4].InitAsDescriptorTable(1, &normalTable, D3D12_SHADER_VISIBILITY_ALL);
+	slotRootParameter[5].InitAsDescriptorTable(1, &dispTable, D3D12_SHADER_VISIBILITY_ALL);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
-		5, slotRootParameter,
+		6, slotRootParameter,
 		0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 	);
@@ -76,6 +79,22 @@ void RenderingSystem::CompileShaders() {
 	}
 	bulbVS_ = d3dUtil::CompileShader(L"shaders/bulb.hlsl", nullptr, "VS", "vs_5_0");
 	bulbPS_ = d3dUtil::CompileShader(L"shaders/bulb.hlsl", nullptr, "PS", "ps_5_0");
+
+	fileAttr = GetFileAttributes(L"HullShader.hlsl");
+	if (fileAttr == INVALID_FILE_ATTRIBUTES) {
+		std::wcout << L"ERROR: HS don't found" << std::endl;
+		MessageBox(NULL, L"Shader HullShader.hlsl not found", L"Error", MB_OK);
+		return;
+	}
+	HS_ = d3dUtil::CompileShader(L"HullShader.hlsl", nullptr, "main", "hs_5_0");
+
+	fileAttr = GetFileAttributes(L"DomainShader.hlsl");
+	if (fileAttr == INVALID_FILE_ATTRIBUTES) {
+		std::wcout << L"ERROR: DS not found" << std::endl;
+		MessageBox(NULL, L"Shader DomainShader.hlsl not found", L"Error", MB_OK);
+		return;
+	}
+	DS_ = d3dUtil::CompileShader(L"DomainShader.hlsl", nullptr, "DS", "ds_5_0");
 }
 
 void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
@@ -84,6 +103,8 @@ void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D
 	psoDesc.InputLayout = { layout.data(), (UINT)layout.size() };
 	psoDesc.pRootSignature = opaqueRS_.Get();
 	psoDesc.VS = { reinterpret_cast<BYTE*>(opaqueVS_->GetBufferPointer()), opaqueVS_->GetBufferSize() };
+	psoDesc.HS = { reinterpret_cast<BYTE*>(HS_->GetBufferPointer()), HS_->GetBufferSize() };
+	psoDesc.DS = { reinterpret_cast<BYTE*>(DS_->GetBufferPointer()), DS_->GetBufferSize() };
 	psoDesc.PS = { reinterpret_cast<BYTE*>(opaquePS_->GetBufferPointer()), opaquePS_->GetBufferSize() };
 	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
 	//rastDesc.CullMode = D3D12_CULL_MODE_NONE;
@@ -92,7 +113,7 @@ void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.SampleMask = UINT_MAX;
-	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
 	psoDesc.NumRenderTargets = 2;
 	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.RTVFormats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT;

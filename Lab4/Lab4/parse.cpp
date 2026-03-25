@@ -192,6 +192,12 @@ void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMateria
 			MatConst.normalTextureIndex = mTextures[wName]->srvHeapIndex;
 			MatConst.hasNormalTexture = 1;
 		}
+		wName = L"Stone_Pathway_Height";
+		std::transform(wName.begin(), wName.end(), wName.begin(), ::towlower);
+		if (mTextures.count(wName)) {
+			MatConst.displacementTextureIndex = mTextures[wName]->srvHeapIndex;
+			MatConst.hasDisplacementTexture = 1;
+		}
 	}
 
 	if (material->Get(AI_MATKEY_COLOR_AMBIENT, color) == AI_SUCCESS) {

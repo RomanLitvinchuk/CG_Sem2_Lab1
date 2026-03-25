@@ -1,7 +1,7 @@
 struct VS_CONTROL_POINT_OUTPUT
 {
-    float4 pos : SV_POSITION;
-    float4 Wpos : POSITION;
+    float4 pos : POSITION;
+    float4 Wpos : WORLDPOS;
     float3 normal : NORMAL0;
     float3 normalW : NORMAL1;
     float2 uv : TEXCOORD;
@@ -10,8 +10,8 @@ struct VS_CONTROL_POINT_OUTPUT
 
 struct HS_CONTROL_POINT_OUTPUT
 {
-    float4 pos : SV_POSITION;
-    float4 Wpos : POSITION;
+    float4 pos : POSITION;
+    float4 Wpos : WORLDPOS;
     float3 normal : NORMAL0;
     float3 normalW : NORMAL1;
     float2 uv : TEXCOORD;
@@ -31,11 +31,12 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
 	uint PatchID : SV_PrimitiveID)
 {
 	HS_CONSTANT_DATA_OUTPUT Output;
-
-    Output.EdgeTessFactor[0] = 3;
-    Output.EdgeTessFactor[1] = 3;
-    Output.EdgeTessFactor[2] = 3;
-	Output.InsideTessFactor = 3;
+    float tess = 4;
+    
+    Output.EdgeTessFactor[0] = tess;
+    Output.EdgeTessFactor[1] = tess;
+    Output.EdgeTessFactor[2] = tess;
+	Output.InsideTessFactor = tess;
 
 	return Output;
 }

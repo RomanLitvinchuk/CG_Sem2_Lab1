@@ -28,6 +28,9 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> bulbVS_ = nullptr;
 	ComPtr<ID3DBlob> bulbPS_ = nullptr;
 
+	ComPtr<ID3DBlob> HS_ = nullptr;
+	ComPtr<ID3DBlob> DS_ = nullptr;
+
 	GBuffer* g_buffer = nullptr;
 
 	std::vector<LightConstants> sceneLights_;
