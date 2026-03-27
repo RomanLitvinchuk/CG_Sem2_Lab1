@@ -24,6 +24,17 @@ struct HS_CONSTANT_DATA_OUTPUT
 	float InsideTessFactor			: SV_InsideTessFactor;
 };
 
+cbuffer CameraBuffer : register(b2)
+{
+    float3 cameraPos;
+    float gMinTess;
+    
+    float gMaxTess;
+    float gMinDist;
+    float gMaxDist;
+    float pad;
+};
+
 #define NUM_CONTROL_POINTS 3
 
 HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
@@ -31,7 +42,11 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
 	uint PatchID : SV_PrimitiveID)
 {
 	HS_CONSTANT_DATA_OUTPUT Output;
-    float tess = 4;
+    
+    float3 center = (ip[0].Wpos.xyz + ip[1].Wpos.xyz + ip[2].Wpos.xyz) / 3.0f;
+    float dist = distance(center, cameraPos);
+    float t = saturate((dist - gMinDist) / (gMaxDist - gMinDist));
+    float tess = lerp(gMaxTess, gMinTess, t);
     
     Output.EdgeTessFactor[0] = tess;
     Output.EdgeTessFactor[1] = tess;

@@ -24,6 +24,7 @@
 #include <assimp/cimport.h>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
+#include "camera.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -135,6 +136,7 @@ private:
 	std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialCB = nullptr;
 	std::unique_ptr<UploadBuffer<LightConstants>> LightBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<CameraConstants>> CameraCB = nullptr;
+	std::unique_ptr<UploadBuffer<HullBuffer>> HullCB = nullptr;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout_;
 

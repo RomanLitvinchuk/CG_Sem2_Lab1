@@ -322,6 +322,8 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
 
+	m_command_list_->SetGraphicsRootConstantBufferView(6, HullCB->Resource()->GetGPUVirtualAddress());
+
 	for (auto& sm : mSubmeshes)
 	{
 		UINT matIndex = sm.materialIndex;
@@ -558,6 +560,14 @@ void DX12App::Update(const GameTimer& gt) {
 	camConst.cameraPos = mCameraPos;
 	CameraCB->CopyData(0, camConst);
 
+	HullBuffer HullConst;
+	HullConst.CameraPos = mCameraPos;
+	HullConst.gMinTess = 1;
+	HullConst.gMaxTess = 5;
+	HullConst.gMinDist = 10.0f;
+	HullConst.gMaxDist = 200.0f;
+	HullCB->CopyData(0, HullConst);
+
 	for (int i = 0; i < materialData.size(); ++i) {
 		//materialData[i].MatTransform = Matrix::Identity;
 		if (materialData[i].isTree == 1) {
@@ -602,6 +612,7 @@ void DX12App::InitUploadBuffers() {
 	MaterialCB = std::make_unique<UploadBuffer<MaterialConstants>>(m_device_.Get(), 300, true);
 	CameraCB = std::make_unique<UploadBuffer<CameraConstants>>(m_device_.Get(), 1, true);
 	LightBuffer = std::make_unique<UploadBuffer<LightConstants>>(m_device_.Get(), 1000, false);
+	HullCB = std::make_unique<UploadBuffer<HullBuffer>>(m_device_.Get(), 1, true);
 }
 
 void DX12App::CreateConstantBufferView() {
