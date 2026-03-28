@@ -309,7 +309,7 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	m_command_list_->IASetVertexBuffers(0, 1, &VertexBuffers[0]);
 	m_command_list_->IASetIndexBuffer(&ibv);
-	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle(
 		m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());

@@ -50,7 +50,7 @@ struct VS_INPUT
 
 struct VS_OUTPUT
 {
-    float4 pos : POSITION;
+    float4 pos : SV_POSITION;
     float4 Wpos : WORLDPOS;
     float3 normal : NORMAL0;
     float3 normalW : NORMAL1;
@@ -58,15 +58,15 @@ struct VS_OUTPUT
     float3 tangentW : TANGENT;
 };
 
-struct DS_OUTPUT
-{
-    float4 pos : SV_POSITION;
-    float3 normal : NORMAL0;
-    float3 normalW : NORMAL1;
-    float2 uv : TEXCOORD0;
-    float3 tangentW : TANGENT;
-    float3 worldPos : WORLDPOS;
-};
+//struct DS_OUTPUT
+//{
+    //float4 pos : SV_POSITION;
+    //float3 normal : NORMAL0;
+    //float3 normalW : NORMAL1;
+    //float2 uv : TEXCOORD0;
+    //float3 tangentW : TANGENT;
+    //float3 worldPos : WORLDPOS;
+//};
 
 
 float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, float3 tangentW)
@@ -94,14 +94,41 @@ VS_OUTPUT VS(VS_INPUT input)
         float offset = sin(gTime * 8.0f + input.pos.y * 0.7f) * 1.0f;
         input.pos += input.normal * offset;
     }
-    output.Wpos = mul(float4(input.pos, 1.0f), mWorld);
-    //output.pos = mul(output.Wpos, mViewProj);
-    output.pos = float4(input.pos, 1.0f);
-    output.normal = input.normal;
-    output.normalW = mul(input.normal, (float3x3)mInvTWorld);
-    output.tangentW = mul(input.tangent, (float3x3)mInvTWorld);
+    
+    float3 localPos = input.pos;
+    float3 localNormal = input.normal;
+
     float4 texC = mul(float4(input.uv, 0.0f, 1.0f), mTexTransform);
-    output.uv = mul(texC, mMatTransform).xy;
+    float2 finalUV = mul(texC, mMatTransform).xy;
+
+    float3 normalW = mul(localNormal, (float3x3) mInvTWorld);
+    normalW = normalize(normalW);
+    
+    if (gHasDisplacementTexture == 1)
+    {
+        float height = DisplacementMap.SampleLevel(Sampler, finalUV, 0).r;
+
+        height = height - 0.5f;
+
+        float displacementStrength = 20.0f; 
+
+        float3 worldPos = mul(float4(localPos, 1.0f), mWorld).xyz;
+
+        worldPos += normalW * height * displacementStrength;
+
+        output.Wpos = float4(worldPos, 1.0f);
+        output.pos = mul(output.Wpos, mViewProj);
+    }
+    else
+    {
+        output.Wpos = mul(float4(localPos, 1.0f), mWorld);
+        output.pos = mul(output.Wpos, mViewProj);
+    }
+    
+    output.normal = localNormal;
+    output.normalW = normalW;
+    output.tangentW = mul(input.tangent, (float3x3)mInvTWorld);
+    output.uv = finalUV;
     return output;
 }
 
@@ -111,7 +138,7 @@ struct gBufferOutput
     float4 Normal : SV_Target1;
 };
 
-gBufferOutput PS(DS_OUTPUT input)
+gBufferOutput PS(VS_OUTPUT input)
 {
     gBufferOutput ret;
     ret.Diffuse = DiffuseMap.Sample(Sampler, input.uv.xy);

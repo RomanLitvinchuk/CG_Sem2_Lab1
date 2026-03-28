@@ -83,6 +83,13 @@ public:
 	void ParseMesh(const std::string& filename, const aiScene* scene, aiMesh* mesh, const Matrix& transform, int materialOffset, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
 	void ExtractMaterialData(const std::string& filename, int MaterialIndex, aiMaterial* material);
 
+	void SubdivideMeshCPU(
+		const std::vector<Vertex>& inVertices,
+		const std::vector<uint32_t>& inIndices,
+		std::vector<Vertex>& outVertices,
+		std::vector<uint32_t>& outIndices,
+		int tessFactor);
+
 	ComPtr<ID3D12Device> GetDevice() const { return m_device_; }
 	ComPtr<ID3D12GraphicsCommandList> GetCommandList() const { return m_command_list_; }
 
