@@ -33,7 +33,6 @@ void DX12App::ParseNode(const std::string& filename, aiNode* node, const aiScene
 }
 
 void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMesh* mesh, const Matrix& transform, int materialOffset, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices) {
-	Submesh submesh;
 	if (filename.find("Sketchfab") != std::string::npos) {
 		std::vector<Vertex> localVertices;
 		std::vector<uint32_t> localIndices;
@@ -85,7 +84,6 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 			}
 
 			localVertices.push_back(v);
-			submesh.localVerticies.push_back(v);
 		}
 
 		for (UINT i = 0; i < mesh->mNumFaces; ++i)
@@ -120,13 +118,13 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 			indices.push_back(idx + baseVertex);
 		}
 
+		Submesh submesh;
 		submesh.indexCount = (UINT)tessIndices.size();
 		submesh.startIndiceIndex = startIndex;
 		submesh.startVerticeIndex = baseVertex;
 		submesh.materialIndex = mesh->mMaterialIndex + materialOffset;
-		BoundingBox::CreateFromPoints(submesh.box, tessVertices.size(), &tessVertices[0].pos, sizeof(Vertex));
+
 		mSubmeshes.push_back(submesh);
-		submesh = {};
 
 		if (mesh->mMaterialIndex >= 0 &&
 			mesh->mMaterialIndex < scene->mNumMaterials)
@@ -178,10 +176,7 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 			vertex.biNormal = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
 		}
 
-
-
 		vertices.push_back(vertex);
-		submesh.localVerticies.push_back(vertex);
 	}
 
 	for (int i = 0; i < mesh->mNumFaces; ++i) {
@@ -192,19 +187,11 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 	}
 
 	MeshIndexCounts.push_back(mesh->mNumFaces * 3);
-
+	Submesh submesh;
 	submesh.indexCount = mesh->mNumFaces * 3;
 	submesh.startIndiceIndex = startIndex;
 	submesh.startVerticeIndex = 0;
 	submesh.materialIndex = mesh->mMaterialIndex + materialOffset;
-	if (!submesh.localVerticies.empty())
-	{
-		BoundingBox::CreateFromPoints(
-			submesh.box,
-			submesh.localVerticies.size(),
-			&submesh.localVerticies[0].pos,
-			sizeof(Vertex));
-	}
 
 	if (mesh->mMaterialIndex >= 0 && mesh->mMaterialIndex < scene->mNumMaterials) {
 		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
@@ -213,7 +200,6 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 	}
 
 	mSubmeshes.push_back(submesh);
-	submesh = {};
 }
 
 void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMaterialIndex, aiMaterial* material) {
