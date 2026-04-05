@@ -291,17 +291,39 @@ void DX12App::FlushCommandQueue()
 }
 
 void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
-	/*DirectX::BoundingFrustum cameraFrustum;
-	DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, mProj_);
-	Matrix invView = mView_.Invert();
-	cameraFrustum.Transform(cameraFrustum, invView);*/
+	//DirectX::BoundingFrustum cameraFrustum;
+	//DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, mProj_);
+	//Matrix invView = mView_.Invert();
+	//cameraFrustum.Transform(cameraFrustum, invView);
+
+	//Matrix viewProj = mView_ * mProj_;
+	//viewProj = viewProj.Transpose();
+
+	//DirectX::BoundingFrustum cameraFrustum;
+	//DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, viewProj);
 
 	Matrix viewProj = mView_ * mProj_;
 
-	// 2. Извлекаем фрустум СРАЗУ в мировых координатах.
-	// Метод CreateFromMatrix умеет работать с комбинированной матрицей VP.
-	DirectX::BoundingFrustum cameraFrustum;
-	DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, viewProj);
+
+	XMMATRIX M = viewProj;
+	XMFLOAT4X4 m;
+	XMStoreFloat4x4(&m, M);
+
+	XMVECTOR planes[6];
+	// Левая
+	planes[0] = XMVectorSet(m._14 + m._11, m._24 + m._21, m._34 + m._31, m._44 + m._41);
+	// Правая
+	planes[1] = XMVectorSet(m._14 - m._11, m._24 - m._21, m._34 - m._31, m._44 - m._41);
+	// Нижняя
+	planes[2] = XMVectorSet(m._14 + m._12, m._24 + m._22, m._34 + m._32, m._44 + m._42);
+	// Верхняя
+	planes[3] = XMVectorSet(m._14 - m._12, m._24 - m._22, m._34 - m._32, m._44 - m._42);
+	// Ближняя
+	planes[4] = XMVectorSet(m._13, m._23, m._33, m._43);
+	// Дальняя
+	planes[5] = XMVectorSet(m._14 - m._13, m._24 - m._23, m._34 - m._33, m._44 - m._43);
+
+	for (int i = 0; i < 6; ++i) planes[i] = XMPlaneNormalize(planes[i]);
 
 	m_command_list_->SetPipelineState(renderSystem->opaquePSO_.Get());
 
@@ -338,14 +360,24 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	for (auto& sm : mSubmeshes)
 	{
-		if (cameraFrustum.Contains(sm.box) == DirectX::DISJOINT) {
+		/*if (cameraFrustum.Contains(sm.box) == DirectX::DISJOINT) {
 			continue; 
+		}*/
+
+
+		bool isInside = true;
+
+		// Объект виден, если он находится "внутри" всех 6 плоскостей
+		for (int i = 0; i < 6; ++i) {
+			// PlaneIntersectsAxisAlignedBox возвращает PlaneIntersectionType
+			// Если он полностью ЗА плоскостью (Back), то объект не виден
+			if (sm.box.Intersects(planes[i]) == PlaneIntersectionType::BACK) {
+				isInside = false;
+				break;
+			}
 		}
 
-		// Берем точку в 10 единицах прямо перед камерой
-		Vector3 pointInFront = mCameraPos + mCameraTarget * 10.0f;
-
-
+		if (!isInside) continue;
 
 		/*DirectX::BoundingSphere hugeSphere(mCameraPos, 99999.0f);
 		if (hugeSphere.Contains(sm.box) == DirectX::DISJOINT) {
@@ -690,14 +722,14 @@ void DX12App::InitRenderSystem() {
 void DX12App::Parsing() {
 	ParseFile("models/sponza.obj", Matrix::Identity);
 
-	//Matrix Transform = Matrix::CreateScale(0.2f) * Matrix::CreateRotationX(-3.14 / 2) * Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
-	//ParseFile("models/Christmas Tree Color mm.obj", Transform);
+	Matrix Transform = Matrix::CreateScale(0.2f) * Matrix::CreateRotationX(-3.14 / 2) * Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
+	ParseFile("models/Christmas Tree Color mm.obj", Transform);
 
-	//Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(100.0f, 500.0f, 0.0f);
-	//ParseFile("models/Sketchfab.fbx", Transform);
+	Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(100.0f, 500.0f, 0.0f);
+	ParseFile("models/Sketchfab.fbx", Transform);
 
 }
-
+ 
 void DX12App::CreateLightBufferSRV() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
