@@ -154,7 +154,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	MyFramework.SetViewport();
 	MyFramework.SetScissor();
 	MyFramework.BuildLayout();
-	MyFramework.InitProjectionMatrix();
+	MyFramework.InitProjMAndFrustum();
     MyFramework.Parsing();
     MyFramework.BuildBulbGeometry();
 	MyFramework.CreateVertexBuffer();
