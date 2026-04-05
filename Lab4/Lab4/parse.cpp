@@ -140,66 +140,74 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 	}
 	else {
 
+		size_t vertexOffset = vertices.size();
+		UINT baseVertex = static_cast<UINT>(vertices.size());
+		UINT startIndex = static_cast<UINT>(indices.size());
+
+		for (int i = 0; i < mesh->mNumVertices; ++i) {
+			Vertex vertex;
+
+			Vector3 pos(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
+			vertex.pos = Vector3::Transform(pos, transform);
+
+			if (mesh->HasNormals()) {
+				Vector3 normal(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
+				vertex.normal = Vector3::TransformNormal(normal, transform);
+				vertex.normal.Normalize();
+			}
+			else {
+				vertex.normal = Vector3(0.0f, 1.0f, 0.0f);
+			}
+
+			if (mesh->HasTextureCoords(0)) {
+				vertex.uv.x = mesh->mTextureCoords[0][i].x;
+				vertex.uv.y = 1.0f - mesh->mTextureCoords[0][i].y;
+			}
+			else {
+				vertex.uv = Vector2(0.0f, 0.0f);
+			}
+
+			if (mesh->mTangents) {
+				vertex.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
+			}
+
+			if (mesh->mBitangents) {
+				vertex.biNormal = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
+			}
+
+			vertices.push_back(vertex);
+		}
+
+		for (int i = 0; i < mesh->mNumFaces; ++i) {
+			aiFace face = mesh->mFaces[i];
+			for (int j = 0; j < face.mNumIndices; ++j) {
+				indices.push_back(face.mIndices[j] + vertexOffset);
+			}
+		}
+
+		MeshIndexCounts.push_back(mesh->mNumFaces * 3);
+		Submesh submesh;
+		submesh.indexCount = mesh->mNumFaces * 3;
+		submesh.startIndiceIndex = startIndex;
+		submesh.startVerticeIndex = 0;
+		submesh.materialIndex = mesh->mMaterialIndex + materialOffset;
+
+		DirectX::BoundingBox::CreateFromPoints(
+			submesh.box,
+			mesh->mNumVertices,
+			&vertices[baseVertex].pos,
+			sizeof(Vertex)
+		);
+
+
+		if (mesh->mMaterialIndex >= 0 && mesh->mMaterialIndex < scene->mNumMaterials) {
+			aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
+
+			ExtractMaterialData(filename, mesh->mMaterialIndex + materialOffset, material);
+		}
+
+		mSubmeshes.push_back(submesh);
 	}
-	size_t vertexOffset = vertices.size();
-	UINT baseVertex = static_cast<UINT>(vertices.size());
-	UINT startIndex = static_cast<UINT>(indices.size());
-
-	for (int i = 0; i < mesh->mNumVertices; ++i) {
-		Vertex vertex;
-
-		Vector3 pos(mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z);
-		vertex.pos = Vector3::Transform(pos, transform);
-
-		if (mesh->HasNormals()) {
-			Vector3 normal(mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z);
-			vertex.normal = Vector3::TransformNormal(normal, transform);
-			vertex.normal.Normalize();
-		}
-		else {
-			vertex.normal = Vector3(0.0f, 1.0f, 0.0f);
-		}
-
-		if (mesh->HasTextureCoords(0)) {
-			vertex.uv.x = mesh->mTextureCoords[0][i].x;
-			vertex.uv.y = 1.0f - mesh->mTextureCoords[0][i].y;
-		}
-		else {
-			vertex.uv = Vector2(0.0f, 0.0f);
-		}
-
-		if (mesh->mTangents) {
-			vertex.tangent = { mesh->mTangents[i].x, mesh->mTangents[i].y, mesh->mTangents[i].z };
-		}
-
-		if (mesh->mBitangents) {
-			vertex.biNormal = { mesh->mBitangents[i].x, mesh->mBitangents[i].y, mesh->mBitangents[i].z };
-		}
-
-		vertices.push_back(vertex);
-	}
-
-	for (int i = 0; i < mesh->mNumFaces; ++i) {
-		aiFace face = mesh->mFaces[i];
-		for (int j = 0; j < face.mNumIndices; ++j) {
-			indices.push_back(face.mIndices[j] + vertexOffset);
-		}
-	}
-
-	MeshIndexCounts.push_back(mesh->mNumFaces * 3);
-	Submesh submesh;
-	submesh.indexCount = mesh->mNumFaces * 3;
-	submesh.startIndiceIndex = startIndex;
-	submesh.startVerticeIndex = 0;
-	submesh.materialIndex = mesh->mMaterialIndex + materialOffset;
-
-	if (mesh->mMaterialIndex >= 0 && mesh->mMaterialIndex < scene->mNumMaterials) {
-		aiMaterial* material = scene->mMaterials[mesh->mMaterialIndex];
-
-		ExtractMaterialData(filename, mesh->mMaterialIndex + materialOffset, material);
-	}
-
-	mSubmeshes.push_back(submesh);
 }
 
 void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMaterialIndex, aiMaterial* material) {

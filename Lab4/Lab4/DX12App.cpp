@@ -291,6 +291,18 @@ void DX12App::FlushCommandQueue()
 }
 
 void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
+	/*DirectX::BoundingFrustum cameraFrustum;
+	DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, mProj_);
+	Matrix invView = mView_.Invert();
+	cameraFrustum.Transform(cameraFrustum, invView);*/
+
+	Matrix viewProj = mView_ * mProj_;
+
+	// 2. Извлекаем фрустум СРАЗУ в мировых координатах.
+	// Метод CreateFromMatrix умеет работать с комбинированной матрицей VP.
+	DirectX::BoundingFrustum cameraFrustum;
+	DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, viewProj);
+
 	m_command_list_->SetPipelineState(renderSystem->opaquePSO_.Get());
 
 	m_command_list_->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
@@ -326,6 +338,20 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	for (auto& sm : mSubmeshes)
 	{
+		if (cameraFrustum.Contains(sm.box) == DirectX::DISJOINT) {
+			continue; 
+		}
+
+		// Берем точку в 10 единицах прямо перед камерой
+		Vector3 pointInFront = mCameraPos + mCameraTarget * 10.0f;
+
+
+
+		/*DirectX::BoundingSphere hugeSphere(mCameraPos, 99999.0f);
+		if (hugeSphere.Contains(sm.box) == DirectX::DISJOINT) {
+			continue;
+		}*/
+
 		UINT matIndex = sm.materialIndex;
 		UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
 		D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress() + matIndex * matSize;
@@ -664,11 +690,11 @@ void DX12App::InitRenderSystem() {
 void DX12App::Parsing() {
 	ParseFile("models/sponza.obj", Matrix::Identity);
 
-	Matrix Transform = Matrix::CreateScale(0.2f) * Matrix::CreateRotationX(-3.14 / 2) * Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
-	ParseFile("models/Christmas Tree Color mm.obj", Transform);
+	//Matrix Transform = Matrix::CreateScale(0.2f) * Matrix::CreateRotationX(-3.14 / 2) * Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
+	//ParseFile("models/Christmas Tree Color mm.obj", Transform);
 
-	Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(100.0f, 500.0f, 0.0f);
-	ParseFile("models/Sketchfab.fbx", Transform);
+	//Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(100.0f, 500.0f, 0.0f);
+	//ParseFile("models/Sketchfab.fbx", Transform);
 
 }
 

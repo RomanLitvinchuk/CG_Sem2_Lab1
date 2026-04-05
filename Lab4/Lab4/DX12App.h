@@ -25,6 +25,7 @@
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
 #include "camera.h"
+#include <DirectXCollision.h>
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -151,6 +152,8 @@ private:
 	Matrix mWorld_ = Matrix::Identity;
 	Matrix mView_ = Matrix::Identity;
 	Matrix mProj_ = Matrix::Identity;
+
+	BoundingFrustum m_cameraFrustum;
 
 	POINT m_mouse_last_pos_;
 	float mCameraYaw;
