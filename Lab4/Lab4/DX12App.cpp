@@ -441,10 +441,10 @@ void DX12App::Draw(const GameTimer& gt)
 	FlushCommandQueue();
 }
 
-void DX12App::InitProjMAndFrustum() {
+void DX12App::InitProjectionMatrix() {
 	float aspectRatio = static_cast<float>(m_client_width_) / m_client_height_;
 
-	camera.projection_ = Matrix::CreatePerspectiveFieldOfView(
+	mProj_ = Matrix::CreatePerspectiveFieldOfView(
 		XMConvertToRadians(60.0f),  
 		aspectRatio,                
 		1.0f,                       
@@ -453,8 +453,6 @@ void DX12App::InitProjMAndFrustum() {
 
 	std::cout << "Projection matrix initialized. Aspect ratio: "
 		<< aspectRatio << std::endl;
-
-	BoundingFrustum::CreateFromMatrix(camera.frustum_, camera.projection_);
 	
 }
 
@@ -505,41 +503,41 @@ void DX12App::OnMouseUp() {
 void DX12App::OnMouseMove(WPARAM btnState, int dx, int dy) {
 	if ((btnState & MK_LBUTTON) != 0)
 	{
-		camera.mCameraYaw += static_cast<float>(dx) * camera.mCameraRotationSpeed * 0.01f * -1.0f;
-		camera.mCameraPitch -= static_cast<float>(dy) * camera.mCameraRotationSpeed * 0.01f * -1.0f;
+		mCameraYaw += static_cast<float>(dx) * mCameraRotationSpeed * 0.01f * -1.0f;
+		mCameraPitch -= static_cast<float>(dy) * mCameraRotationSpeed * 0.01f * -1.0f;
 
 		const float limit = XM_PIDIV2 - 0.01f;
-		camera.mCameraPitch = std::clamp(camera.mCameraPitch, -limit, limit);
+		mCameraPitch = std::clamp(mCameraPitch, -limit, limit);
 
-		camera.mCameraTarget.x = cos(camera.mCameraPitch) * sin(camera.mCameraYaw);
-		camera.mCameraTarget.y = sin(camera.mCameraPitch);
-		camera.mCameraTarget.z = cos(camera.mCameraPitch) * cos(camera.mCameraYaw);
-		camera.mCameraTarget.Normalize();
+		mCameraTarget.x = cos(mCameraPitch) * sin(mCameraYaw);
+		mCameraTarget.y = sin(mCameraPitch);
+		mCameraTarget.z = cos(mCameraPitch) * cos(mCameraYaw);
+		mCameraTarget.Normalize();
 	}
 	else if ((btnState & MK_RBUTTON) != 0)
 	{
-		camera.mRadius_ += 0.005f * static_cast<float>(dx - dy);
+		mRadius_ += 0.005f * static_cast<float>(dx - dy);
 
-		camera.mRadius_ = camera.mRadius_ < 3.0f ? 3.0f : (camera.mRadius_ > 15.0f ? 15.0f : camera.mRadius_);
+		mRadius_ = mRadius_ < 3.0f ? 3.0f : (mRadius_ > 15.0f ? 15.0f : mRadius_);
 	}
 }
 
 void DX12App::Update(const GameTimer& gt) {
 	float dt = gt.DeltaTime();
-	if (GetAsyncKeyState('W') & 0x8000) camera.mCameraPos += camera.mCameraTarget * camera.mCameraSpeed * dt;
-	if (GetAsyncKeyState('S') & 0x8000) camera.mCameraPos -= camera.mCameraTarget * camera.mCameraSpeed * dt;
-	if (GetAsyncKeyState('A') & 0x8000) camera.mCameraPos -= camera.mCameraTarget.Cross(camera.mCameraUp) * camera.mCameraSpeed * dt;
-	if (GetAsyncKeyState('D') & 0x8000) camera.mCameraPos += camera.mCameraTarget.Cross(camera.mCameraUp) * camera.mCameraSpeed * dt;
+	if (GetAsyncKeyState('W') & 0x8000) mCameraPos += mCameraTarget * mCameraSpeed * dt;
+	if (GetAsyncKeyState('S') & 0x8000) mCameraPos -= mCameraTarget * mCameraSpeed * dt;
+	if (GetAsyncKeyState('A') & 0x8000) mCameraPos -= mCameraTarget.Cross(mCameraUp) * mCameraSpeed * dt;
+	if (GetAsyncKeyState('D') & 0x8000) mCameraPos += mCameraTarget.Cross(mCameraUp) * mCameraSpeed * dt;
 
-	Vector3 targetPos = camera.mCameraPos + camera.mCameraTarget;
-	if (camera.mCameraPos == targetPos) {
+	Vector3 targetPos = mCameraPos + mCameraTarget;
+	if (mCameraPos == targetPos) {
 		targetPos += Vector3(0.001f, 0.0f, 0.0f);
 	}
 
-	mView_ = Matrix::CreateLookAt(camera.mCameraPos, camera.mCameraPos + camera.mCameraTarget, camera.mCameraUp);
+	mView_ = Matrix::CreateLookAt(mCameraPos, mCameraPos + mCameraTarget, mCameraUp);
 
-	std::cout << "CameraPos:" << camera.mCameraPos.x << " " << camera.mCameraPos.y << " " << camera.mCameraPos.z << std::endl;
-	Matrix ViewProj = mView_ * camera.projection_;
+	std::cout << "CameraPos:" << mCameraPos.x << " " << mCameraPos.y << " " << mCameraPos.z << std::endl;
+	Matrix ViewProj = mView_ * mProj_;
 	Matrix InvViewProj = ViewProj.Invert();
 	ViewProj = ViewProj.Transpose();
 	InvViewProj = InvViewProj.Transpose();
@@ -559,11 +557,11 @@ void DX12App::Update(const GameTimer& gt) {
 
 	CameraConstants camConst;
 	camConst.invViewProj = InvViewProj;
-	camConst.cameraPos = camera.mCameraPos;
+	camConst.cameraPos = mCameraPos;
 	CameraCB->CopyData(0, camConst);
 
 	HullBuffer HullConst;
-	HullConst.CameraPos = camera.mCameraPos;
+	HullConst.CameraPos = mCameraPos;
 	HullConst.gMinTess = 1;
 	HullConst.gMaxTess = 5;
 	HullConst.gMinDist = 10.0f;

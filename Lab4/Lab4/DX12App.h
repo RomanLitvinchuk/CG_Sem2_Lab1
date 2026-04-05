@@ -58,7 +58,7 @@ public:
 
 	void FlushCommandQueue();
 
-	void InitProjMAndFrustum();
+	void InitProjectionMatrix();
 	void CreateVertexBuffer();
 	void CreateIndexBuffer();
 
@@ -150,9 +150,18 @@ private:
 
 	Matrix mWorld_ = Matrix::Identity;
 	Matrix mView_ = Matrix::Identity;
-	Camera camera;
+	Matrix mProj_ = Matrix::Identity;
 
 	POINT m_mouse_last_pos_;
+	float mCameraYaw;
+	float mCameraPitch;
+	Vector3 mCameraPos = { 15.0f, 20.0f, -90.0f };
+	Vector3 mCameraTarget = { 0.0f, 0.0f, 1.0f }; 
+	Vector3 mCameraUp = { 0.0f, 1.0f, 0.0f };      
+	float mCameraSpeed = 200.0f;
+	float mCameraRotationSpeed = 0.3f;
+	float mRadius_ = 5.0f;   
+
 
 	const aiScene* sponza;
 	std::vector<Vertex> vertices;
