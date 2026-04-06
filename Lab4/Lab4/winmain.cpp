@@ -33,15 +33,12 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
     case WM_INPUT:
     {
         UINT dwSize = 0;
-
-        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize,
-            sizeof(RAWINPUTHEADER));
+        GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
 
         BYTE* lpb = new BYTE[dwSize];
         if (lpb == NULL) return 0;
 
-        if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize,
-            sizeof(RAWINPUTHEADER)) != dwSize) {
+        if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb, &dwSize, sizeof(RAWINPUTHEADER)) != dwSize) {
             delete[] lpb;
             return 0;
         }
@@ -53,16 +50,8 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             short dx = raw->data.mouse.lLastX;
             short dy = raw->data.mouse.lLastY;
 
-            USHORT buttons = raw->data.mouse.usButtonFlags;
-
-            if (buttons & RI_MOUSE_LEFT_BUTTON_DOWN)
-                MyFramework.OnMouseDown(hwnd);
-
-            if (buttons & RI_MOUSE_LEFT_BUTTON_UP)
-                MyFramework.OnMouseUp();
-
             bool leftDown = (GetAsyncKeyState(VK_LBUTTON) & 0x8000) != 0;
-            MyFramework.OnMouseMove(leftDown ? MK_LBUTTON : 0, dx, dy);
+            MyFramework.GetCamera().UpdateCameraTarget(leftDown ? MK_LBUTTON : 0, dx, dy);
         }
 
         else if (raw->header.dwType == RIM_TYPEKEYBOARD)
@@ -75,17 +64,39 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
             bool keyDown = !(flags & RI_KEY_BREAK);
 
+            if (virtualKey < 256) {
+                MyFramework.m_key_states[virtualKey] = keyDown;
+            }
         }
 
         delete[] lpb;
-        return 0;
+        break;
     }
 
-    /*case WM_SIZE:
+    case WM_SIZE:
     {
-        MyFramework.SetClientWH(LOWORD(lParam), HIWORD(lParam));
-        MyFramework.OnResize();
-    }*/
+        if (wParam == SIZE_MINIMIZED)
+            break;
+
+        int newWidth = LOWORD(lParam);
+        int newHeight = HIWORD(lParam);
+        MyFramework.SetClientWH(newWidth, newHeight);
+
+        if (MyFramework.IsDeviceCreated())
+        {
+            MyFramework.OnResize();
+        }
+        break;
+    }
+
+    case WM_LBUTTONDOWN:
+        MyFramework.OnMouseDown(hwnd);
+        return 0;
+
+    case WM_LBUTTONUP:
+        MyFramework.OnMouseUp();
+        return 0;
+
 
     case WM_PAINT:
     {
@@ -99,8 +110,17 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
     case WM_DESTROY:
         PostQuitMessage(0);
-        return 0;
+        break;
+
+    case WM_CLOSE:
+        PostQuitMessage(0);
+        break;
+
+    case WM_QUIT:
+        PostQuitMessage(0);
+        break;
     }
+
 
     return DefWindowProc(hwnd, msg, wParam, lParam);
 }
@@ -109,20 +129,19 @@ int WindowClass::WRun(GameTimer* gt) {
     MSG msg = {};
     gt->Reset();
 
-    while (true) {
-        if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE)) {
-            if (msg.message == WM_QUIT) {
-                break;
-            }
-
+    while (msg.message != WM_CLOSE)
+    {
+        if (PeekMessage(&msg, 0, 0, 0, PM_REMOVE))
+        {
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
-        else {
+        else
+        {
             gt->Tick();
-                MyFramework.CalculateGameStats(*gt, hWnd_);
-                MyFramework.Update(*gt);
-                MyFramework.Draw(*gt);
+            MyFramework.CalculateGameStats(hWnd_);
+            MyFramework.Update();
+            MyFramework.Draw();
         }
     }
 
@@ -162,7 +181,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	MyFramework.InitUploadBuffers();
 	MyFramework.CreateConstantBufferView();
     MyFramework.InitRenderSystem();
-	GameTimer gt;
+	//GameTimer gt;
 
 
 	wnd.RegisterRawInputDevice();
@@ -170,7 +189,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	wnd.UpdateWnd();
 	
 
-	wnd.WRun(&gt);
+	wnd.WRun(&MyFramework.GetTimer());
 
 	return 0;
 }

@@ -51,9 +51,9 @@ public:
 	void SetViewport();
 	void SetScissor();
 
-	void CalculateGameStats(GameTimer& gt, HWND hWnd);
+	void CalculateGameStats(HWND hWnd);
 
-	void Draw(const GameTimer& gt);
+	void Draw();
 	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 
@@ -65,9 +65,8 @@ public:
 
 	void OnMouseDown(HWND hWnd);
 	void OnMouseUp();
-	void OnMouseMove(WPARAM btnState, int dx, int dy);
 
-	void Update(const GameTimer& gt);
+	void Update();
 
 	void InitUploadBuffers();
 	void CreateConstantBufferView();
@@ -92,15 +91,20 @@ public:
 		int tessFactor);
 
 	ComPtr<ID3D12Device> GetDevice() const { return m_device_; }
+	Camera& GetCamera() { return camera; }
+	GameTimer& GetTimer() { return gt; }
+	bool IsDeviceCreated() { return m_device_ != nullptr; }
 	ComPtr<ID3D12GraphicsCommandList> GetCommandList() const { return m_command_list_; }
 
 	void SetClientWH(int width, int height) {
 		m_client_width_ = width;
 		m_client_height_ = height;
 	}
+
+	bool m_key_states[256] = { false };
 private:
 	void EnableDebug();
-
+	GameTimer gt;
 	DXGI_FORMAT m_back_buffer_format_ = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT m_depth_stencil_format_ = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	int m_client_width_ = 800;
@@ -148,22 +152,8 @@ private:
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout_;
 
-
-	Matrix mWorld_ = Matrix::Identity;
-	Matrix mView_ = Matrix::Identity;
-	Matrix mProj_ = Matrix::Identity;
-
-	BoundingFrustum m_cameraFrustum;
-
 	POINT m_mouse_last_pos_;
-	float mCameraYaw;
-	float mCameraPitch;
-	Vector3 mCameraPos = { 15.0f, 20.0f, -90.0f };
-	Vector3 mCameraTarget = { 0.0f, 0.0f, 1.0f }; 
-	Vector3 mCameraUp = { 0.0f, 1.0f, 0.0f };      
-	float mCameraSpeed = 200.0f;
-	float mCameraRotationSpeed = 0.3f;
-	float mRadius_ = 5.0f;   
+	Camera camera;
 
 
 	const aiScene* sponza;

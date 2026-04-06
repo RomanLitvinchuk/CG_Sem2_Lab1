@@ -256,7 +256,7 @@ void DX12App::SetScissor() {
 	std::cout << "Scissor is set" << std::endl;
 }
 
-void DX12App::CalculateGameStats(GameTimer& gt, HWND hWnd) {
+void DX12App::CalculateGameStats(HWND hWnd) {
 	static int frameCnt= 0;
 	static float timeElapsed = 0.0f;
 
@@ -291,18 +291,7 @@ void DX12App::FlushCommandQueue()
 }
 
 void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
-	//DirectX::BoundingFrustum cameraFrustum;
-	//DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, mProj_);
-	//Matrix invView = mView_.Invert();
-	//cameraFrustum.Transform(cameraFrustum, invView);
-
-	//Matrix viewProj = mView_ * mProj_;
-	//viewProj = viewProj.Transpose();
-
-	//DirectX::BoundingFrustum cameraFrustum;
-	//DirectX::BoundingFrustum::CreateFromMatrix(cameraFrustum, viewProj);
-
-	Matrix viewProj = mView_ * mProj_;
+	Matrix viewProj = camera.mView_ * camera.mProj_;
 
 
 	XMMATRIX M = viewProj;
@@ -310,17 +299,11 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	XMStoreFloat4x4(&m, M);
 
 	XMVECTOR planes[6];
-	// Левая
 	planes[0] = XMVectorSet(m._14 + m._11, m._24 + m._21, m._34 + m._31, m._44 + m._41);
-	// Правая
 	planes[1] = XMVectorSet(m._14 - m._11, m._24 - m._21, m._34 - m._31, m._44 - m._41);
-	// Нижняя
 	planes[2] = XMVectorSet(m._14 + m._12, m._24 + m._22, m._34 + m._32, m._44 + m._42);
-	// Верхняя
 	planes[3] = XMVectorSet(m._14 - m._12, m._24 - m._22, m._34 - m._32, m._44 - m._42);
-	// Ближняя
 	planes[4] = XMVectorSet(m._13, m._23, m._33, m._43);
-	// Дальняя
 	planes[5] = XMVectorSet(m._14 - m._13, m._24 - m._23, m._34 - m._33, m._44 - m._43);
 
 	for (int i = 0; i < 6; ++i) planes[i] = XMPlaneNormalize(planes[i]);
@@ -360,29 +343,19 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	for (auto& sm : mSubmeshes)
 	{
-		/*if (cameraFrustum.Contains(sm.box) == DirectX::DISJOINT) {
-			continue; 
-		}*/
 
 
 		bool isInside = true;
 
-		// Объект виден, если он находится "внутри" всех 6 плоскостей
 		for (int i = 0; i < 6; ++i) {
-			// PlaneIntersectsAxisAlignedBox возвращает PlaneIntersectionType
-			// Если он полностью ЗА плоскостью (Back), то объект не виден
 			if (sm.box.Intersects(planes[i]) == PlaneIntersectionType::BACK) {
 				isInside = false;
 				break;
 			}
 		}
 
-		if (!isInside) continue;
 
-		/*DirectX::BoundingSphere hugeSphere(mCameraPos, 99999.0f);
-		if (hugeSphere.Contains(sm.box) == DirectX::DISJOINT) {
-			continue;
-		}*/
+		if (!isInside) continue;
 
 		UINT matIndex = sm.materialIndex;
 		UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
@@ -450,7 +423,7 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->DrawInstanced(3, 1, 0, 0);
 }
 
-void DX12App::Draw(const GameTimer& gt)
+void DX12App::Draw()
 {
 	ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
 	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), renderSystem->opaquePSO_.Get()));
@@ -502,7 +475,7 @@ void DX12App::Draw(const GameTimer& gt)
 void DX12App::InitProjectionMatrix() {
 	float aspectRatio = static_cast<float>(m_client_width_) / m_client_height_;
 
-	mProj_ = Matrix::CreatePerspectiveFieldOfView(
+	camera.mProj_ = Matrix::CreatePerspectiveFieldOfView(
 		XMConvertToRadians(60.0f),  
 		aspectRatio,                
 		1.0f,                       
@@ -557,52 +530,20 @@ void DX12App::OnMouseUp() {
 	ReleaseCapture();
 }
 
+void DX12App::Update() {
+	camera.UpdateCameraPos(m_key_states, gt);
 
-void DX12App::OnMouseMove(WPARAM btnState, int dx, int dy) {
-	if ((btnState & MK_LBUTTON) != 0)
-	{
-		mCameraYaw += static_cast<float>(dx) * mCameraRotationSpeed * 0.01f * -1.0f;
-		mCameraPitch -= static_cast<float>(dy) * mCameraRotationSpeed * 0.01f * -1.0f;
+	camera.mView_ = Matrix::CreateLookAt(camera.mCameraPos, camera.mCameraPos + camera.mCameraTarget, camera.mCameraUp);
 
-		const float limit = XM_PIDIV2 - 0.01f;
-		mCameraPitch = std::clamp(mCameraPitch, -limit, limit);
-
-		mCameraTarget.x = cos(mCameraPitch) * sin(mCameraYaw);
-		mCameraTarget.y = sin(mCameraPitch);
-		mCameraTarget.z = cos(mCameraPitch) * cos(mCameraYaw);
-		mCameraTarget.Normalize();
-	}
-	else if ((btnState & MK_RBUTTON) != 0)
-	{
-		mRadius_ += 0.005f * static_cast<float>(dx - dy);
-
-		mRadius_ = mRadius_ < 3.0f ? 3.0f : (mRadius_ > 15.0f ? 15.0f : mRadius_);
-	}
-}
-
-void DX12App::Update(const GameTimer& gt) {
-	float dt = gt.DeltaTime();
-	if (GetAsyncKeyState('W') & 0x8000) mCameraPos += mCameraTarget * mCameraSpeed * dt;
-	if (GetAsyncKeyState('S') & 0x8000) mCameraPos -= mCameraTarget * mCameraSpeed * dt;
-	if (GetAsyncKeyState('A') & 0x8000) mCameraPos -= mCameraTarget.Cross(mCameraUp) * mCameraSpeed * dt;
-	if (GetAsyncKeyState('D') & 0x8000) mCameraPos += mCameraTarget.Cross(mCameraUp) * mCameraSpeed * dt;
-
-	Vector3 targetPos = mCameraPos + mCameraTarget;
-	if (mCameraPos == targetPos) {
-		targetPos += Vector3(0.001f, 0.0f, 0.0f);
-	}
-
-	mView_ = Matrix::CreateLookAt(mCameraPos, mCameraPos + mCameraTarget, mCameraUp);
-
-	std::cout << "CameraPos:" << mCameraPos.x << " " << mCameraPos.y << " " << mCameraPos.z << std::endl;
-	Matrix ViewProj = mView_ * mProj_;
+	std::cout << "CameraPos:" << camera.mCameraPos.x << " " << camera.mCameraPos.y << " " << camera.mCameraPos.z << std::endl;
+	Matrix ViewProj = camera.mView_ * camera.mProj_;
 	Matrix InvViewProj = ViewProj.Invert();
 	ViewProj = ViewProj.Transpose();
 	InvViewProj = InvViewProj.Transpose();
 
 	ObjectConstants obj;
-	obj.mWorld = mWorld_;
-	Matrix TWorld = mWorld_.Transpose();
+	obj.mWorld = camera.mWorld_;
+	Matrix TWorld = camera.mWorld_.Transpose();
 	obj.mInvTWorld = TWorld.Invert();
 	obj.mViewProj = ViewProj;
 	obj.mTexTransform = Matrix::Identity;
@@ -615,11 +556,11 @@ void DX12App::Update(const GameTimer& gt) {
 
 	CameraConstants camConst;
 	camConst.invViewProj = InvViewProj;
-	camConst.cameraPos = mCameraPos;
+	camConst.cameraPos = camera.mCameraPos;
 	CameraCB->CopyData(0, camConst);
 
 	HullBuffer HullConst;
-	HullConst.CameraPos = mCameraPos;
+	HullConst.CameraPos = camera.mCameraPos;
 	HullConst.gMinTess = 1;
 	HullConst.gMaxTess = 5;
 	HullConst.gMinDist = 10.0f;
@@ -705,11 +646,17 @@ void DX12App::OnResize() {
 
 	ThrowIfFailed(m_swap_chain_->ResizeBuffers(2, m_client_width_, m_client_height_, m_back_buffer_format_, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
+	InitProjectionMatrix();
 	m_current_back_buffer_ = 0;
 	CreateRTV();
 	CreateDSV();
 	renderSystem->g_buffer->OnResize(m_client_width_, m_client_height_, m_device_);
 	SetViewport();
+	SetScissor();
+	ThrowIfFailed(m_command_list_->Close());
+	ID3D12CommandList* cmdsLists[] = { m_command_list_.Get() };
+	m_command_queue_->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	FlushCommandQueue();
 }
 
 void DX12App::InitRenderSystem() {
