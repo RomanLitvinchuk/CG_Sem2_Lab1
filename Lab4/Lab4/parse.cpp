@@ -215,12 +215,41 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 			ExtractMaterialData(filename, mesh->mMaterialIndex + materialOffset, material);
 		}
 
+		if (filename.find("SM_Chisel") != std::string::npos) {
+			submesh.InstanceCount = 500;
+		}
+
+		if (filename.find("SM_Chisel") != std::string::npos) {
+			submesh.InstanceCount = 500;
+		}
+
+		int gridSize = static_cast<int>(std::ceil(std::sqrt(submesh.InstanceCount)));
+
+		float spacing = 4.0f;
+
 		for (int i = 0; i < submesh.InstanceCount; i++) {
 			InstanceData instance;
-			instance.World_ = submesh.mWorld;
+
+			if (submesh.InstanceCount > 1) {
+				int gridX = i % gridSize;
+				int gridZ = i / gridSize;
+
+				float offsetX = (gridX - gridSize / 2.0f) * spacing;
+				float offsetZ = (gridZ - gridSize / 2.0f) * spacing;
+
+				Matrix gridTranslation = Matrix::CreateTranslation(offsetX, 0.0f, offsetZ);
+
+				instance.World_ = submesh.mWorld * gridTranslation;
+			}
+			else {
+				instance.World_ = submesh.mWorld;
+			}
+
 			instance.TexTransform_ = submesh.mTexTransform;
-			Matrix invWorld = submesh.mWorld.Invert();
+
+			Matrix invWorld = instance.World_.Invert();
 			instance.InvTWorld_ = invWorld.Transpose();
+
 			submesh.instances.push_back(instance);
 		}
 		mSubmeshes.push_back(submesh);

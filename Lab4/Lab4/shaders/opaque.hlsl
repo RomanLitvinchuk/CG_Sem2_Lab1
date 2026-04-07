@@ -37,9 +37,9 @@ Texture2D DisplacementMap : register(t2);
 
 struct InstanceData
 {
-    float4x4 mWorld;
-    float4x4 mTexTransform;
-    float4x4 mInvTWorld;
+    row_major float4x4 mWorld;
+    row_major float4x4 mTexTransform;
+    row_major float4x4 mInvTWorld;
 };
 
 StructuredBuffer<InstanceData> Instances : register(t3);

@@ -681,7 +681,14 @@ void DX12App::Parsing() {
 	ParseFile("models/Christmas Tree Color mm.obj", Transform);
 
 	Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(100.0f, 500.0f, 0.0f);
-	ParseFile("models/Sketchfab.fbx", Transform);
+	//ParseFile("models/Sketchfab.fbx", Transform);
+
+	Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(400.0f, 200.0f, 0.0f);
+	ParseFile("models/TOPOR.obj", Transform);
+
+	Transform = Matrix::CreateScale(100.0f) * Matrix::CreateRotationX(3.14 / 2) * Matrix::CreateTranslation(400.0f, 110.0f, -50.0f);
+	ParseFile("models/SM_Chisel.fbx", Transform);
+
 
 	meshVisibilityFences.assign(mSubmeshes.size(), 0);
 	visibleIndices.reserve(mSubmeshes.size());
