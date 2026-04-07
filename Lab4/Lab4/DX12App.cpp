@@ -291,23 +291,6 @@ void DX12App::FlushCommandQueue()
 }
 
 void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
-	Matrix viewProj = camera.mView_ * camera.mProj_;
-
-
-	XMMATRIX M = viewProj;
-	XMFLOAT4X4 m;
-	XMStoreFloat4x4(&m, M);
-
-	XMVECTOR planes[6];
-	planes[0] = XMVectorSet(m._14 + m._11, m._24 + m._21, m._34 + m._31, m._44 + m._41);
-	planes[1] = XMVectorSet(m._14 - m._11, m._24 - m._21, m._34 - m._31, m._44 - m._41);
-	planes[2] = XMVectorSet(m._14 + m._12, m._24 + m._22, m._34 + m._32, m._44 + m._42);
-	planes[3] = XMVectorSet(m._14 - m._12, m._24 - m._22, m._34 - m._32, m._44 - m._42);
-	planes[4] = XMVectorSet(m._13, m._23, m._33, m._43);
-	planes[5] = XMVectorSet(m._14 - m._13, m._24 - m._23, m._34 - m._33, m._44 - m._43);
-
-	for (int i = 0; i < 6; ++i) planes[i] = XMPlaneNormalize(planes[i]);
-
 	m_command_list_->SetPipelineState(renderSystem->opaquePSO_.Get());
 
 	m_command_list_->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
@@ -344,18 +327,19 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	for (auto& sm : mSubmeshes)
 	{
 
+		if (camera.isFrustumCullingEnabled) {
+			bool isInside = true;
 
-		bool isInside = true;
-
-		for (int i = 0; i < 6; ++i) {
-			if (sm.box.Intersects(planes[i]) == PlaneIntersectionType::BACK) {
-				isInside = false;
-				break;
+			for (int i = 0; i < 6; ++i) {
+				if (sm.box.Intersects(camera.planes[i]) == PlaneIntersectionType::BACK) {
+					isInside = false;
+					break;
+				}
 			}
+
+
+			if (!isInside) continue;
 		}
-
-
-		if (!isInside) continue;
 
 		UINT matIndex = sm.materialIndex;
 		UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
@@ -537,6 +521,22 @@ void DX12App::Update() {
 
 	std::cout << "CameraPos:" << camera.mCameraPos.x << " " << camera.mCameraPos.y << " " << camera.mCameraPos.z << std::endl;
 	Matrix ViewProj = camera.mView_ * camera.mProj_;
+
+	if (camera.isFrustumCullingEnabled){
+		XMMATRIX M = ViewProj;
+		XMFLOAT4X4 m;
+		XMStoreFloat4x4(&m, M);
+
+		camera.planes[0] = XMVectorSet(m._14 + m._11, m._24 + m._21, m._34 + m._31, m._44 + m._41);
+		camera.planes[1] = XMVectorSet(m._14 - m._11, m._24 - m._21, m._34 - m._31, m._44 - m._41);
+		camera.planes[2] = XMVectorSet(m._14 + m._12, m._24 + m._22, m._34 + m._32, m._44 + m._42);
+		camera.planes[3] = XMVectorSet(m._14 - m._12, m._24 - m._22, m._34 - m._32, m._44 - m._42);
+		camera.planes[4] = XMVectorSet(m._13, m._23, m._33, m._43);
+		camera.planes[5] = XMVectorSet(m._14 - m._13, m._24 - m._23, m._34 - m._33, m._44 - m._43);
+
+		for (int i = 0; i < 6; ++i) camera.planes[i] = XMPlaneNormalize(camera.planes[i]);
+	}
+
 	Matrix InvViewProj = ViewProj.Invert();
 	ViewProj = ViewProj.Transpose();
 	InvViewProj = InvViewProj.Transpose();

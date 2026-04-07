@@ -67,6 +67,10 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
             if (virtualKey < 256) {
                 MyFramework.m_key_states[virtualKey] = keyDown;
             }
+            if (virtualKey == 'F' && keyDown) {
+                MyFramework.GetCamera().UpdateFrustumCullingState();
+                MessageBox(NULL, L"Frustum culling is switched", L"Switch", MB_OK);
+            }
         }
 
         delete[] lpb;

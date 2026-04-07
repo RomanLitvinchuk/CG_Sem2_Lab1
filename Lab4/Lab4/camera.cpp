@@ -36,3 +36,7 @@ void Camera::UpdateCameraTarget(WPARAM btnState, int dx, int dy) {
 		mRadius_ = mRadius_ < 3.0f ? 3.0f : (mRadius_ > 15.0f ? 15.0f : mRadius_);
 	}
 }
+
+void Camera::UpdateFrustumCullingState() {
+	isFrustumCullingEnabled = !isFrustumCullingEnabled;
+}

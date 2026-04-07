@@ -23,6 +23,7 @@ struct Camera {
 
 	void UpdateCameraPos(const bool* keys, const GameTimer& gt);
 	void UpdateCameraTarget(WPARAM btnState, int dx, int dy);
+	void UpdateFrustumCullingState();
 
 	float mCameraYaw;
 	float mCameraPitch;
@@ -36,6 +37,9 @@ struct Camera {
 	Matrix mWorld_ = Matrix::Identity;
 	Matrix mView_ = Matrix::Identity;
 	Matrix mProj_ = Matrix::Identity;
+
+	XMVECTOR planes[6];
+	bool isFrustumCullingEnabled = true;
 };
 
 #endif //CAMERA_H_
