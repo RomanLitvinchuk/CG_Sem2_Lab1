@@ -8,6 +8,7 @@
 #include "vertex.h"
 #include <filesystem>
 #include "DDSTextureLoader.h"
+#include <numeric>
 
 using namespace DirectX;
 using namespace DirectX::SimpleMath;
@@ -57,7 +58,7 @@ void DX12App::InitializeCommandObjects() {
 	ThrowIfFailed(m_device_->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_command_queue_)));
 	std::cout << "Command queue is created" << std::endl;
 	ThrowIfFailed(m_device_->CreateCommandAllocator(queueDesc.Type, IID_PPV_ARGS(&m_direct_cmd_list_alloc_)));
-	std::cout << "Command allocatoris is created" << std::endl;
+	std::cout << "Command allocator is created" << std::endl;
 	ThrowIfFailed(m_device_->CreateCommandList(0, queueDesc.Type, m_direct_cmd_list_alloc_.Get(), nullptr, IID_PPV_ARGS(&m_command_list_)));
 	std::cout << "Command list is created" << std::endl;
 	ThrowIfFailed(m_command_list_->Close());
@@ -291,6 +292,19 @@ void DX12App::FlushCommandQueue()
 }
 
 void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
+	currentFrameCounter++;
+	visibleIndices.clear();
+
+	if (camera.isFrustumCullingEnabled)
+	{
+		octree.GetVisibleObjects(camera.planes, mSubmeshes, meshVisibilityFences, currentFrameCounter, visibleIndices);
+	}
+	else
+	{
+		visibleIndices.resize(mSubmeshes.size());
+		std::iota(visibleIndices.begin(), visibleIndices.end(), 0); 
+	}
+
 	m_command_list_->SetPipelineState(renderSystem->opaquePSO_.Get());
 
 	m_command_list_->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
@@ -324,22 +338,9 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	m_command_list_->SetGraphicsRootConstantBufferView(6, HullCB->Resource()->GetGPUVirtualAddress());
 
-	for (auto& sm : mSubmeshes)
+	for (UINT idx : visibleIndices)
 	{
-
-		if (camera.isFrustumCullingEnabled) {
-			bool isInside = true;
-
-			for (int i = 0; i < 6; ++i) {
-				if (sm.box.Intersects(camera.planes[i]) == PlaneIntersectionType::BACK) {
-					isInside = false;
-					break;
-				}
-			}
-
-
-			if (!isInside) continue;
-		}
+		auto& sm = mSubmeshes[idx];
 
 		UINT matIndex = sm.materialIndex;
 		UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
@@ -675,6 +676,10 @@ void DX12App::Parsing() {
 	Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(100.0f, 500.0f, 0.0f);
 	ParseFile("models/Sketchfab.fbx", Transform);
 
+	meshVisibilityFences.assign(mSubmeshes.size(), 0);
+	visibleIndices.reserve(mSubmeshes.size());
+
+	octree.Build(mSubmeshes, 5, 10);
 }
  
 void DX12App::CreateLightBufferSRV() {

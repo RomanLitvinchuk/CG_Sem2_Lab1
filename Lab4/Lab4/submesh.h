@@ -10,6 +10,6 @@ struct Submesh
     UINT startIndiceIndex = 0;
     UINT startVerticeIndex = 0;
     int materialIndex = -1;
-    BoundingBox box;
+    DirectX::BoundingBox box;
 };
 #endif
