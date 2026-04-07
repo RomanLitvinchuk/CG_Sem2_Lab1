@@ -341,7 +341,7 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	for (UINT idx : visibleIndices)
 	{
 		auto& sm = mSubmeshes[idx];
-
+		UINT currentInstanceOffset = 0;
 		UINT matIndex = sm.materialIndex;
 		UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
 		D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress() + matIndex * matSize;
@@ -373,13 +373,22 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 		m_command_list_->SetGraphicsRootDescriptorTable(4, normHandle);
 
+		for (int i = 0; i < sm.InstanceCount; i++) {
+			InstanceBuffer->CopyData(currentInstanceOffset + i, sm.instances[i]);
+		}
+
+		m_command_list_->SetGraphicsRootShaderResourceView(7, InstanceBuffer->Resource()->GetGPUVirtualAddress());
+
 		m_command_list_->DrawIndexedInstanced(
 			sm.indexCount,
-			1,
+			sm.InstanceCount,
 			sm.startIndiceIndex,
 			sm.startVerticeIndex,
-			0);
+			currentInstanceOffset);
+
+		currentInstanceOffset += sm.InstanceCount;
 	}
+
 }
 
 void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
@@ -543,11 +552,8 @@ void DX12App::Update() {
 	InvViewProj = InvViewProj.Transpose();
 
 	ObjectConstants obj;
-	obj.mWorld = camera.mWorld_;
 	Matrix TWorld = camera.mWorld_.Transpose();
-	obj.mInvTWorld = TWorld.Invert();
 	obj.mViewProj = ViewProj;
-	obj.mTexTransform = Matrix::Identity;
 	obj.gTime = gt.TotalTime();
 	CBUploadBuffer->CopyData(0, obj);
 
@@ -612,6 +618,7 @@ void DX12App::InitUploadBuffers() {
 	MaterialCB = std::make_unique<UploadBuffer<MaterialConstants>>(m_device_.Get(), 300, true);
 	CameraCB = std::make_unique<UploadBuffer<CameraConstants>>(m_device_.Get(), 1, true);
 	LightBuffer = std::make_unique<UploadBuffer<LightConstants>>(m_device_.Get(), 1000, false);
+	InstanceBuffer = std::make_unique<UploadBuffer<InstanceData>>(m_device_.Get(), 1000, false);
 	HullCB = std::make_unique<UploadBuffer<HullBuffer>>(m_device_.Get(), 1, true);
 }
 
@@ -663,7 +670,7 @@ void DX12App::OnResize() {
 void DX12App::InitRenderSystem() {
 	renderSystem = new RenderingSystem(m_device_, m_input_layout_, m_client_width_, m_client_height_);
 
-	CreateLightBufferSRV();
+	CreateStructuredBuffersSRV();
 }
 
 
@@ -682,7 +689,7 @@ void DX12App::Parsing() {
 	octree.Build(mSubmeshes, 5, 10);
 }
  
-void DX12App::CreateLightBufferSRV() {
+void DX12App::CreateStructuredBuffersSRV() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
 	srvDesc.Format = DXGI_FORMAT_UNKNOWN;
@@ -694,9 +701,7 @@ void DX12App::CreateLightBufferSRV() {
 	auto handle = renderSystem->g_buffer->SRVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
 	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
-	CD3DX12_CPU_DESCRIPTOR_HANDLE lightSrvHandle(handle, 3, size);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE SrvHandle(handle, 3, size);
 
-	m_device_->CreateShaderResourceView(LightBuffer->Resource(), &srvDesc, lightSrvHandle);
-
-	std::cout << "StructuredBuffer SRV created in G-Buffer heap at slot 3" << std::endl;
+	m_device_->CreateShaderResourceView(LightBuffer->Resource(), &srvDesc, SrvHandle);
 }

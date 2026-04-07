@@ -1,9 +1,6 @@
 cbuffer cbPerObject : register(b0)
 {
-    float4x4 mWorld;
-    float4x4 mInvTWorld;
     float4x4 mViewProj;
-    float4x4 mTexTransform;
     float gTime;
     float pad[3];
 }
@@ -37,6 +34,15 @@ cbuffer cbMaterial : register(b1)
 Texture2D DiffuseMap : register(t0);
 Texture2D NormalMap : register(t1);
 Texture2D DisplacementMap : register(t2);
+
+struct InstanceData
+{
+    float4x4 mWorld;
+    float4x4 mTexTransform;
+    float4x4 mInvTWorld;
+};
+
+StructuredBuffer<InstanceData> Instances : register(t3);
 
 SamplerState Sampler : register(s0);
 
@@ -85,7 +91,7 @@ float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, floa
 }
 
 
-VS_OUTPUT VS(VS_INPUT input)
+VS_OUTPUT VS(VS_INPUT input, uint instanceID : SV_InstanceID)
 {
     VS_OUTPUT output;
     if (gIsLion == 1)
@@ -95,13 +101,17 @@ VS_OUTPUT VS(VS_INPUT input)
         input.pos += input.normal * offset;
     }
     
+    float4x4 mWorld = Instances[instanceID].mWorld;
+    float4x4 mTexTransform = Instances[instanceID].mTexTransform;
+    
+    
     float3 localPos = input.pos;
     float3 localNormal = input.normal;
 
     float4 texC = mul(float4(input.uv, 0.0f, 1.0f), mTexTransform);
     float2 finalUV = mul(texC, mMatTransform).xy;
 
-    float3 normalW = mul(localNormal, (float3x3) mInvTWorld);
+    float3 normalW = mul(localNormal, (float3x3) Instances[instanceID].mInvTWorld);
     normalW = normalize(normalW);
     
     if (gHasDisplacementTexture == 1)
@@ -127,7 +137,7 @@ VS_OUTPUT VS(VS_INPUT input)
     
     output.normal = localNormal;
     output.normalW = normalW;
-    output.tangentW = mul(input.tangent, (float3x3)mInvTWorld);
+    output.tangentW = mul(input.tangent, (float3x3)Instances[instanceID].mInvTWorld);
     output.uv = finalUV;
     return output;
 }

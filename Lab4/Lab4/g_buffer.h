@@ -60,7 +60,6 @@ struct GBuffer {
 
 	void TransitToOpaqueRenderingState(ComPtr<ID3D12GraphicsCommandList> commandList);
 	void TransitToLightsRenderingState(ComPtr<ID3D12GraphicsCommandList> commandList);
-	void TransitToBulbRenderingState(ComPtr<ID3D12GraphicsCommandList> commandList);
 
 	void OnResize(int width, int height, ComPtr<ID3D12Device> device);
 };

@@ -124,6 +124,15 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 		submesh.startVerticeIndex = baseVertex;
 		submesh.materialIndex = mesh->mMaterialIndex + materialOffset;
 
+		for (int i = 0; i < submesh.InstanceCount; i++) {
+			InstanceData instance;
+			instance.World_ = submesh.mWorld;
+			instance.TexTransform_ = submesh.mTexTransform;
+			Matrix invWorld = submesh.mWorld.Invert();
+			instance.InvTWorld_ = invWorld.Transpose();
+			submesh.instances.push_back(instance);
+		}
+
 		mSubmeshes.push_back(submesh);
 
 		if (mesh->mMaterialIndex >= 0 &&
@@ -206,6 +215,14 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 			ExtractMaterialData(filename, mesh->mMaterialIndex + materialOffset, material);
 		}
 
+		for (int i = 0; i < submesh.InstanceCount; i++) {
+			InstanceData instance;
+			instance.World_ = submesh.mWorld;
+			instance.TexTransform_ = submesh.mTexTransform;
+			Matrix invWorld = submesh.mWorld.Invert();
+			instance.InvTWorld_ = invWorld.Transpose();
+			submesh.instances.push_back(instance);
+		}
 		mSubmeshes.push_back(submesh);
 	}
 }

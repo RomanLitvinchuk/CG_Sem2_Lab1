@@ -3,6 +3,16 @@
 
 #include <d3d12.h>
 #include <DirectXCollision.h>
+#include <SimpleMath.h>
+
+using namespace DirectX;
+using namespace SimpleMath;
+
+struct InstanceData {
+    Matrix World_;
+    Matrix TexTransform_;
+    Matrix InvTWorld_;
+};
 
 struct Submesh
 {
@@ -11,5 +21,10 @@ struct Submesh
     UINT startVerticeIndex = 0;
     int materialIndex = -1;
     DirectX::BoundingBox box;
+    UINT InstanceCount = 1;
+    Matrix mWorld;
+    Matrix mTexTransform = Matrix::Identity;
+    std::vector<InstanceData> instances;
 };
+
 #endif

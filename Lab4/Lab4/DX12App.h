@@ -71,7 +71,7 @@ public:
 
 	void InitUploadBuffers();
 	void CreateConstantBufferView();
-	void CreateLightBufferSRV();
+	void CreateStructuredBuffersSRV();
 
 	void CompileShaders();
 	void BuildLayout();
@@ -150,6 +150,9 @@ private:
 	std::unique_ptr<UploadBuffer<LightConstants>> LightBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<CameraConstants>> CameraCB = nullptr;
 	std::unique_ptr<UploadBuffer<HullBuffer>> HullCB = nullptr;
+	std::unique_ptr<UploadBuffer<InstanceData>> InstanceBuffer = nullptr;
+
+	std::vector<InstanceData> instances;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout_;
 

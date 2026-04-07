@@ -5,7 +5,7 @@
 #include <random>
 
 void RenderingSystem::CreateOpaqueRS(ComPtr<ID3D12Device> device) {
-	CD3DX12_ROOT_PARAMETER slotRootParameter[7];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[8];
 	CD3DX12_DESCRIPTOR_RANGE cbvTable;
 	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
 	CD3DX12_DESCRIPTOR_RANGE diffuseTable;
@@ -23,9 +23,10 @@ void RenderingSystem::CreateOpaqueRS(ComPtr<ID3D12Device> device) {
 	slotRootParameter[4].InitAsDescriptorTable(1, &normalTable, D3D12_SHADER_VISIBILITY_ALL);
 	slotRootParameter[5].InitAsDescriptorTable(1, &dispTable, D3D12_SHADER_VISIBILITY_ALL);
 	slotRootParameter[6].InitAsConstantBufferView(2);
+	slotRootParameter[7].InitAsShaderResourceView(3);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
-		7, slotRootParameter,
+		8, slotRootParameter,
 		0, nullptr,
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
 	);
