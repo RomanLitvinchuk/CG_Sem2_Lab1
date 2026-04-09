@@ -19,4 +19,13 @@ struct Vertex
     Vector3 biNormal;
 };
 
+struct BakedVertex
+{
+    Vector3 worldPos;
+    Vector3 normal;
+    Vector3 normalW;
+    Vector3 uv;
+    Vector3 tangentW;
+};
+
 #endif //VERTEX_H_

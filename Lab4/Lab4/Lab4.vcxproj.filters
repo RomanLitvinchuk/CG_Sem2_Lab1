@@ -127,5 +127,8 @@
     <FxCompile Include="shaders\DomainShader.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\baked.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

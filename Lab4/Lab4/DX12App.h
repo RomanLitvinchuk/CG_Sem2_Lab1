@@ -57,6 +57,7 @@ public:
 	void Draw();
 	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
+	void DrawToStreamOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 
 	void FlushCommandQueue();
 
@@ -75,6 +76,8 @@ public:
 
 	void CompileShaders();
 	void BuildLayout();
+
+	void CreateSOBuffers();
 
 	void BuildBulbGeometry();
 	void InitRenderSystem();
@@ -153,6 +156,7 @@ private:
 	std::vector<InstanceData> instances;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout_;
+	std::vector<D3D12_INPUT_ELEMENT_DESC> bakedLayout_;
 
 	POINT m_mouse_last_pos_;
 	Camera camera;
@@ -172,6 +176,7 @@ private:
 	std::vector<int> mMeshesMaterialIndex;
 	std::vector<MaterialConstants> materialData;
 	std::vector<Submesh> mSubmeshes;
+	Submesh SOMesh;
 	ComPtr<ID3D12Resource> mDefaultTexture;
 	std::vector<std::string> materialNames;
 
@@ -182,6 +187,12 @@ private:
 	D3D12_VERTEX_BUFFER_VIEW mSphereVbv;
 	D3D12_INDEX_BUFFER_VIEW mSphereIbv;
 	UINT mSphereIndexCount = 0;
+
+	ComPtr<ID3D12Resource> SOBuffer_ = nullptr;
+	ComPtr<ID3D12Resource> filledSizeBuffer_ = nullptr;
+	ComPtr<ID3D12Resource> readbackBuffer_ = nullptr;
+	D3D12_STREAM_OUTPUT_BUFFER_VIEW SOView_ = {};
+	bool isFirstFrame = true;
 };
 
 #endif //DX12APP_

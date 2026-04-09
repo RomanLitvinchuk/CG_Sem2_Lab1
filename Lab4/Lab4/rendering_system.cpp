@@ -1,6 +1,7 @@
 #include "rendering_system.h"
 #include "throw_if_failed.h"
 #include "d3dUtil.h"
+#include "vertex.h"
 #include <iostream>
 #include <random>
 
@@ -75,6 +76,8 @@ void RenderingSystem::CompileShaders() {
 
 	tessVS_ = d3dUtil::CompileShader(L"shaders/tess.hlsl", nullptr, "TessVS", "vs_5_0");
 	tessPS_ = d3dUtil::CompileShader(L"shaders/tess.hlsl", nullptr, "TessPS", "ps_5_0");
+
+	bakedVS_ = d3dUtil::CompileShader(L"shaders/baked.hlsl", nullptr, "BakedVS", "vs_5_0");
 }
 
 void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
@@ -273,4 +276,128 @@ void RenderingSystem::CreateTessPSO(ComPtr<ID3D12Device> device, std::vector<D3D
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&tessPSO_)));
+}
+
+void RenderingSystem::CreateStreamOutputRS(ComPtr<ID3D12Device> device)
+{
+	CD3DX12_ROOT_PARAMETER slotRootParameter[8];
+	CD3DX12_DESCRIPTOR_RANGE cbvTable;
+	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
+	CD3DX12_DESCRIPTOR_RANGE diffuseTable;
+	diffuseTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+	CD3DX12_DESCRIPTOR_RANGE normalTable;
+	normalTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+	CD3DX12_DESCRIPTOR_RANGE dispTable;
+	dispTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
+	CD3DX12_DESCRIPTOR_RANGE samplerTable;
+	samplerTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+	slotRootParameter[0].InitAsDescriptorTable(1, &cbvTable, D3D12_SHADER_VISIBILITY_ALL);
+	slotRootParameter[1].InitAsDescriptorTable(1, &diffuseTable, D3D12_SHADER_VISIBILITY_ALL);
+	slotRootParameter[2].InitAsDescriptorTable(1, &samplerTable, D3D12_SHADER_VISIBILITY_ALL);
+	slotRootParameter[3].InitAsConstantBufferView(1);
+	slotRootParameter[4].InitAsDescriptorTable(1, &normalTable, D3D12_SHADER_VISIBILITY_ALL);
+	slotRootParameter[5].InitAsDescriptorTable(1, &dispTable, D3D12_SHADER_VISIBILITY_ALL);
+	slotRootParameter[6].InitAsConstantBufferView(2);
+	slotRootParameter[7].InitAsShaderResourceView(3);
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(
+		8, slotRootParameter,
+		0, nullptr,
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT | D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT
+	);
+
+	ComPtr<ID3DBlob> serializedRootSig = nullptr;
+	ComPtr<ID3DBlob> errorBlob = nullptr;
+
+	HRESULT hr = D3D12SerializeRootSignature(
+		&rootSigDesc,
+		D3D_ROOT_SIGNATURE_VERSION_1,
+		serializedRootSig.GetAddressOf(),
+		errorBlob.GetAddressOf()
+	);
+
+	if (errorBlob != nullptr) {
+		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+	}
+
+	ThrowIfFailed(hr);
+	ThrowIfFailed(device->CreateRootSignature(
+		0,
+		serializedRootSig->GetBufferPointer(),
+		serializedRootSig->GetBufferSize(),
+		IID_PPV_ARGS(&streamOutputRS_)
+	));
+}
+
+void RenderingSystem::CreateStreamOutputPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
+{
+	D3D12_SO_DECLARATION_ENTRY soDecl[] =
+	{
+		{0, "WORLDPOS", 0, 0, 3, 0},
+		{0, "NORMAL",   0, 0, 3, 0 },
+		{0, "NORMAL",   1, 0, 3, 0 },
+		{0, "TEXCOORD", 0, 0, 2, 0 },
+		{0, "TANGENT",  0, 0, 3, 0 }
+	};
+
+	UINT stride[] = { sizeof(BakedVertex) };
+
+	D3D12_STREAM_OUTPUT_DESC soDesc = {};
+	soDesc.NumEntries = _countof(soDecl);
+	soDesc.NumStrides = 1;
+	soDesc.pBufferStrides = stride;
+	soDesc.pSODeclaration = soDecl;
+	soDesc.RasterizedStream = D3D12_SO_NO_RASTERIZED_STREAM;
+
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC streamOutputPSODesc;
+	ZeroMemory(&streamOutputPSODesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	streamOutputPSODesc.InputLayout = { layout.data(), (UINT)layout.size() };
+	streamOutputPSODesc.pRootSignature = streamOutputRS_.Get();
+	streamOutputPSODesc.StreamOutput = soDesc;
+	streamOutputPSODesc.VS = { reinterpret_cast<BYTE*>(tessVS_->GetBufferPointer()), tessVS_->GetBufferSize() };
+	streamOutputPSODesc.HS = { reinterpret_cast<BYTE*>(HS_->GetBufferPointer()), HS_->GetBufferSize() };
+	streamOutputPSODesc.DS = { reinterpret_cast<BYTE*>(DS_->GetBufferPointer()), DS_->GetBufferSize() };
+	streamOutputPSODesc.PS = { nullptr, 0};
+	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
+	rastDesc.FrontCounterClockwise = true;
+	streamOutputPSODesc.RasterizerState = rastDesc;
+	streamOutputPSODesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	streamOutputPSODesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	streamOutputPSODesc.DepthStencilState.DepthEnable = FALSE;
+	streamOutputPSODesc.DepthStencilState.StencilEnable = FALSE;
+	streamOutputPSODesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+	streamOutputPSODesc.SampleMask = UINT_MAX;
+	streamOutputPSODesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+	streamOutputPSODesc.NumRenderTargets = 0;
+	streamOutputPSODesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+	streamOutputPSODesc.SampleDesc.Count = 1;
+	streamOutputPSODesc.SampleDesc.Quality = 0;
+	streamOutputPSODesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	ThrowIfFailed(device->CreateGraphicsPipelineState(&streamOutputPSODesc, IID_PPV_ARGS(&streamOutputPSO_)));
+}
+
+void RenderingSystem::CreateBakedPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
+{
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
+	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	psoDesc.InputLayout = { layout.data(), (UINT)layout.size() };
+	psoDesc.pRootSignature = opaqueRS_.Get();
+	psoDesc.VS = { reinterpret_cast<BYTE*>(bakedVS_->GetBufferPointer()), bakedVS_->GetBufferSize() };
+	psoDesc.PS = { reinterpret_cast<BYTE*>(opaquePS_->GetBufferPointer()), opaquePS_->GetBufferSize() };
+	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
+	//rastDesc.CullMode = D3D12_CULL_MODE_NONE;
+	rastDesc.FrontCounterClockwise = true;
+	psoDesc.RasterizerState = rastDesc;
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 2;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	psoDesc.RTVFormats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.SampleDesc.Quality = 0;
+	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&bakedPSO_)));
 }

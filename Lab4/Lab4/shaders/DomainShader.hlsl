@@ -1,6 +1,6 @@
 struct DS_OUTPUT
 {
-    float4 pos : SV_POSITION;
+    //float4 pos : SV_POSITION;
     float3 worldPos : WORLDPOS;
     float3 normal : NORMAL0;
     float3 normalW : NORMAL1;
@@ -115,7 +115,7 @@ DS_OUTPUT DS(
         worldPos += normalW * displacement;
     }
 
-    output.pos = mul(float4(worldPos, 1.0f), mViewProj);
+    //output.pos = mul(float4(worldPos, 1.0f), mViewProj);
 
     output.normal = normal;
     output.normalW = normalW;

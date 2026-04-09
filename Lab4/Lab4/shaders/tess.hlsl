@@ -66,7 +66,7 @@ struct VS_TESS_OUTPUT
 
 struct DS_OUTPUT
 {
-    float4 pos : SV_POSITION;
+    //float4 pos : SV_POSITION;
     float3 worldPos : WORLDPOS;
     float3 normal : NORMAL0;
     float3 normalW : NORMAL1;

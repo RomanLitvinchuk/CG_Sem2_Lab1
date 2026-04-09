@@ -35,6 +35,12 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> tessPS_ = nullptr;
 	ComPtr<ID3DBlob> tessVS_ = nullptr;
 
+	ComPtr<ID3D12RootSignature> streamOutputRS_ = nullptr;
+	ComPtr<ID3D12PipelineState> streamOutputPSO_ = nullptr;
+
+	ComPtr<ID3D12PipelineState> bakedPSO_ = nullptr;
+	ComPtr<ID3DBlob> bakedVS_ = nullptr;
+
 	GBuffer* g_buffer = nullptr;
 
 	std::vector<LightConstants> sceneLights_;
@@ -53,12 +59,20 @@ struct RenderingSystem {
 
 	void CreateTessPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
 
+	void CreateStreamOutputRS(ComPtr<ID3D12Device> device);
+	void CreateStreamOutputPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
+	void CreateBakedPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
+
 	void GenerateTreeLights(std::vector<LightConstants>& lightsArray, Vector3 treeBasePosition, float treeHeight, float treeBaseRadius, int count);
 
-	RenderingSystem(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout, int width, int height) {
+	RenderingSystem(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout, std::vector<D3D12_INPUT_ELEMENT_DESC>& bakedLayout, int width, int height) {
 		CreateOpaqueRS(device);
 		CompileShaders();
 		CreateOpaquePSO(device, layout);
+
+		CreateStreamOutputRS(device);
+		CreateStreamOutputPSO(device, layout);
+		CreateBakedPSO(device, bakedLayout);
 
 		CreateLightRS(device);
 		CreateLightPSO(device, layout);
@@ -76,7 +90,7 @@ struct RenderingSystem {
 		CreateBulbRS(device);
 		CreateBulbPSO(device, layout);
 
-		CreateTessPSO(device, layout);
+		//CreateTessPSO(device, layout);
 
 
 		D3D12_DESCRIPTOR_HEAP_DESC sampHeapDesc = {};
