@@ -1,11 +1,11 @@
 struct DS_OUTPUT
 {
     float4 pos : SV_POSITION;
+    float3 worldPos : WORLDPOS;
     float3 normal : NORMAL0;
     float3 normalW : NORMAL1;
     float2 uv : TEXCOORD0;
     float3 tangentW : TANGENT;
-    float3 worldPos : WORLDPOS;
 };
 
 struct HS_CONTROL_POINT_OUTPUT
@@ -14,7 +14,7 @@ struct HS_CONTROL_POINT_OUTPUT
     float4 Wpos : WORLDPOS;
     float3 normal : NORMAL0;
     float3 normalW : NORMAL1;
-    float2 uv : TEXCOORD;
+    float2 uv : TEXCOORD0;
     float3 tangentW : TANGENT;
 };
 
@@ -38,10 +38,7 @@ SamplerState Sampler : register(s0);
 
 cbuffer cbPerObject : register(b0)
 {
-    float4x4 mWorld;
-    float4x4 mInvTWorld;
     float4x4 mViewProj;
-    float4x4 mTexTransform;
     float gTime;
     float pad[3];
 }
@@ -80,10 +77,10 @@ DS_OUTPUT DS(
 {
     DS_OUTPUT output;
 
-    float3 pos =
-        bary.x * patch[0].pos.xyz +
-        bary.y * patch[1].pos.xyz +
-        bary.z * patch[2].pos.xyz;
+    float3 worldPos =
+        bary.x * patch[0].Wpos.xyz +
+        bary.y * patch[1].Wpos.xyz +
+        bary.z * patch[2].Wpos.xyz;
 
     float3 normalW =
         bary.x * patch[0].normalW +
@@ -108,7 +105,6 @@ DS_OUTPUT DS(
     normalW = normalize(normalW);
     tangentW = normalize(tangentW);
 
-    float3 worldPos = mul(float4(pos, 1.0f), mWorld).xyz;
     if (gHasDisplacementTexture == 1)
     {
         float displacement = DisplacementMap.SampleLevel(Sampler, uv, 0).r;

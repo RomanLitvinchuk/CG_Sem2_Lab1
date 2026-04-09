@@ -24,7 +24,7 @@ cbuffer cbMaterial : register(b1)
     int gIsLion;
     int gIsTree;
     int gDiffuseTextureIndex;
-    int normalTextureIndex;        
+    int normalTextureIndex;
     
     int gDisplacementTextureIndex;
     int gHasDisplacementTexture;
@@ -54,9 +54,9 @@ struct VS_INPUT
     float3 tangent : TANGENT;
 };
 
-struct VS_OUTPUT
+struct VS_TESS_OUTPUT
 {
-    float4 pos : SV_POSITION;
+    float4 pos : POSITION;
     float4 Wpos : WORLDPOS;
     float3 normal : NORMAL0;
     float3 normalW : NORMAL1;
@@ -64,6 +64,15 @@ struct VS_OUTPUT
     float3 tangentW : TANGENT;
 };
 
+struct DS_OUTPUT
+{
+    float4 pos : SV_POSITION;
+    float3 worldPos : WORLDPOS;
+    float3 normal : NORMAL0;
+    float3 normalW : NORMAL1;
+    float2 uv : TEXCOORD0;
+    float3 tangentW : TANGENT;
+};
 
 float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, float3 tangentW)
 {
@@ -80,37 +89,25 @@ float3 NormalSampleToWorldSpace(float3 normalMapSample, float3 unitNormalW, floa
     return bumpedNormalW;
 }
 
-
-VS_OUTPUT VS(VS_INPUT input, uint instanceID : SV_InstanceID)
+VS_TESS_OUTPUT TessVS(VS_INPUT input, uint instanceID : SV_InstanceID)
 {
-    VS_OUTPUT output;
+    VS_TESS_OUTPUT output;
     if (gIsLion == 1)
     {
         
         float offset = sin(gTime * 8.0f + input.pos.y * 0.7f) * 1.0f;
         input.pos += input.normal * offset;
     }
-    
     float4x4 mWorld = Instances[instanceID].mWorld;
+    float4x4 mInvTWorld = Instances[instanceID].mInvTWorld;
     float4x4 mTexTransform = Instances[instanceID].mTexTransform;
-    
-    
-    float3 localPos = input.pos;
-    float3 localNormal = input.normal;
-
+    output.Wpos = mul(float4(input.pos, 1.0f), mWorld);
+    output.pos = float4(input.pos, 1.0f);
+    output.normal = input.normal;
+    output.normalW = mul(input.normal, (float3x3) mInvTWorld);
+    output.tangentW = mul(input.tangent, (float3x3) mInvTWorld);
     float4 texC = mul(float4(input.uv, 0.0f, 1.0f), mTexTransform);
-    float2 finalUV = mul(texC, mMatTransform).xy;
-
-    float3 normalW = mul(localNormal, (float3x3) Instances[instanceID].mInvTWorld);
-    normalW = normalize(normalW);
-    
-    output.Wpos = mul(float4(localPos, 1.0f), mWorld);
-    output.pos = mul(output.Wpos, mViewProj);
-    
-    output.normal = localNormal;
-    output.normalW = normalW;
-    output.tangentW = mul(input.tangent, (float3x3)Instances[instanceID].mInvTWorld);
-    output.uv = finalUV;
+    output.uv = mul(texC, mMatTransform).xy;
     return output;
 }
 
@@ -120,7 +117,7 @@ struct gBufferOutput
     float4 Normal : SV_Target1;
 };
 
-gBufferOutput PS(VS_OUTPUT input)
+gBufferOutput TessPS(DS_OUTPUT input)
 {
     gBufferOutput ret;
     ret.Diffuse = DiffuseMap.Sample(Sampler, input.uv.xy);

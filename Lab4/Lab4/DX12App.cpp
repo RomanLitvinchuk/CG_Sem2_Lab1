@@ -309,7 +309,6 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	m_command_list_->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
-	//D3D12_CPU_DESCRIPTOR_HANDLE bb = GetBackBuffer();
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvs[] = {
 		renderSystem->g_buffer->DiffuseTex.rtvHandle, renderSystem->g_buffer->NormalTex.rtvHandle
 	};
@@ -341,6 +340,11 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	for (UINT idx : visibleIndices)
 	{
 		auto& sm = mSubmeshes[idx];
+		if (sm.name_.find("Sketchfab") != std::string::npos) 
+		{
+			m_command_list_->SetPipelineState(renderSystem->tessPSO_.Get());
+			m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_3_CONTROL_POINT_PATCHLIST);
+		}
 		UINT currentInstanceOffset = 0;
 		UINT matIndex = sm.materialIndex;
 		UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
@@ -387,6 +391,12 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 			currentInstanceOffset);
 
 		currentInstanceOffset += sm.InstanceCount;
+
+		if (sm.name_.find("SM_Chisel") != std::string::npos)
+		{
+			m_command_list_->SetPipelineState(renderSystem->opaquePSO_.Get());
+			m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		}
 	}
 
 }
@@ -675,19 +685,19 @@ void DX12App::InitRenderSystem() {
 
 
 void DX12App::Parsing() {
-	ParseFile("models/sponza.obj", Matrix::Identity);
+	ParseFile("models/sponza.obj", Matrix::Identity, 1);
 
 	Matrix Transform = Matrix::CreateScale(0.2f) * Matrix::CreateRotationX(-3.14 / 2) * Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
-	ParseFile("models/Christmas Tree Color mm.obj", Transform);
+	ParseFile("models/Christmas Tree Color mm.obj", Transform, 1);
 
 	Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(100.0f, 500.0f, 0.0f);
-	//ParseFile("models/Sketchfab.fbx", Transform);
+	ParseFile("models/Sketchfab.fbx", Transform, 1);
 
 	Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(400.0f, 200.0f, 0.0f);
-	ParseFile("models/TOPOR.obj", Transform);
+	ParseFile("models/TOPOR.obj", Transform, 1);
 
 	Transform = Matrix::CreateScale(100.0f) * Matrix::CreateRotationX(3.14 / 2) * Matrix::CreateTranslation(400.0f, 110.0f, -50.0f);
-	ParseFile("models/SM_Chisel.fbx", Transform);
+	ParseFile("models/SM_Chisel.fbx", Transform, 500);
 
 
 	meshVisibilityFences.assign(mSubmeshes.size(), 0);

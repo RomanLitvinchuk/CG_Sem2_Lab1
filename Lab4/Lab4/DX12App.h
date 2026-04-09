@@ -79,17 +79,15 @@ public:
 	void BuildBulbGeometry();
 	void InitRenderSystem();
 	void Parsing();
-	void ParseFile(const std::string& filename, const Matrix& transform);
-	void ParseNode(const std::string& filename, aiNode* node, const aiScene* scene, const Matrix& transform, int materialOffset, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
-	void ParseMesh(const std::string& filename, const aiScene* scene, aiMesh* mesh, const Matrix& transform, int materialOffset, std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices);
-	void ExtractMaterialData(const std::string& filename, int MaterialIndex, aiMaterial* material);
+	void ParseFile(const std::string& filename, const Matrix& transform, UINT instanceCount);
 
-	void SubdivideMeshCPU(
-		const std::vector<Vertex>& inVertices,
-		const std::vector<uint32_t>& inIndices,
-		std::vector<Vertex>& outVertices,
-		std::vector<uint32_t>& outIndices,
-		int tessFactor);
+	void ParseNode(const std::string& filename, aiNode* node, const aiScene* scene, const Matrix& transform, int materialOffset, 
+		std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices, UINT instanceCount);
+
+	void ParseMesh(const std::string& filename, const aiScene* scene, aiMesh* mesh, const Matrix& transform, int materialOffset, 
+		std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices, UINT instanceCount);
+
+	void ExtractMaterialData(const std::string& filename, int MaterialIndex, aiMaterial* material);
 
 	ComPtr<ID3D12Device> GetDevice() const { return m_device_; }
 	Camera& GetCamera() { return camera; }

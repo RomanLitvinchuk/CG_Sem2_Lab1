@@ -4,7 +4,7 @@ struct VS_CONTROL_POINT_OUTPUT
     float4 Wpos : WORLDPOS;
     float3 normal : NORMAL0;
     float3 normalW : NORMAL1;
-    float2 uv : TEXCOORD;
+    float2 uv : TEXCOORD0;
     float3 tangentW : TANGENT;
 };
 
@@ -14,7 +14,7 @@ struct HS_CONTROL_POINT_OUTPUT
     float4 Wpos : WORLDPOS;
     float3 normal : NORMAL0;
     float3 normalW : NORMAL1;
-    float2 uv : TEXCOORD;
+    float2 uv : TEXCOORD0;
     float3 tangentW : TANGENT;
 };
 
@@ -24,16 +24,16 @@ struct HS_CONSTANT_DATA_OUTPUT
 	float InsideTessFactor			: SV_InsideTessFactor;
 };
 
-cbuffer CameraBuffer : register(b2)
-{
-    float3 cameraPos;
-    float gMinTess;
+//cbuffer CameraBuffer : register(b2)
+//{
+    //float3 cameraPos;
+    //float gMinTess;
     
-    float gMaxTess;
-    float gMinDist;
-    float gMaxDist;
-    float pad;
-};
+    //float gMaxTess;
+    //float gMinDist;
+    //float gMaxDist;
+    //float pad;
+//};
 
 #define NUM_CONTROL_POINTS 3
 
@@ -43,10 +43,12 @@ HS_CONSTANT_DATA_OUTPUT CalcHSPatchConstants(
 {
 	HS_CONSTANT_DATA_OUTPUT Output;
     
-    float3 center = (ip[0].Wpos.xyz + ip[1].Wpos.xyz + ip[2].Wpos.xyz) / 3.0f;
-    float dist = distance(center, cameraPos);
-    float t = saturate((dist - gMinDist) / (gMaxDist - gMinDist));
-    float tess = lerp(gMaxTess, gMinTess, t);
+    //float3 center = (ip[0].Wpos.xyz + ip[1].Wpos.xyz + ip[2].Wpos.xyz) / 3.0f;
+    //float dist = distance(center, cameraPos);
+    //float t = saturate((dist - gMinDist) / (gMaxDist - gMinDist));
+    //float tess = lerp(gMaxTess, gMinTess, t);
+    
+    float tess = 3.0f;
     
     Output.EdgeTessFactor[0] = tess;
     Output.EdgeTessFactor[1] = tess;

@@ -118,10 +118,13 @@
     <FxCompile Include="shaders\light.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
-    <FxCompile Include="HullShader.hlsl">
+    <FxCompile Include="shaders\tess.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
-    <FxCompile Include="DomainShader.hlsl">
+    <FxCompile Include="shaders\HullShader.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\DomainShader.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
   </ItemGroup>
