@@ -136,12 +136,15 @@
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="d3dUtil.cpp" />
     <ClCompile Include="DDSTextureLoader.cpp" />
+    <ClCompile Include="deffered_rendering.cpp" />
     <ClCompile Include="DX12App.cpp" />
     <ClCompile Include="game_timer.cpp" />
     <ClCompile Include="g_buffer.cpp" />
     <ClCompile Include="octree.cpp" />
     <ClCompile Include="parse.cpp" />
     <ClCompile Include="rendering_system.cpp" />
+    <ClCompile Include="stream_output.cpp" />
+    <ClCompile Include="update.cpp" />
     <ClCompile Include="window_class.cpp" />
     <ClCompile Include="winmain.cpp" />
   </ItemGroup>
