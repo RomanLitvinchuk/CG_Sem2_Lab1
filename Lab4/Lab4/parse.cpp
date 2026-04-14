@@ -54,10 +54,9 @@ void DX12App::Parsing() {
 	ParseFile("models/SM_Chisel.fbx", Transform, 500);
 
 
-	meshVisibilityFences.assign(mSubmeshes.size(), 0);
 	visibleIndices.reserve(mSubmeshes.size());
 
-	octree.Build(mSubmeshes, 5, 10);
+	octree.Build(mSubmeshes);
 }
 
 

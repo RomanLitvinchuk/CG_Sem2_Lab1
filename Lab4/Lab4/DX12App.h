@@ -160,10 +160,8 @@ private:
 
 	POINT m_mouse_last_pos_;
 	Camera camera;
-	Octree octree;
+	BVH octree;
 
-	uint32_t currentFrameCounter = 0;
-	std::vector<uint32_t> meshVisibilityFences; 
 	std::vector<UINT> visibleIndices;
 
 

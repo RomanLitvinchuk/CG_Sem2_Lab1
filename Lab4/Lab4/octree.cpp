@@ -1,7 +1,7 @@
 #include "octree.h"
 #include <algorithm>
 
-void Octree::Build(const std::vector<Submesh>& submeshes, int maxDepth, int maxObjectsPerNode)
+void BVH::Build(const std::vector<Submesh>& submeshes)
 {
     if (submeshes.empty()) return;
 
@@ -10,7 +10,7 @@ void Octree::Build(const std::vector<Submesh>& submeshes, int maxDepth, int maxO
         BoundingBox::CreateMerged(sceneBounds, sceneBounds, submeshes[i].box);
     }
 
-    root = std::make_unique<OctreeNode>();
+    root = std::make_unique<BVHNode>();
     root->bounds = sceneBounds;
 
     std::vector<UINT> allIndices(submeshes.size());
@@ -18,158 +18,83 @@ void Octree::Build(const std::vector<Submesh>& submeshes, int maxDepth, int maxO
         allIndices[i] = i;
     }
 
-    BuildRecursive(root.get(), submeshes, allIndices, 0, maxDepth, maxObjectsPerNode);
+    BuildRecursive(root.get(), submeshes, allIndices);
 }
 
-void Octree::GetVisibleObjects(
+void BVH::GetVisibleObjects(
     const XMVECTOR planes[6],
-    const std::vector<Submesh>& submeshes,
-    std::vector<uint32_t>& visibilityFences,
-    uint32_t frameID,
     std::vector<UINT>& outVisibleIndices) const
 {
     outVisibleIndices.clear();
 
     if (root == nullptr) return;
 
-    GetVisibleObjectsRecursive(root.get(), planes, submeshes, visibilityFences, frameID, outVisibleIndices);
+    GetVisibleObjectsRecursive(root.get(), planes, outVisibleIndices);
 
 }
 
-void Octree::BuildRecursive(OctreeNode* node, const std::vector<Submesh>& submeshes, const std::vector<UINT>& currentIndices, int depth, int maxDepth, int maxObjects)
+void BVH::BuildRecursive(BVHNode* node, const std::vector<Submesh>& submeshes, std::vector<UINT>& indices)
 {
-    if (depth >= maxDepth || currentIndices.size() <= maxObjects)
-    {
+    BoundingBox actualBounds;
+    if (!indices.empty()) {
+        actualBounds = submeshes[indices[0]].box;
+        for (size_t i = 1; i < indices.size(); ++i) {
+            BoundingBox::CreateMerged(actualBounds, actualBounds, submeshes[indices[i]].box);
+        }
+    }
+    node->bounds = actualBounds;
+
+    if (indices.size() <= MAX_OBJECTS_PER_NODE) {
         node->isLeaf = true;
-        node->submeshIndices = currentIndices;
+        node->submeshIndices = std::move(indices);
         return;
     }
 
     node->isLeaf = false;
 
-    XMFLOAT3 parentCenter = node->bounds.Center;
-    XMFLOAT3 parentExtents = node->bounds.Extents;
+    XMFLOAT3 size = actualBounds.Extents;
+    int axis = 0;
+    if (size.y > size.x) axis = 1;
+    if (size.z > (axis == 0 ? size.x : size.y)) axis = 2;
 
-    XMFLOAT3 childExtents(parentExtents.x * 0.5f, parentExtents.y * 0.5f, parentExtents.z * 0.5f);
+    std::sort(indices.begin(), indices.end(), [&](UINT a, UINT b) {
+        float centerA, centerB;
+        if (axis == 0) { centerA = submeshes[a].box.Center.x; centerB = submeshes[b].box.Center.x; }
+        else if (axis == 1) { centerA = submeshes[a].box.Center.y; centerB = submeshes[b].box.Center.y; }
+        else { centerA = submeshes[a].box.Center.z; centerB = submeshes[b].box.Center.z; }
+        return centerA < centerB;
+        });
 
-    const float offsets[8][3] = {
-        {-1.0f, -1.0f, -1.0f}, { 1.0f, -1.0f, -1.0f},
-        {-1.0f,  1.0f, -1.0f}, { 1.0f,  1.0f, -1.0f},
-        {-1.0f, -1.0f,  1.0f}, { 1.0f, -1.0f,  1.0f},
-        {-1.0f,  1.0f,  1.0f}, { 1.0f,  1.0f,  1.0f}
-    };
+    size_t mid = indices.size() / 2;
+    std::vector<UINT> leftIndices(indices.begin(), indices.begin() + mid);
+    std::vector<UINT> rightIndices(indices.begin() + mid, indices.end());
 
-    for (int i = 0; i < 8; ++i)
-    {
-        node->children[i] = std::make_unique<OctreeNode>();
+    node->left = std::make_unique<BVHNode>();
+    node->right = std::make_unique<BVHNode>();
 
-        XMFLOAT3 childCenter(
-            parentCenter.x + offsets[i][0] * childExtents.x,
-            parentCenter.y + offsets[i][1] * childExtents.y,
-            parentCenter.z + offsets[i][2] * childExtents.z
-        );
-
-        node->children[i]->bounds = BoundingBox(childCenter, childExtents);
-    }
-
-    for (UINT idx : currentIndices)
-    {
-        const BoundingBox& objBox = submeshes[idx].box;
-
-        for (int i = 0; i < 8; ++i)
-        {
-            if (node->children[i]->bounds.Intersects(objBox))
-            {
-                node->children[i]->submeshIndices.push_back(idx);
-            }
-        }
-    }
-
-    for (int i = 0; i < 8; ++i)
-    {
-        BuildRecursive(node->children[i].get(), submeshes, node->children[i]->submeshIndices, depth + 1, maxDepth, maxObjects);
-    }
+    BuildRecursive(node->left.get(), submeshes, leftIndices);
+    BuildRecursive(node->right.get(), submeshes, rightIndices);
 }
 
-void Octree::GetVisibleObjectsRecursive(
-    const OctreeNode* node,
+void BVH::GetVisibleObjectsRecursive(
+    const BVHNode* node,
     const XMVECTOR planes[6],
-    const std::vector<Submesh>& submeshes,
-    std::vector<uint32_t>& visibilityFences,
-    uint32_t frameID,
     std::vector<UINT>& outVisibleIndices) const
 {
-    bool fullyInside = true;
-    bool isOutside = false;
-
-    for (int i = 0; i < 6; ++i)
-    {
-        PlaneIntersectionType type = node->bounds.Intersects(planes[i]);
-
-        if (type == PlaneIntersectionType::BACK)
-        {
-            isOutside = true;
-            break;
-        }
-        else if (type == PlaneIntersectionType::INTERSECTING)
-        {
-            fullyInside = false;
+    for (int i = 0; i < 6; ++i) {
+        if (node->bounds.Intersects(planes[i]) == PlaneIntersectionType::BACK) {
+            return;
         }
     }
 
-    if (isOutside) return;
-
-    if (fullyInside)
-    {
-        auto CollectAll = [&](auto& self, const OctreeNode* n) -> void {
-            if (n->isLeaf) {
-                for (UINT idx : n->submeshIndices) {
-                    if (visibilityFences[idx] != frameID) {
-                        outVisibleIndices.push_back(idx);
-                        visibilityFences[idx] = frameID;
-                    }
-                }
-            }
-            else {
-                for (int i = 0; i < 8; ++i) {
-                    self(self, n->children[i].get());
-                }
-            }
-            };
-        CollectAll(CollectAll, node);
-        return;
-    }
-
-    if (node->isLeaf)
-    {
-        for (UINT idx : node->submeshIndices)
-        {
-            if (visibilityFences[idx] == frameID) continue;
-
-            const BoundingBox& objBox = submeshes[idx].box;
-            bool objVisible = true;
-
-            for (int i = 0; i < 6; ++i)
-            {
-                if (objBox.Intersects(planes[i]) == PlaneIntersectionType::BACK) {
-                    objVisible = false;
-                    break;
-                }
-            }
-
-            if (objVisible)
-            {
-                outVisibleIndices.push_back(idx);
-                visibilityFences[idx] = frameID;
-            }
+    if (node->isLeaf) {
+        for (UINT idx : node->submeshIndices) {
+            outVisibleIndices.push_back(idx);
         }
     }
-    else
-    {
-        for (int i = 0; i < 8; ++i)
-        {
-            GetVisibleObjectsRecursive(node->children[i].get(), planes, submeshes, visibilityFences, frameID, outVisibleIndices);
-        }
+    else {
+        if (node->left) GetVisibleObjectsRecursive(node->left.get(), planes, outVisibleIndices);
+        if (node->right) GetVisibleObjectsRecursive(node->right.get(), planes, outVisibleIndices);
     }
 }
 

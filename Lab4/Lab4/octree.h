@@ -7,31 +7,26 @@
 
 using namespace DirectX;
 
-struct OctreeNode {
+struct BVHNode {
     BoundingBox bounds;
     std::vector<UINT> submeshIndices;
-    std::unique_ptr<OctreeNode> children[8];
+    std::unique_ptr<BVHNode> left;
+    std::unique_ptr<BVHNode> right;
     bool isLeaf = true;
 };
 
-class Octree {
+class BVH {
 public:
-    void Build(const std::vector<Submesh>& submeshes, int maxDepth, int maxObjectsPerNode);
+    void Build(const std::vector<Submesh>& submeshes);
     void GetVisibleObjects(const XMVECTOR planes[6],
-        const std::vector<Submesh>& submeshes,
-        std::vector<uint32_t>& visibilityFences,
-        uint32_t frameID,
         std::vector<UINT>& outVisibleIndices) const;
 
 private:
-    std::unique_ptr<OctreeNode> root;
-
-    void BuildRecursive(OctreeNode* node, const std::vector<Submesh>& submeshes, const std::vector<UINT>& currentIndices, int depth, int maxDepth, int maxObjects);
-    void GetVisibleObjectsRecursive(const OctreeNode* node,
+    std::unique_ptr<BVHNode> root;
+    UINT MAX_OBJECTS_PER_NODE = 10;
+    void BuildRecursive(BVHNode* node, const std::vector<Submesh>& submeshes, std::vector<UINT>& indices);
+    void GetVisibleObjectsRecursive(const BVHNode* node,
         const XMVECTOR planes[6],
-        const std::vector<Submesh>& submeshes,
-        std::vector<uint32_t>& visibilityFences,
-        uint32_t frameID,
         std::vector<UINT>& outVisibleIndices) const;
 };
 

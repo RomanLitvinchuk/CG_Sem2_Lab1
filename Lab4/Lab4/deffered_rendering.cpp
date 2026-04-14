@@ -8,12 +8,11 @@ void DX12App::InitRenderSystem() {
 }
 
 void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
-	currentFrameCounter++;
 	visibleIndices.clear();
 
 	if (camera.isFrustumCullingEnabled)
 	{
-		octree.GetVisibleObjects(camera.planes, mSubmeshes, meshVisibilityFences, currentFrameCounter, visibleIndices);
+		octree.GetVisibleObjects(camera.planes, visibleIndices);
 	}
 	else
 	{
