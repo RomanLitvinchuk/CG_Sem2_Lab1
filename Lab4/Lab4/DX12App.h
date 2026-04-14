@@ -58,6 +58,7 @@ public:
 	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawToStreamOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
+	void DrawWireframe(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 
 	void FlushCommandQueue();
 
@@ -75,11 +76,11 @@ public:
 	void CreateStructuredBuffersSRV();
 
 	void CompileShaders();
-	void BuildLayout();
 
 	void CreateSOBuffers();
 
 	void BuildBulbGeometry();
+	void BuildBoxGeometry();
 	void InitRenderSystem();
 	void Parsing();
 	void ParseFile(const std::string& filename, const Matrix& transform, UINT instanceCount);
@@ -151,12 +152,10 @@ private:
 	std::unique_ptr<UploadBuffer<LightConstants>> LightBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<CameraConstants>> CameraCB = nullptr;
 	std::unique_ptr<UploadBuffer<HullBuffer>> HullCB = nullptr;
-	std::unique_ptr<UploadBuffer<InstanceData>> InstanceBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<MeshInstanceData>> InstanceBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<WireframeInstanceData>> WireframeInstanceBuffer = nullptr;
 
-	std::vector<InstanceData> instances;
-
-	std::vector<D3D12_INPUT_ELEMENT_DESC> m_input_layout_;
-	std::vector<D3D12_INPUT_ELEMENT_DESC> bakedLayout_;
+	std::vector<MeshInstanceData> instances;
 
 	POINT m_mouse_last_pos_;
 	Camera camera;
@@ -185,6 +184,11 @@ private:
 	D3D12_VERTEX_BUFFER_VIEW mSphereVbv;
 	D3D12_INDEX_BUFFER_VIEW mSphereIbv;
 	UINT mSphereIndexCount = 0;
+
+	ComPtr<ID3D12Resource> wireframeVB = nullptr;
+	ComPtr<ID3D12Resource> wireframeIB = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW wireframeVBV;
+	D3D12_INDEX_BUFFER_VIEW wireframeIBV;
 
 	ComPtr<ID3D12Resource> SOBuffer_ = nullptr;
 	ComPtr<ID3D12Resource> filledSizeBuffer_ = nullptr;

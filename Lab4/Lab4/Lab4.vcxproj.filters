@@ -60,6 +60,15 @@
     <ClCompile Include="update.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="layouts.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="box.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
+    <ClCompile Include="wireframe.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="window_class.h">
@@ -113,6 +122,9 @@
     <ClInclude Include="octree.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
+    <ClInclude Include="instances.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />
@@ -137,6 +149,9 @@
       <Filter>Исходные файлы</Filter>
     </FxCompile>
     <FxCompile Include="shaders\baked.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\wireframe.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
   </ItemGroup>

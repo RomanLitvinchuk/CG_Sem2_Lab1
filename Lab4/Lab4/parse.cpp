@@ -166,7 +166,7 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 	float spacing = 4.0f;
 
 	for (int i = 0; i < submesh.InstanceCount; i++) {
-		InstanceData instance;
+		MeshInstanceData instance;
 
 		if (submesh.InstanceCount > 1) {
 			int gridX = i % gridSize;

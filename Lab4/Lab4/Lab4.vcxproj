@@ -132,6 +132,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="box.cpp" />
     <ClCompile Include="bulb.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="d3dUtil.cpp" />
@@ -140,6 +141,7 @@
     <ClCompile Include="DX12App.cpp" />
     <ClCompile Include="game_timer.cpp" />
     <ClCompile Include="g_buffer.cpp" />
+    <ClCompile Include="layouts.cpp" />
     <ClCompile Include="octree.cpp" />
     <ClCompile Include="parse.cpp" />
     <ClCompile Include="rendering_system.cpp" />
@@ -147,6 +149,7 @@
     <ClCompile Include="update.cpp" />
     <ClCompile Include="window_class.cpp" />
     <ClCompile Include="winmain.cpp" />
+    <ClCompile Include="wireframe.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="camera.h" />
@@ -155,6 +158,7 @@
     <ClInclude Include="DX12App.h" />
     <ClInclude Include="game_timer.h" />
     <ClInclude Include="g_buffer.h" />
+    <ClInclude Include="instances.h" />
     <ClInclude Include="light.h" />
     <ClInclude Include="materials.h" />
     <ClInclude Include="object_constants.h" />
@@ -190,6 +194,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="shaders\tess.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="shaders\wireframe.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
   </ItemGroup>

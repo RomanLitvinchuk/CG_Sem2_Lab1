@@ -5,8 +5,6 @@
 #include <fstream>
 #include <sstream>
 
-
-
 using namespace DirectX;
 using namespace SimpleMath;
 

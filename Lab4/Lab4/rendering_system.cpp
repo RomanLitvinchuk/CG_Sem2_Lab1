@@ -78,6 +78,9 @@ void RenderingSystem::CompileShaders() {
 	tessPS_ = d3dUtil::CompileShader(L"shaders/tess.hlsl", nullptr, "TessPS", "ps_5_0");
 
 	bakedVS_ = d3dUtil::CompileShader(L"shaders/baked.hlsl", nullptr, "BakedVS", "vs_5_0");
+
+	wireframeVS_ = d3dUtil::CompileShader(L"shaders/wireframe.hlsl", nullptr, "VS", "vs_5_0");
+	wireframePS_ = d3dUtil::CompileShader(L"shaders/wireframe.hlsl", nullptr, "PS", "ps_5_0");
 }
 
 void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
@@ -400,4 +403,50 @@ void RenderingSystem::CreateBakedPSO(ComPtr<ID3D12Device> device, std::vector<D3
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&bakedPSO_)));
+}
+
+void RenderingSystem::CreateWireframeRS(ComPtr<ID3D12Device> device)
+{
+	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
+	slotRootParameter[0].InitAsConstantBufferView(0);
+	slotRootParameter[1].InitAsShaderResourceView(0);
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootDesc(2, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	ComPtr<ID3DBlob> errorBlob;
+	ComPtr<ID3DBlob> serializedRootDesc;
+
+	ThrowIfFailed(D3D12SerializeRootSignature(&rootDesc, D3D_ROOT_SIGNATURE_VERSION_1, serializedRootDesc.GetAddressOf(), errorBlob.GetAddressOf()));
+
+	if (errorBlob != nullptr) {
+		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+	}
+	
+	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&wireframeRS_)));
+}
+
+void RenderingSystem::CreateWireframePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
+{
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
+	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	psoDesc.InputLayout = { layout.data(), (UINT)layout.size() };
+	psoDesc.pRootSignature = wireframeRS_.Get();
+	psoDesc.VS = { reinterpret_cast<BYTE*>(wireframeVS_->GetBufferPointer()), wireframeVS_->GetBufferSize() };
+	psoDesc.PS = { reinterpret_cast<BYTE*>(wireframePS_->GetBufferPointer()), wireframePS_->GetBufferSize() };
+	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
+	rastDesc.FrontCounterClockwise = true;
+	psoDesc.RasterizerState = rastDesc;
+	psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+	psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+	psoDesc.NumRenderTargets = 2;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	psoDesc.RTVFormats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.SampleDesc.Quality = 0;
+	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&wireframePSO_)));
 }

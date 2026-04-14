@@ -14,5 +14,4 @@ struct ObjectConstants {
 };
 
 
-
 #endif //OBJECT_CONSTANTS_

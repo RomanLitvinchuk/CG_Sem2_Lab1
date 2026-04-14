@@ -41,10 +41,21 @@ struct RenderingSystem {
 	ComPtr<ID3D12PipelineState> bakedPSO_ = nullptr;
 	ComPtr<ID3DBlob> bakedVS_ = nullptr;
 
+	ComPtr<ID3D12RootSignature> wireframeRS_;
+	ComPtr<ID3D12PipelineState> wireframePSO_;
+	ComPtr<ID3DBlob> wireframeVS_ = nullptr;
+	ComPtr<ID3DBlob> wireframePS_ = nullptr;
+
 	GBuffer* g_buffer = nullptr;
 
 	std::vector<LightConstants> sceneLights_;
 	ComPtr<ID3D12DescriptorHeap> samplerHeap = nullptr;
+
+	std::vector<D3D12_INPUT_ELEMENT_DESC> inputLayout_;
+	std::vector<D3D12_INPUT_ELEMENT_DESC> bakedLayout_;
+	std::vector<D3D12_INPUT_ELEMENT_DESC> wireframeLayout_;
+
+	void BuildLayouts();
 
 	void CreateOpaqueRS(ComPtr<ID3D12Device> device);
 	void CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
@@ -63,19 +74,26 @@ struct RenderingSystem {
 	void CreateStreamOutputPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
 	void CreateBakedPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
 
+	void CreateWireframeRS(ComPtr<ID3D12Device> device);
+	void CreateWireframePSO(ComPtr <ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
+
 	void GenerateTreeLights(std::vector<LightConstants>& lightsArray, Vector3 treeBasePosition, float treeHeight, float treeBaseRadius, int count);
 
-	RenderingSystem(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout, std::vector<D3D12_INPUT_ELEMENT_DESC>& bakedLayout, int width, int height) {
+	RenderingSystem(ComPtr<ID3D12Device> device, int width, int height) {
+		BuildLayouts();
 		CreateOpaqueRS(device);
 		CompileShaders();
-		CreateOpaquePSO(device, layout);
+		CreateOpaquePSO(device, inputLayout_);
 
 		CreateStreamOutputRS(device);
-		CreateStreamOutputPSO(device, layout);
-		CreateBakedPSO(device, bakedLayout);
+		CreateStreamOutputPSO(device, inputLayout_);
+		CreateBakedPSO(device, bakedLayout_);
 
 		CreateLightRS(device);
-		CreateLightPSO(device, layout);
+		CreateLightPSO(device, inputLayout_);
+
+		CreateWireframeRS(device);
+		CreateWireframePSO(device, wireframeLayout_);
 
 		g_buffer = new GBuffer(width, height, device);
 
@@ -88,7 +106,7 @@ struct RenderingSystem {
 		GenerateTreeLights(sceneLights_, { 10.0f, 0.0f, -60.0f }, 350.0f, 100.0f, 500);
 
 		CreateBulbRS(device);
-		CreateBulbPSO(device, layout);
+		CreateBulbPSO(device, inputLayout_);
 
 		//CreateTessPSO(device, layout);
 

@@ -13,7 +13,6 @@ inline void ThrowIfFailed(HRESULT hr, const char* file, int line, const char* fu
         std::stringstream ss;
         ss << "Error at " << file << " (" << line << ") in " << function << ": ";
 
-        // Получаем текст ошибки
         _com_error err(hr);
         ss << "HRESULT: 0x" << std::hex << hr << std::dec << " - " << err.ErrorMessage();
 

@@ -19,15 +19,19 @@ class BVH {
 public:
     void Build(const std::vector<Submesh>& submeshes);
     void GetVisibleObjects(const XMVECTOR planes[6],
+        const std::vector<Submesh>& submeshes,
         std::vector<UINT>& outVisibleIndices) const;
+    void GetAllNodes(std::vector<BVHNode*>& outNodes);
 
 private:
     std::unique_ptr<BVHNode> root;
-    UINT MAX_OBJECTS_PER_NODE = 10;
+    UINT MAX_OBJECTS_PER_NODE = 5;
     void BuildRecursive(BVHNode* node, const std::vector<Submesh>& submeshes, std::vector<UINT>& indices);
     void GetVisibleObjectsRecursive(const BVHNode* node,
         const XMVECTOR planes[6],
+        const std::vector<Submesh>& submeshes,
         std::vector<UINT>& outVisibleIndices) const;
+    void CollectAllNodesRecursive(BVHNode* node, std::vector<BVHNode*>& outNodes);
 };
 
 #endif //OCTREE_H_

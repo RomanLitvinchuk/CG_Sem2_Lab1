@@ -312,8 +312,9 @@ void DX12App::InitUploadBuffers() {
 	MaterialCB = std::make_unique<UploadBuffer<MaterialConstants>>(m_device_.Get(), 300, true);
 	CameraCB = std::make_unique<UploadBuffer<CameraConstants>>(m_device_.Get(), 1, true);
 	LightBuffer = std::make_unique<UploadBuffer<LightConstants>>(m_device_.Get(), 1000, false);
-	InstanceBuffer = std::make_unique<UploadBuffer<InstanceData>>(m_device_.Get(), 1000, false);
+	InstanceBuffer = std::make_unique<UploadBuffer<MeshInstanceData>>(m_device_.Get(), 1000, false);
 	HullCB = std::make_unique<UploadBuffer<HullBuffer>>(m_device_.Get(), 1, true);
+	WireframeInstanceBuffer = std::make_unique<UploadBuffer<WireframeInstanceData>>(m_device_.Get(), 1000, false);
 }
 
 void DX12App::CreateConstantBufferView() {
@@ -326,25 +327,6 @@ void DX12App::CreateConstantBufferView() {
 	cbDesc.SizeInBytes = cbByteSize;
 	m_device_->CreateConstantBufferView(&cbDesc, m_CBV_SRV_heap_->GetCPUDescriptorHandleForHeapStart());
 	std::cout << "Constant buffer view is created" << std::endl;
-}
-
-void DX12App::BuildLayout() {
-	m_input_layout_ =
-	{
-		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{"TANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 32, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0},
-		{"BITANGENT", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0}
-	};
-	
-	bakedLayout_ = {
-		{ "WORLDPOS", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0,  D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 12, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "NORMAL",   1, DXGI_FORMAT_R32G32B32_FLOAT, 0, 24, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, 36, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 },
-		{ "TANGENT",  0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 44, D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA, 0 }
-	};
 }
 
 void DX12App::OnResize() {

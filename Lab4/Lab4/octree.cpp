@@ -23,14 +23,30 @@ void BVH::Build(const std::vector<Submesh>& submeshes)
 
 void BVH::GetVisibleObjects(
     const XMVECTOR planes[6],
+    const std::vector<Submesh>& submeshes,
     std::vector<UINT>& outVisibleIndices) const
 {
     outVisibleIndices.clear();
-
     if (root == nullptr) return;
+    GetVisibleObjectsRecursive(root.get(), planes, submeshes, outVisibleIndices);
+}
 
-    GetVisibleObjectsRecursive(root.get(), planes, outVisibleIndices);
+void BVH::GetAllNodes(std::vector<BVHNode*>& outNodes)
+{
+    outNodes.clear();
+    if (root != nullptr) {
+        CollectAllNodesRecursive(root.get(), outNodes);
+    }
+}
 
+void BVH::CollectAllNodesRecursive(BVHNode* node, std::vector<BVHNode*>& outNodes) {
+    if (node == nullptr) return;
+
+    outNodes.push_back(node);
+    if (!node->isLeaf) {
+        CollectAllNodesRecursive(node->left.get(), outNodes);
+        CollectAllNodesRecursive(node->right.get(), outNodes); 
+    }
 }
 
 void BVH::BuildRecursive(BVHNode* node, const std::vector<Submesh>& submeshes, std::vector<UINT>& indices)
@@ -79,22 +95,58 @@ void BVH::BuildRecursive(BVHNode* node, const std::vector<Submesh>& submeshes, s
 void BVH::GetVisibleObjectsRecursive(
     const BVHNode* node,
     const XMVECTOR planes[6],
+    const std::vector<Submesh>& submeshes,
     std::vector<UINT>& outVisibleIndices) const
 {
+    bool fullyInside = true;
+
     for (int i = 0; i < 6; ++i) {
-        if (node->bounds.Intersects(planes[i]) == PlaneIntersectionType::BACK) {
+        PlaneIntersectionType type = node->bounds.Intersects(planes[i]);
+        if (type == PlaneIntersectionType::BACK) {
             return;
         }
+        if (type == PlaneIntersectionType::INTERSECTING) {
+            fullyInside = false;
+        }
+    }
+
+    if (fullyInside) {
+        auto CollectAll = [&](auto& self, const BVHNode* n) -> void {
+            if (n->isLeaf) {
+                for (UINT idx : n->submeshIndices) {
+                    outVisibleIndices.push_back(idx);
+                }
+            }
+            else {
+                if (n->left) self(self, n->left.get());
+                if (n->right) self(self, n->right.get());
+            }
+            };
+        CollectAll(CollectAll, node);
+        return;
     }
 
     if (node->isLeaf) {
         for (UINT idx : node->submeshIndices) {
-            outVisibleIndices.push_back(idx);
+            const BoundingBox& objBox = submeshes[idx].box;
+            bool objVisible = true;
+
+            for (int i = 0; i < 6; ++i) {
+                if (objBox.Intersects(planes[i]) == PlaneIntersectionType::BACK) {
+                    objVisible = false;
+                    break;
+                }
+            }
+
+            if (objVisible) {
+                outVisibleIndices.push_back(idx);
+            }
         }
     }
+
     else {
-        if (node->left) GetVisibleObjectsRecursive(node->left.get(), planes, outVisibleIndices);
-        if (node->right) GetVisibleObjectsRecursive(node->right.get(), planes, outVisibleIndices);
+        if (node->left) GetVisibleObjectsRecursive(node->left.get(), planes, submeshes, outVisibleIndices);
+        if (node->right) GetVisibleObjectsRecursive(node->right.get(), planes, submeshes, outVisibleIndices);
     }
 }
 

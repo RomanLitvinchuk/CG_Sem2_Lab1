@@ -5,15 +5,9 @@
 #include <DirectXCollision.h>
 #include <SimpleMath.h>
 #include <string>
-
+#include "instances.h"
 using namespace DirectX;
 using namespace SimpleMath;
-
-struct InstanceData {
-    Matrix World_;
-    Matrix TexTransform_;
-    Matrix InvTWorld_;
-};
 
 struct Submesh
 {
@@ -26,7 +20,7 @@ struct Submesh
     UINT InstanceCount = 1;
     Matrix mWorld;
     Matrix mTexTransform = Matrix::Identity;
-    std::vector<InstanceData> instances;
+    std::vector<MeshInstanceData> instances;
     UINT SOVertexCount;
 };
 

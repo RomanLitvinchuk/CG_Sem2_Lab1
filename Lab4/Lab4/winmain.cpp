@@ -176,11 +176,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     MyFramework.CreateSamplerHeap();
 	MyFramework.SetViewport();
 	MyFramework.SetScissor();
-	MyFramework.BuildLayout();
 	MyFramework.InitProjectionMatrix();
     MyFramework.Parsing();
     MyFramework.CreateSOBuffers();
     MyFramework.BuildBulbGeometry();
+    MyFramework.BuildBoxGeometry();
 	MyFramework.CreateVertexBuffer();
 	MyFramework.CreateIndexBuffer();
 	MyFramework.InitUploadBuffers();

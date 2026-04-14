@@ -2,7 +2,7 @@
 #include <numeric>
 
 void DX12App::InitRenderSystem() {
-	renderSystem = new RenderingSystem(m_device_, m_input_layout_, bakedLayout_, m_client_width_, m_client_height_);
+	renderSystem = new RenderingSystem(m_device_, m_client_width_, m_client_height_);
 
 	CreateStructuredBuffersSRV();
 }
@@ -12,7 +12,7 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	if (camera.isFrustumCullingEnabled)
 	{
-		octree.GetVisibleObjects(camera.planes, visibleIndices);
+		octree.GetVisibleObjects(camera.planes, mSubmeshes, visibleIndices);
 	}
 	else
 	{
@@ -195,6 +195,7 @@ void DX12App::Draw()
 	m_command_list_->IASetIndexBuffer(&mSphereIbv);
 
 	m_command_list_->DrawIndexedInstanced(mSphereIndexCount, 500, 0, 0, 0);*/
+	DrawWireframe(m_command_list_);
 	CD3DX12_RESOURCE_BARRIER barrierBack = CD3DX12_RESOURCE_BARRIER::Transition(
 		CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,
