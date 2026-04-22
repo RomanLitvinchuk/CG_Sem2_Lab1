@@ -13,5 +13,10 @@ struct ObjectConstants {
 	float pad[3];
 };
 
+struct Matrices {
+	Matrix View;
+	Matrix Proj;
+};
+
 
 #endif //OBJECT_CONSTANTS_

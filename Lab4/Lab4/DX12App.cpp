@@ -309,12 +309,21 @@ void DX12App::InitUploadBuffers() {
 		1,
 		true
 	);
+	MatricesBuffer = std::make_unique<UploadBuffer<Matrices>>(m_device_.Get(), 1, true);
 	MaterialCB = std::make_unique<UploadBuffer<MaterialConstants>>(m_device_.Get(), 300, true);
 	CameraCB = std::make_unique<UploadBuffer<CameraConstants>>(m_device_.Get(), 1, true);
 	LightBuffer = std::make_unique<UploadBuffer<LightConstants>>(m_device_.Get(), 1000, false);
 	InstanceBuffer = std::make_unique<UploadBuffer<MeshInstanceData>>(m_device_.Get(), 1000, false);
 	HullCB = std::make_unique<UploadBuffer<HullBuffer>>(m_device_.Get(), 1, true);
-	WireframeInstanceBuffer = std::make_unique<UploadBuffer<WireframeInstanceData>>(m_device_.Get(), 1000, false);
+	WireframeInstanceBuffer = std::make_unique<UploadBuffer<WireframeInstanceData>>(m_device_.Get(), 1000, false); 
+
+	ParticleBuffer = std::make_unique<UploadBuffer<Particle>>(m_device_.Get(), 100000, false);
+	for (int i = 0; i < PARTICLE_COUNT; i++) {
+		Particle newParticle;
+		newParticle.Position = Vector4(10.0f, 10.0f, 10.0f, 1.0f);
+		newParticle.Velocity = Vector4(10.0f, 10.0f, 10.0f, 0.0f);
+		ParticleBuffer->CopyData(i, newParticle);
+	}
 }
 
 void DX12App::CreateConstantBufferView() {

@@ -144,6 +144,7 @@
     <ClCompile Include="layouts.cpp" />
     <ClCompile Include="octree.cpp" />
     <ClCompile Include="parse.cpp" />
+    <ClCompile Include="particles_rendering.cpp" />
     <ClCompile Include="rendering_system.cpp" />
     <ClCompile Include="stream_output.cpp" />
     <ClCompile Include="update.cpp" />
@@ -163,6 +164,7 @@
     <ClInclude Include="materials.h" />
     <ClInclude Include="object_constants.h" />
     <ClInclude Include="octree.h" />
+    <ClInclude Include="particle.h" />
     <ClInclude Include="rendering_system.h" />
     <ClInclude Include="submesh.h" />
     <ClInclude Include="texture.h" />
@@ -191,6 +193,12 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="shaders\opaque.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="shaders\particleGS.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="shaders\particles.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="shaders\tess.hlsl">

@@ -27,6 +27,7 @@
 #include "camera.h"
 #include <DirectXCollision.h>
 #include "octree.h"
+#include "particle.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -59,6 +60,7 @@ public:
 	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawToStreamOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawWireframe(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
+	void DrawParticles(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 
 	void FlushCommandQueue();
 
@@ -148,12 +150,16 @@ private:
 	D3D12_INDEX_BUFFER_VIEW ibv;
 
 	std::unique_ptr<UploadBuffer<ObjectConstants>> CBUploadBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<Matrices>> MatricesBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialCB = nullptr;
 	std::unique_ptr<UploadBuffer<LightConstants>> LightBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<CameraConstants>> CameraCB = nullptr;
 	std::unique_ptr<UploadBuffer<HullBuffer>> HullCB = nullptr;
 	std::unique_ptr<UploadBuffer<MeshInstanceData>> InstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<WireframeInstanceData>> WireframeInstanceBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<Particle>> ParticleBuffer = nullptr;
+	UINT PARTICLE_COUNT = 1000;
+
 
 	std::vector<MeshInstanceData> instances;
 

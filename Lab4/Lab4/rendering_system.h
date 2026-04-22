@@ -46,6 +46,12 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> wireframeVS_ = nullptr;
 	ComPtr<ID3DBlob> wireframePS_ = nullptr;
 
+	ComPtr<ID3D12RootSignature> particleRS_ = nullptr;
+	ComPtr<ID3D12PipelineState> particlePSO_ = nullptr;
+	ComPtr<ID3DBlob> particleVS_ = nullptr;
+	ComPtr<ID3DBlob> particleGS_ = nullptr;
+	ComPtr<ID3DBlob> particlePS_ = nullptr;
+
 	GBuffer* g_buffer = nullptr;
 
 	std::vector<LightConstants> sceneLights_;
@@ -56,11 +62,10 @@ struct RenderingSystem {
 	std::vector<D3D12_INPUT_ELEMENT_DESC> wireframeLayout_;
 
 	void BuildLayouts();
+	void CompileShaders();
 
 	void CreateOpaqueRS(ComPtr<ID3D12Device> device);
 	void CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
-
-	void CompileShaders();
 
 	void CreateLightRS(ComPtr<ID3D12Device> device);
 	void CreateLightPSO(ComPtr<ID3D12Device>, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
@@ -76,6 +81,9 @@ struct RenderingSystem {
 
 	void CreateWireframeRS(ComPtr<ID3D12Device> device);
 	void CreateWireframePSO(ComPtr <ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
+
+	void CreateParticleRS(ComPtr<ID3D12Device> device);
+	void CreateParticlePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
 
 	void GenerateTreeLights(std::vector<LightConstants>& lightsArray, Vector3 treeBasePosition, float treeHeight, float treeBaseRadius, int count);
 
@@ -94,6 +102,9 @@ struct RenderingSystem {
 
 		CreateWireframeRS(device);
 		CreateWireframePSO(device, wireframeLayout_);
+
+		CreateParticleRS(device);
+		CreateParticlePSO(device, wireframeLayout_);
 
 		g_buffer = new GBuffer(width, height, device);
 

@@ -61,7 +61,6 @@ void DX12App::DrawToStreamOutput(ComPtr<ID3D12GraphicsCommandList> m_command_lis
 			break;
 		}
 	}
-
 	UINT matIndex = SOMesh.materialIndex;
 	UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
 	D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress() + matIndex * matSize;

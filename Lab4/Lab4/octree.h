@@ -25,7 +25,7 @@ public:
 
 private:
     std::unique_ptr<BVHNode> root;
-    UINT MAX_OBJECTS_PER_NODE = 5;
+    UINT MAX_OBJECTS_PER_NODE = 16;
     void BuildRecursive(BVHNode* node, const std::vector<Submesh>& submeshes, std::vector<UINT>& indices);
     void GetVisibleObjectsRecursive(const BVHNode* node,
         const XMVECTOR planes[6],
