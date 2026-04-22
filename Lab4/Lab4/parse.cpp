@@ -44,8 +44,8 @@ void DX12App::Parsing() {
 	/*Matrix Transform = Matrix::CreateScale(0.2f) * Matrix::CreateRotationX(-3.14 / 2) * Matrix::CreateTranslation(0.0f, 0.0f, 0.0f);
 	ParseFile("models/Christmas Tree Color mm.obj", Transform, 1);*/
 
-	Matrix Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(100.0f, 500.0f, 0.0f);
-	ParseFile("models/Sketchfab.fbx", Transform, 1);
+	/*Matrix Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(100.0f, 500.0f, 0.0f);
+	ParseFile("models/Sketchfab.fbx", Transform, 1);*/
 
 	/*Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(400.0f, 200.0f, 0.0f);
 	ParseFile("models/TOPOR.obj", Transform, 1);

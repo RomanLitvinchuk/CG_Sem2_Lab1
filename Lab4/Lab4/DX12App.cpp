@@ -317,12 +317,22 @@ void DX12App::InitUploadBuffers() {
 	HullCB = std::make_unique<UploadBuffer<HullBuffer>>(m_device_.Get(), 1, true);
 	WireframeInstanceBuffer = std::make_unique<UploadBuffer<WireframeInstanceData>>(m_device_.Get(), 1000, false); 
 
-	ParticleBuffer = std::make_unique<UploadBuffer<Particle>>(m_device_.Get(), 100000, false);
-	for (int i = 0; i < PARTICLE_COUNT; i++) {
-		Particle newParticle;
-		newParticle.Position = Vector4(10.0f, 10.0f, 10.0f, 1.0f);
-		newParticle.Velocity = Vector4(10.0f, 10.0f, 10.0f, 0.0f);
-		ParticleBuffer->CopyData(i, newParticle);
+	ParticleBuffer = std::make_unique<UploadBuffer<Particle>>(m_device_.Get(), PARTICLE_COUNT, false);
+	particles.resize(PARTICLE_COUNT);
+	const float sceneScale = 100.0f; 
+
+	for (int i = 0; i < PARTICLE_COUNT; ++i) {
+		particles[i].Position = Vector4(
+			((float)rand() / RAND_MAX * 2.0f - 4.0f) * sceneScale,
+			((float)rand() / RAND_MAX * 2.0f) * 100.0f,           
+			((float)rand() / RAND_MAX * 2.0f - 2.0f) * sceneScale,
+			1.0f
+		);
+		particles[i].Velocity = Vector4(0, (float)rand() / RAND_MAX * 2.0f + 0.5f, 0, 0);
+	}
+
+	for (int i = 0; i < PARTICLE_COUNT; ++i) {
+		ParticleBuffer->CopyData(i, particles[i]);
 	}
 }
 

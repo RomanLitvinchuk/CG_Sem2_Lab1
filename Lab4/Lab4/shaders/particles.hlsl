@@ -1,8 +1,8 @@
 
 cbuffer Matrices : register(b0)
 {
-    row_major float4x4 View;
-    row_major float4x4 Proj;
+    float4x4 View;
+    float4x4 Proj;
 }
 
 struct ParticleData
@@ -13,14 +13,10 @@ struct ParticleData
 
 StructuredBuffer<ParticleData> Particles : register(t0);
 
-struct VertexInput
-{
-    uint vertexID : SV_VertexID;
-};
-
 struct PixelInput
 {
     float4 position : SV_Position;
+    float2 uv : TEXCOORD0;
 };
 
 struct PixelOutput
@@ -28,13 +24,14 @@ struct PixelOutput
     float4 Color : SV_Target0;
 };
 
-PixelInput VS(VertexInput vertex)
+PixelInput VS(uint instanceID : SV_InstanceID)
 {
     PixelInput output;
-    ParticleData particle = Particles[vertex.vertexID];
+    ParticleData particle = Particles[instanceID];
     float4 worldPos = particle.Position;
     float4 viewPos = mul(worldPos, View);
-    output.position = mul(viewPos, Proj);
+    output.position = viewPos;
+    output.uv = 0;
     
     return output;
 }

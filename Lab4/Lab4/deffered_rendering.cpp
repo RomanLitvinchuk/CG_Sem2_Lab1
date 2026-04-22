@@ -169,11 +169,11 @@ void DX12App::Draw()
 	m_command_list_->ClearRenderTargetView(renderSystem->g_buffer->NormalTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
 	m_command_list_->ClearDepthStencilView(renderSystem->g_buffer->DepthTex.dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 
-	if (isFirstFrame) {
+	/*if (isFirstFrame) {
 		DrawToStreamOutput(m_command_list_);
 		ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), renderSystem->opaquePSO_.Get()));
 		isFirstFrame = false;
-	}
+	}*/
 	DrawToGBuffer(m_command_list_);
 	renderSystem->g_buffer->TransitToLightsRenderingState(m_command_list_);
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),

@@ -158,7 +158,9 @@ private:
 	std::unique_ptr<UploadBuffer<MeshInstanceData>> InstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<WireframeInstanceData>> WireframeInstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<Particle>> ParticleBuffer = nullptr;
-	UINT PARTICLE_COUNT = 1000;
+
+	UINT PARTICLE_COUNT = 10000;
+	std::vector<Particle> particles;
 
 
 	std::vector<MeshInstanceData> instances;

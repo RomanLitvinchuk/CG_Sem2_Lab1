@@ -486,6 +486,7 @@ void RenderingSystem::CreateParticlePSO(ComPtr<ID3D12Device> device, std::vector
 	psoDesc.GS = { particleGS_->GetBufferPointer(), particleGS_->GetBufferSize() };
 	psoDesc.PS = { particlePS_->GetBufferPointer(), particlePS_->GetBufferSize() };
 	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
+	rastDesc.CullMode = D3D12_CULL_MODE_NONE;
 	rastDesc.FrontCounterClockwise = true;
 	psoDesc.RasterizerState = rastDesc;
 	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
@@ -494,7 +495,7 @@ void RenderingSystem::CreateParticlePSO(ComPtr<ID3D12Device> device, std::vector
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-	psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+	//psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 	psoDesc.SampleMask = UINT_MAX;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleDesc.Quality = 0;

@@ -14,9 +14,10 @@ void DX12App::Update() {
 	camera.mView_ = Matrix::CreateLookAt(camera.mCameraPos, camera.mCameraPos + camera.mCameraTarget, camera.mCameraUp);
 
 	std::cout << "CameraPos:" << camera.mCameraPos.x << " " << camera.mCameraPos.y << " " << camera.mCameraPos.z << std::endl;
+
 	Matrices matricesData;
-	matricesData.Proj = camera.mProj_;
-	matricesData.View = camera.mView_;
+	matricesData.Proj = camera.mProj_.Transpose();
+	matricesData.View = camera.mView_.Transpose();
 	MatricesBuffer->CopyData(0, matricesData);
 	Matrix ViewProj = camera.mView_ * camera.mProj_;
 
