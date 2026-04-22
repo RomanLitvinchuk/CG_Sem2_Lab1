@@ -21,6 +21,10 @@ void DX12App::Update() {
 	MatricesBuffer->CopyData(0, matricesData);
 	Matrix ViewProj = camera.mView_ * camera.mProj_;
 
+	TimeConstants timeData;
+	timeData.deltaTime = gt.DeltaTime();
+	TimeBuffer->CopyData(0, timeData);
+
 	if (camera.isFrustumCullingEnabled) {
 		XMMATRIX M = ViewProj;
 		XMFLOAT4X4 m;

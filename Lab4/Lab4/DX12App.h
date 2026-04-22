@@ -61,6 +61,7 @@ public:
 	void DrawToStreamOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawWireframe(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawParticles(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
+	void ComputeParticles();
 
 	void FlushCommandQueue();
 
@@ -74,6 +75,7 @@ public:
 	void Update();
 
 	void InitUploadBuffers();
+	void InitUAVBuffers();
 	void CreateConstantBufferView();
 	void CreateStructuredBuffersSRV();
 
@@ -151,6 +153,7 @@ private:
 
 	std::unique_ptr<UploadBuffer<ObjectConstants>> CBUploadBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<Matrices>> MatricesBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<TimeConstants>> TimeBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialCB = nullptr;
 	std::unique_ptr<UploadBuffer<LightConstants>> LightBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<CameraConstants>> CameraCB = nullptr;
@@ -158,6 +161,7 @@ private:
 	std::unique_ptr<UploadBuffer<MeshInstanceData>> InstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<WireframeInstanceData>> WireframeInstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<Particle>> ParticleBuffer = nullptr;
+	ComPtr<ID3D12Resource> RWParticleBuffer_ = nullptr;
 
 	UINT PARTICLE_COUNT = 10000;
 	std::vector<Particle> particles;

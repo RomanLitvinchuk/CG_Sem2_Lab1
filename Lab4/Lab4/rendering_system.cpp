@@ -85,6 +85,7 @@ void RenderingSystem::CompileShaders() {
 	particleVS_ = d3dUtil::CompileShader(L"shaders/particles.hlsl", nullptr, "VS", "vs_5_0");
 	particleGS_ = d3dUtil::CompileShader(L"shaders/particleGS.hlsl", nullptr, "GS", "gs_5_0");
 	particlePS_ = d3dUtil::CompileShader(L"shaders/particles.hlsl", nullptr, "PS", "ps_5_0");
+	particleCS_ = d3dUtil::CompileShader(L"shaders/particleCS.hlsl", nullptr, "CS", "cs_5_0");
 }
 
 void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
@@ -476,7 +477,7 @@ void RenderingSystem::CreateParticleRS(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&particleRS_)));
 }
 
-void RenderingSystem::CreateParticlePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
+void RenderingSystem::CreateParticlePSO(ComPtr<ID3D12Device> device)
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -495,10 +496,38 @@ void RenderingSystem::CreateParticlePSO(ComPtr<ID3D12Device> device, std::vector
 	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
-	//psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 	psoDesc.SampleMask = UINT_MAX;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&particlePSO_)));
+}
+
+void RenderingSystem::CreateComputeRS(ComPtr<ID3D12Device> device)
+{
+	CD3DX12_ROOT_PARAMETER rootParameter[2];
+	rootParameter[0].InitAsConstantBufferView(0);
+	rootParameter[1].InitAsUnorderedAccessView(0);
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootDesc(2, rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	ComPtr<ID3DBlob> errorBlob;
+	ComPtr<ID3DBlob> serializedRootDesc;
+
+	ThrowIfFailed(D3D12SerializeRootSignature(&rootDesc, D3D_ROOT_SIGNATURE_VERSION_1, serializedRootDesc.GetAddressOf(), errorBlob.GetAddressOf()));
+
+	if (errorBlob != nullptr) {
+		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+	}
+
+	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&computeRS_)));
+}
+
+void RenderingSystem::CreateComputePSO(ComPtr<ID3D12Device> device)
+{
+	D3D12_COMPUTE_PIPELINE_STATE_DESC particleUpdatePSO = {};
+	particleUpdatePSO.pRootSignature = computeRS_.Get();
+	particleUpdatePSO.CS = { particleCS_->GetBufferPointer(), particleCS_->GetBufferSize() };
+	particleUpdatePSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	ThrowIfFailed(device->CreateComputePipelineState(&particleUpdatePSO, IID_PPV_ARGS(&computePSO_)));
 }

@@ -310,6 +310,7 @@ void DX12App::InitUploadBuffers() {
 		true
 	);
 	MatricesBuffer = std::make_unique<UploadBuffer<Matrices>>(m_device_.Get(), 1, true);
+	TimeBuffer = std::make_unique<UploadBuffer<TimeConstants>>(m_device_.Get(), 1, true);
 	MaterialCB = std::make_unique<UploadBuffer<MaterialConstants>>(m_device_.Get(), 300, true);
 	CameraCB = std::make_unique<UploadBuffer<CameraConstants>>(m_device_.Get(), 1, true);
 	LightBuffer = std::make_unique<UploadBuffer<LightConstants>>(m_device_.Get(), 1000, false);
@@ -334,6 +335,41 @@ void DX12App::InitUploadBuffers() {
 	for (int i = 0; i < PARTICLE_COUNT; ++i) {
 		ParticleBuffer->CopyData(i, particles[i]);
 	}
+}
+
+void DX12App::InitUAVBuffers()
+{
+	UINT byteSize = PARTICLE_COUNT * sizeof(Particle);
+	D3D12_RESOURCE_DESC RWParticle = {};
+	RWParticle.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	RWParticle.Format = DXGI_FORMAT_UNKNOWN;
+	RWParticle.MipLevels = 1;
+	RWParticle.Alignment = 0;
+	RWParticle.DepthOrArraySize = 1;
+	RWParticle.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	RWParticle.Width = byteSize;
+	RWParticle.Height = 1;
+	RWParticle.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	RWParticle.SampleDesc.Count = 1;
+	RWParticle.SampleDesc.Quality = 0;
+
+	CD3DX12_HEAP_PROPERTIES defaultHeapProp(D3D12_HEAP_TYPE_DEFAULT);
+	ThrowIfFailed(m_device_->CreateCommittedResource(&defaultHeapProp, D3D12_HEAP_FLAG_NONE, &RWParticle, D3D12_RESOURCE_STATE_COMMON,
+		nullptr, IID_PPV_ARGS(&RWParticleBuffer_)));
+
+	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
+	CD3DX12_RESOURCE_BARRIER toCopy = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+	D3D12_RESOURCE_BARRIER resourceBarrier = { toCopy };
+	m_command_list_->ResourceBarrier(1, &resourceBarrier);
+	m_command_list_->CopyResource(RWParticleBuffer_.Get(), ParticleBuffer->Resource());
+	CD3DX12_RESOURCE_BARRIER toCommon = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	resourceBarrier = { toCommon };
+	m_command_list_->ResourceBarrier(1, &resourceBarrier);
+	m_command_list_->Close();
+	ID3D12CommandList* cmdLists[] = {m_command_list_.Get()};
+	m_command_queue_->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+
+	FlushCommandQueue();
 }
 
 void DX12App::CreateConstantBufferView() {

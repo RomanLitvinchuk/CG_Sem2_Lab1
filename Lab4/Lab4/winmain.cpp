@@ -184,9 +184,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	MyFramework.CreateVertexBuffer();
 	MyFramework.CreateIndexBuffer();
 	MyFramework.InitUploadBuffers();
+    MyFramework.InitUAVBuffers();
 	MyFramework.CreateConstantBufferView();
     MyFramework.InitRenderSystem();
-	//GameTimer gt;
 
 
 	wnd.RegisterRawInputDevice();
