@@ -85,7 +85,8 @@ void RenderingSystem::CompileShaders() {
 	particleVS_ = d3dUtil::CompileShader(L"shaders/particles.hlsl", nullptr, "VS", "vs_5_0");
 	particleGS_ = d3dUtil::CompileShader(L"shaders/particleGS.hlsl", nullptr, "GS", "gs_5_0");
 	particlePS_ = d3dUtil::CompileShader(L"shaders/particles.hlsl", nullptr, "PS", "ps_5_0");
-	particleCS_ = d3dUtil::CompileShader(L"shaders/particleCS.hlsl", nullptr, "CS", "cs_5_0");
+	particleUpdateCS_ = d3dUtil::CompileShader(L"shaders/particleUpdateCS.hlsl", nullptr, "UpdateCS", "cs_5_0");
+	particleEmitCS_ = d3dUtil::CompileShader(L"shaders/particleEmitCS.hlsl", nullptr, "EmitCS", "cs_5_0");
 }
 
 void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
@@ -503,7 +504,7 @@ void RenderingSystem::CreateParticlePSO(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&particlePSO_)));
 }
 
-void RenderingSystem::CreateComputeRS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateParticlesUpdateRS(ComPtr<ID3D12Device> device)
 {
 	CD3DX12_ROOT_PARAMETER rootParameter[3];
 	CD3DX12_DESCRIPTOR_RANGE uavTable;
@@ -523,14 +524,46 @@ void RenderingSystem::CreateComputeRS(ComPtr<ID3D12Device> device)
 		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
 	}
 
-	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&computeRS_)));
+	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&particlesUpdateRS_)));
 }
 
-void RenderingSystem::CreateComputePSO(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateParticlesUpdatePSO(ComPtr<ID3D12Device> device)
 {
 	D3D12_COMPUTE_PIPELINE_STATE_DESC particleUpdatePSO = {};
-	particleUpdatePSO.pRootSignature = computeRS_.Get();
-	particleUpdatePSO.CS = { particleCS_->GetBufferPointer(), particleCS_->GetBufferSize() };
+	particleUpdatePSO.pRootSignature = particlesUpdateRS_.Get();
+	particleUpdatePSO.CS = { particleUpdateCS_->GetBufferPointer(), particleUpdateCS_->GetBufferSize() };
 	particleUpdatePSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
-	ThrowIfFailed(device->CreateComputePipelineState(&particleUpdatePSO, IID_PPV_ARGS(&computePSO_)));
+	ThrowIfFailed(device->CreateComputePipelineState(&particleUpdatePSO, IID_PPV_ARGS(&particlesUpdatePSO_)));
+}
+
+void RenderingSystem::CreateParticlesEmitRS(ComPtr<ID3D12Device> device)
+{
+	CD3DX12_ROOT_PARAMETER rootParameter[3];
+	CD3DX12_DESCRIPTOR_RANGE uavTable;
+	uavTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 1);
+	rootParameter[0].InitAsConstantBufferView(0);
+	rootParameter[1].InitAsUnorderedAccessView(0);
+	rootParameter[2].InitAsDescriptorTable(1, &uavTable, D3D12_SHADER_VISIBILITY_ALL);
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootDesc(3, rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	ComPtr<ID3DBlob> errorBlob;
+	ComPtr<ID3DBlob> serializedRootDesc;
+
+	ThrowIfFailed(D3D12SerializeRootSignature(&rootDesc, D3D_ROOT_SIGNATURE_VERSION_1, serializedRootDesc.GetAddressOf(), errorBlob.GetAddressOf()));
+
+	if (errorBlob != nullptr) {
+		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+	}
+
+	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&particlesEmitRS_)));
+}
+
+void RenderingSystem::CreateParticlesEmitPSO(ComPtr<ID3D12Device> device)
+{
+	D3D12_COMPUTE_PIPELINE_STATE_DESC particleEmitPSO = {};
+	particleEmitPSO.pRootSignature = particlesEmitRS_.Get();
+	particleEmitPSO.CS = { particleEmitCS_->GetBufferPointer(), particleEmitCS_->GetBufferSize() };
+	particleEmitPSO.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
+	ThrowIfFailed(device->CreateComputePipelineState(&particleEmitPSO, IID_PPV_ARGS(&particlesEmitPSO_)));
 }

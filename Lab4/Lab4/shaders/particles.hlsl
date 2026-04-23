@@ -11,9 +11,10 @@ struct ParticleData
     float3 Velocity;
     float padding;
     float4 Color;
-    float age;
+    float currentAge;
+    float deadAge;
     uint isAlive;
-    float2 padding2;
+    float padding2;
 };
 
 StructuredBuffer<ParticleData> Particles : register(t0);
@@ -23,6 +24,7 @@ struct PixelInput
     float4 color : COLOR0;
     float4 position : SV_Position;
     float2 uv : TEXCOORD0;
+    uint isAlive : BLENDINDICES0;
 };
 
 struct PixelOutput
@@ -39,6 +41,7 @@ PixelInput VS(uint instanceID : SV_InstanceID)
     output.position = viewPos;
     output.uv = 0;
     output.color = particle.Color;
+    output.isAlive = particle.isAlive;
     
     return output;
 }

@@ -166,7 +166,10 @@
     <FxCompile Include="shaders\particleGS.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\particleCS.hlsl">
+    <FxCompile Include="shaders\particleUpdateCS.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\particleEmitCS.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
   </ItemGroup>

@@ -324,8 +324,9 @@ void DX12App::InitUploadBuffers() {
 	HullCB = std::make_unique<UploadBuffer<HullBuffer>>(m_device_.Get(), 1, true);
 	WireframeInstanceBuffer = std::make_unique<UploadBuffer<WireframeInstanceData>>(m_device_.Get(), 1000, false); 
 
-	ParticleBuffer = std::make_unique<UploadBuffer<Particle>>(m_device_.Get(), PARTICLE_COUNT, false);
-	particles.resize(PARTICLE_COUNT);
+	DeadListUpload = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), PARTICLE_COUNT, false);
+	counterUpload = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), 1, false);
+	/*particles.resize(PARTICLE_COUNT);
 	const float sceneScale = 100.0f; 
 
 	for (int i = 0; i < PARTICLE_COUNT; ++i) {
@@ -340,8 +341,12 @@ void DX12App::InitUploadBuffers() {
 	}
 
 	for (int i = 0; i < PARTICLE_COUNT; ++i) {
-		ParticleBuffer->CopyData(i, particles[i]);
+		DeadListUpload->CopyData(i, particles[i]);
+	}*/
+	for (int i = 0; i < PARTICLE_COUNT; i++) {
+		DeadListUpload->CopyData(i, i);
 	}
+	counterUpload->CopyData(0, PARTICLE_COUNT);
 }
 
 void DX12App::InitUAVBuffers()
@@ -386,15 +391,17 @@ void DX12App::InitUAVBuffers()
 	m_device_->CreateUnorderedAccessView(ParticleDeadList_.Get(), counterBuffer_.Get(), &uavView, Handle);
 
 	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
-	CD3DX12_RESOURCE_BARRIER toCopy = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
-	CD3DX12_RESOURCE_BARRIER toUAV = CD3DX12_RESOURCE_BARRIER::Transition(counterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	CD3DX12_RESOURCE_BARRIER deadListBarrier = CD3DX12_RESOURCE_BARRIER::Transition(ParticleDeadList_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	D3D12_RESOURCE_BARRIER resourceBarrier[] = {toCopy, toUAV, deadListBarrier};
+	CD3DX12_RESOURCE_BARRIER deadListToCopy = CD3DX12_RESOURCE_BARRIER::Transition(ParticleDeadList_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+	CD3DX12_RESOURCE_BARRIER counterToCopy = CD3DX12_RESOURCE_BARRIER::Transition(counterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+	D3D12_RESOURCE_BARRIER resourceBarrier[] = {deadListToCopy, counterToCopy};
 	m_command_list_->ResourceBarrier(_countof(resourceBarrier), resourceBarrier);
-	m_command_list_->CopyResource(RWParticleBuffer_.Get(), ParticleBuffer->Resource());
-	CD3DX12_RESOURCE_BARRIER toCommon = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-	D3D12_RESOURCE_BARRIER oneBarrier = { toCommon };
-	m_command_list_->ResourceBarrier(1, &oneBarrier);
+	m_command_list_->CopyResource(ParticleDeadList_.Get(), DeadListUpload->Resource());
+	m_command_list_->CopyResource(counterBuffer_.Get(), counterUpload->Resource());
+	CD3DX12_RESOURCE_BARRIER toSRV = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	CD3DX12_RESOURCE_BARRIER deadListToUAV = CD3DX12_RESOURCE_BARRIER::Transition(ParticleDeadList_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	CD3DX12_RESOURCE_BARRIER counterToUAV = CD3DX12_RESOURCE_BARRIER::Transition(counterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12_RESOURCE_BARRIER Barriers[] = {toSRV, deadListToUAV, counterToUAV};
+	m_command_list_->ResourceBarrier(_countof(Barriers), Barriers);
 	m_command_list_->Close();
 	ID3D12CommandList* cmdLists[] = {m_command_list_.Get()};
 	m_command_queue_->ExecuteCommandLists(_countof(cmdLists), cmdLists);

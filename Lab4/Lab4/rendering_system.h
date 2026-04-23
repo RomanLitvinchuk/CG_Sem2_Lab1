@@ -52,9 +52,13 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> particleGS_ = nullptr;
 	ComPtr<ID3DBlob> particlePS_ = nullptr;
 
-	ComPtr<ID3D12RootSignature> computeRS_ = nullptr;
-	ComPtr<ID3D12PipelineState> computePSO_ = nullptr;
-	ComPtr<ID3DBlob> particleCS_ = nullptr;
+	ComPtr<ID3D12RootSignature> particlesUpdateRS_ = nullptr;
+	ComPtr<ID3D12PipelineState> particlesUpdatePSO_ = nullptr;
+	ComPtr<ID3DBlob> particleUpdateCS_ = nullptr;
+
+	ComPtr<ID3D12RootSignature> particlesEmitRS_ = nullptr;
+	ComPtr<ID3D12PipelineState> particlesEmitPSO_ = nullptr;
+	ComPtr<ID3DBlob> particleEmitCS_ = nullptr;
 
 	GBuffer* g_buffer = nullptr;
 
@@ -89,8 +93,11 @@ struct RenderingSystem {
 	void CreateParticleRS(ComPtr<ID3D12Device> device);
 	void CreateParticlePSO(ComPtr<ID3D12Device> device);
 
-	void CreateComputeRS(ComPtr<ID3D12Device> device);
-	void CreateComputePSO(ComPtr<ID3D12Device> device);
+	void CreateParticlesUpdateRS(ComPtr<ID3D12Device> device);
+	void CreateParticlesUpdatePSO(ComPtr<ID3D12Device> device);
+
+	void CreateParticlesEmitRS(ComPtr<ID3D12Device> device);
+	void CreateParticlesEmitPSO(ComPtr<ID3D12Device> device);
 
 	void GenerateTreeLights(std::vector<LightConstants>& lightsArray, Vector3 treeBasePosition, float treeHeight, float treeBaseRadius, int count);
 
@@ -113,8 +120,10 @@ struct RenderingSystem {
 		CreateParticleRS(device);
 		CreateParticlePSO(device);
 
-		CreateComputeRS(device);
-		CreateComputePSO(device);
+		CreateParticlesUpdateRS(device);
+		CreateParticlesUpdatePSO(device);
+		CreateParticlesEmitRS(device);
+		CreateParticlesEmitPSO(device);
 
 		g_buffer = new GBuffer(width, height, device);
 

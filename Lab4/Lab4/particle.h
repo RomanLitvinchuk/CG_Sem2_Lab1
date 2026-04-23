@@ -9,9 +9,10 @@ struct Particle {
 	Vector3 Velocity;
 	float padding;
 	Vector4 Color;
-	float age = 0;
-	uint32_t isAlive = 1;
-	float pad[2];
+	float currentAge = 0;
+	float deadAge;
+	uint32_t isAlive = 0;
+	float pad;
 };
 
 

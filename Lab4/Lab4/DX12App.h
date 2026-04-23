@@ -62,6 +62,7 @@ public:
 	void DrawWireframe(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawParticles(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void ComputeParticles();
+	void EmitParticles();
 
 	void FlushCommandQueue();
 
@@ -86,15 +87,13 @@ public:
 	void BuildBulbGeometry();
 	void BuildBoxGeometry();
 	void InitRenderSystem();
+
 	void Parsing();
 	void ParseFile(const std::string& filename, const Matrix& transform, UINT instanceCount);
-
 	void ParseNode(const std::string& filename, aiNode* node, const aiScene* scene, const Matrix& transform, int materialOffset, 
 		std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices, UINT instanceCount);
-
 	void ParseMesh(const std::string& filename, const aiScene* scene, aiMesh* mesh, const Matrix& transform, int materialOffset, 
 		std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices, UINT instanceCount);
-
 	void ExtractMaterialData(const std::string& filename, int MaterialIndex, aiMaterial* material);
 
 	ComPtr<ID3D12Device> GetDevice() const { return m_device_; }
@@ -162,7 +161,8 @@ private:
 	std::unique_ptr<UploadBuffer<MeshInstanceData>> InstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<WireframeInstanceData>> WireframeInstanceBuffer = nullptr;
 
-	std::unique_ptr<UploadBuffer<Particle>> ParticleBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<uint32_t>> DeadListUpload = nullptr;
+	std::unique_ptr<UploadBuffer<uint32_t>> counterUpload = nullptr;
 	ComPtr<ID3D12Resource> RWParticleBuffer_ = nullptr;
 	ComPtr<ID3D12Resource> ParticleDeadList_ = nullptr;
 	ComPtr<ID3D12Resource> counterBuffer_ = nullptr;

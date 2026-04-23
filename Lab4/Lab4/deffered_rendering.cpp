@@ -196,6 +196,7 @@ void DX12App::Draw()
 
 	m_command_list_->DrawIndexedInstanced(mSphereIndexCount, 500, 0, 0, 0);*/
 	DrawWireframe(m_command_list_);
+	EmitParticles();
 	ComputeParticles();
 	DrawParticles(m_command_list_);
 	CD3DX12_RESOURCE_BARRIER barrierBack = CD3DX12_RESOURCE_BARRIER::Transition(

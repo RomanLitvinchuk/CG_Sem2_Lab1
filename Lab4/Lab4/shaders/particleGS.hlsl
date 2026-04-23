@@ -9,6 +9,7 @@ struct PixelInput
     float4 color : COLOR0;
     float4 position : SV_POSITION;
     float2 uv : TEXCOORD0;
+    uint isAlive : BLENDINDICES0;
 };
 
 PixelInput _offsetNprojected(PixelInput data, float2 offset, float2 uv, float4 color)
@@ -24,6 +25,8 @@ PixelInput _offsetNprojected(PixelInput data, float2 offset, float2 uv, float4 c
 [maxvertexcount(4)] 
 void GS(point PixelInput input[1], inout TriangleStream<PixelInput> stream)
 {
+    if (input[0].isAlive == 0) return;
+    
     PixelInput pointOut = input[0];
     const float size = 1.0f;
     
