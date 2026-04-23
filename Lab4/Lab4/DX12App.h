@@ -153,7 +153,7 @@ private:
 
 	std::unique_ptr<UploadBuffer<ObjectConstants>> CBUploadBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<Matrices>> MatricesBuffer = nullptr;
-	std::unique_ptr<UploadBuffer<TimeConstants>> TimeBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<ParticleConstants>> ParticleConstantsBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialCB = nullptr;
 	std::unique_ptr<UploadBuffer<LightConstants>> LightBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<CameraConstants>> CameraCB = nullptr;
@@ -161,14 +161,15 @@ private:
 	std::unique_ptr<UploadBuffer<MeshInstanceData>> InstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<WireframeInstanceData>> WireframeInstanceBuffer = nullptr;
 
-	std::unique_ptr<UploadBuffer<uint32_t>> DeadListUpload = nullptr;
-	std::unique_ptr<UploadBuffer<uint32_t>> counterUpload = nullptr;
+	std::unique_ptr<UploadBuffer<uint32_t>> DeadListUpload_ = nullptr;
+	std::unique_ptr<UploadBuffer<uint32_t>> deadCounterUpload_ = nullptr;
+	std::unique_ptr<UploadBuffer<uint32_t>> sortCounterUpload_ = nullptr;
 	ComPtr<ID3D12Resource> RWParticleBuffer_ = nullptr;
 	ComPtr<ID3D12Resource> ParticleDeadList_ = nullptr;
 	ComPtr<ID3D12Resource> ParticleSortList_ = nullptr;
 	ComPtr<ID3D12Resource> deadCounterBuffer_ = nullptr;
 	ComPtr<ID3D12Resource> sortCounterBuffer_ = nullptr;
-	UINT PARTICLE_COUNT = 10000;
+	UINT PARTICLE_COUNT = 16384;
 	std::vector<Particle> particles;
 
 

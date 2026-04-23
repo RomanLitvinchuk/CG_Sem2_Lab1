@@ -18,8 +18,8 @@ struct SortParticle
 
 cbuffer TimeConstants : register(b0)
 {
+    float3 cameraPos;
     float deltaTime;
-    float3 padding;
 };
 
 RWStructuredBuffer<ParticleData> Particles : register(u0);
@@ -30,17 +30,23 @@ RWStructuredBuffer<SortParticle> SortList : register(u2);
 void UpdateCS( uint3 DTid : SV_DispatchThreadID )
 {
     uint index = DTid.x;
-    if (index >= 10000)
+    if (index >= 16384)
         return;
 
     if (Particles[index].isAlive == 1)
     {
-        Particles[index].Position.xyz += Particles[index].Velocity * deltaTime;
         Particles[index].currentAge += deltaTime;
         if (Particles[index].currentAge >= Particles[index].deadAge)
         {
             Particles[index].isAlive = 0;
             DeadList.Append(index);
+            return;
         }
+        Particles[index].Position.xyz += Particles[index].Velocity * deltaTime;
+        uint sortIndex = SortList.IncrementCounter();
+        SortParticle sp;
+        sp.index = index;
+        sp.distance = distance(Particles[index].Position.xyz, cameraPos);
+        SortList[sortIndex] = sp;
     }
 }

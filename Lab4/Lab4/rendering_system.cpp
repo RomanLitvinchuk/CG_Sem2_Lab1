@@ -512,7 +512,7 @@ void RenderingSystem::CreateParticlesUpdateRS(ComPtr<ID3D12Device> device)
 	uavTable[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_UAV, 1, 2);
 	rootParameter[0].InitAsConstantBufferView(0);
 	rootParameter[1].InitAsUnorderedAccessView(0);
-	rootParameter[2].InitAsDescriptorTable(1, uavTable, D3D12_SHADER_VISIBILITY_ALL);
+	rootParameter[2].InitAsDescriptorTable(2, uavTable, D3D12_SHADER_VISIBILITY_ALL);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootDesc(3, rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 

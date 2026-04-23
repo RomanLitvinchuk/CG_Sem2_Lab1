@@ -316,7 +316,7 @@ void DX12App::InitUploadBuffers() {
 		true
 	);
 	MatricesBuffer = std::make_unique<UploadBuffer<Matrices>>(m_device_.Get(), 1, true);
-	TimeBuffer = std::make_unique<UploadBuffer<TimeConstants>>(m_device_.Get(), 1, true);
+	ParticleConstantsBuffer = std::make_unique<UploadBuffer<ParticleConstants>>(m_device_.Get(), 1, true);
 	MaterialCB = std::make_unique<UploadBuffer<MaterialConstants>>(m_device_.Get(), 300, true);
 	CameraCB = std::make_unique<UploadBuffer<CameraConstants>>(m_device_.Get(), 1, true);
 	LightBuffer = std::make_unique<UploadBuffer<LightConstants>>(m_device_.Get(), 1000, false);
@@ -324,29 +324,15 @@ void DX12App::InitUploadBuffers() {
 	HullCB = std::make_unique<UploadBuffer<HullBuffer>>(m_device_.Get(), 1, true);
 	WireframeInstanceBuffer = std::make_unique<UploadBuffer<WireframeInstanceData>>(m_device_.Get(), 1000, false); 
 
-	DeadListUpload = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), PARTICLE_COUNT, false);
-	counterUpload = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), 1, false);
-	/*particles.resize(PARTICLE_COUNT);
-	const float sceneScale = 100.0f; 
+	DeadListUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), PARTICLE_COUNT, false);
+	deadCounterUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), 1, false);
+	sortCounterUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), 1, false);
 
-	for (int i = 0; i < PARTICLE_COUNT; ++i) {
-		particles[i].Position = Vector4(
-			((float)rand() / RAND_MAX * 2.0f - 4.0f) * sceneScale,
-			((float)rand() / RAND_MAX * 2.0f) * 100.0f,           
-			((float)rand() / RAND_MAX * 2.0f - 2.0f) * sceneScale,
-			1.0f
-		);
-		particles[i].Velocity = Vector3(0, (float)rand() / RAND_MAX * 2.0f + 0.5f, 0);
-		particles[i].Color = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
-	}
-
-	for (int i = 0; i < PARTICLE_COUNT; ++i) {
-		DeadListUpload->CopyData(i, particles[i]);
-	}*/
 	for (int i = 0; i < PARTICLE_COUNT; i++) {
-		DeadListUpload->CopyData(i, i);
+		DeadListUpload_->CopyData(i, i);
 	}
-	counterUpload->CopyData(0, PARTICLE_COUNT);
+	deadCounterUpload_->CopyData(0, PARTICLE_COUNT);
+	sortCounterUpload_->CopyData(0, 0);
 }
 
 void DX12App::InitUAVBuffers()
@@ -403,12 +389,13 @@ void DX12App::InitUAVBuffers()
 	CD3DX12_RESOURCE_BARRIER counterToCopy = CD3DX12_RESOURCE_BARRIER::Transition(deadCounterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
 	D3D12_RESOURCE_BARRIER resourceBarrier[] = {deadListToCopy, counterToCopy};
 	m_command_list_->ResourceBarrier(_countof(resourceBarrier), resourceBarrier);
-	m_command_list_->CopyResource(ParticleDeadList_.Get(), DeadListUpload->Resource());
-	m_command_list_->CopyResource(deadCounterBuffer_.Get(), counterUpload->Resource());
+	m_command_list_->CopyResource(ParticleDeadList_.Get(), DeadListUpload_->Resource());
+	m_command_list_->CopyResource(deadCounterBuffer_.Get(), deadCounterUpload_->Resource());
 	CD3DX12_RESOURCE_BARRIER toSRV = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	CD3DX12_RESOURCE_BARRIER deadListToUAV = CD3DX12_RESOURCE_BARRIER::Transition(ParticleDeadList_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	CD3DX12_RESOURCE_BARRIER counterToUAV = CD3DX12_RESOURCE_BARRIER::Transition(deadCounterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	D3D12_RESOURCE_BARRIER Barriers[] = {toSRV, deadListToUAV, counterToUAV};
+	CD3DX12_RESOURCE_BARRIER deadCounterToUAV = CD3DX12_RESOURCE_BARRIER::Transition(deadCounterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	CD3DX12_RESOURCE_BARRIER sortCounterToUAV = CD3DX12_RESOURCE_BARRIER::Transition(sortCounterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12_RESOURCE_BARRIER Barriers[] = {toSRV, deadListToUAV, deadCounterToUAV, sortCounterToUAV};
 	m_command_list_->ResourceBarrier(_countof(Barriers), Barriers);
 	m_command_list_->Close();
 	ID3D12CommandList* cmdLists[] = {m_command_list_.Get()};

@@ -20,4 +20,9 @@ struct SortParticle {
 	float distance;
 };
 
+struct ParticleConstants {
+	Vector3 CameraPos;
+	float deltaTime;
+};
+
 #endif //PARTICLE_H_

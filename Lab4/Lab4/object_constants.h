@@ -18,10 +18,4 @@ struct Matrices {
 	Matrix Proj;
 };
 
-struct TimeConstants {
-	float deltaTime;
-	float pad[3];
-};
-
-
 #endif //OBJECT_CONSTANTS_
