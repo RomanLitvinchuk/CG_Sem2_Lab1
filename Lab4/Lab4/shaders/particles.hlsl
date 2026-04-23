@@ -8,13 +8,19 @@ cbuffer Matrices : register(b0)
 struct ParticleData
 {
     float4 Position;
-    float4 Velocity;
+    float3 Velocity;
+    float padding;
+    float4 Color;
+    float age;
+    uint isAlive;
+    float2 padding2;
 };
 
 StructuredBuffer<ParticleData> Particles : register(t0);
 
 struct PixelInput
 {
+    float4 color : COLOR0;
     float4 position : SV_Position;
     float2 uv : TEXCOORD0;
 };
@@ -32,6 +38,7 @@ PixelInput VS(uint instanceID : SV_InstanceID)
     float4 viewPos = mul(worldPos, View);
     output.position = viewPos;
     output.uv = 0;
+    output.color = particle.Color;
     
     return output;
 }
@@ -39,8 +46,7 @@ PixelInput VS(uint instanceID : SV_InstanceID)
 PixelOutput PS(PixelInput input)
 {
     PixelOutput output;
-    output.Color = float4(1.0f, 0.0f, 0.0f, 1.0f);
-
+    output.Color = input.color;
     return output;
 }
 

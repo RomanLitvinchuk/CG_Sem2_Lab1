@@ -6,7 +6,12 @@ using namespace DirectX::SimpleMath;
 
 struct Particle {
 	Vector4 Position;
-	Vector4 Velocity;
+	Vector3 Velocity;
+	float padding;
+	Vector4 Color;
+	float age = 0;
+	uint32_t isAlive = 1;
+	float pad[2];
 };
 
 

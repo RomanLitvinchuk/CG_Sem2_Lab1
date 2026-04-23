@@ -1,7 +1,12 @@
 struct Particle
 {
     float4 Position;
-    float4 Velocity;
+    float3 Velocity;
+    float padding;
+    float4 Color;
+    float age;
+    uint isAlive;
+    float2 padding2;
 };
 
 cbuffer TimeConstants : register(b0)

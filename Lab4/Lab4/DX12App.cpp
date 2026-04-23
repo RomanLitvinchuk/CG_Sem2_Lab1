@@ -329,7 +329,8 @@ void DX12App::InitUploadBuffers() {
 			((float)rand() / RAND_MAX * 2.0f - 2.0f) * sceneScale,
 			1.0f
 		);
-		particles[i].Velocity = Vector4(0, (float)rand() / RAND_MAX * 2.0f + 0.5f, 0, 0);
+		particles[i].Velocity = Vector3(0, (float)rand() / RAND_MAX * 2.0f + 0.5f, 0);
+		particles[i].Color = Vector4(1.0f, 0.0f, 0.0f, 1.0f);
 	}
 
 	for (int i = 0; i < PARTICLE_COUNT; ++i) {
