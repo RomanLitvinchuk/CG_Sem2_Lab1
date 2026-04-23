@@ -10,12 +10,6 @@ struct ParticleData
     float padding2;
 };
 
-cbuffer TimeConstants : register(b0)
-{
-    float deltaTime;
-    float3 padding;
-};
-
 RWStructuredBuffer<ParticleData> Particles : register(u0);
 ConsumeStructuredBuffer<uint> DeadList : register(u1);
 

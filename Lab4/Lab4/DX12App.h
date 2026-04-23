@@ -165,7 +165,9 @@ private:
 	std::unique_ptr<UploadBuffer<uint32_t>> counterUpload = nullptr;
 	ComPtr<ID3D12Resource> RWParticleBuffer_ = nullptr;
 	ComPtr<ID3D12Resource> ParticleDeadList_ = nullptr;
-	ComPtr<ID3D12Resource> counterBuffer_ = nullptr;
+	ComPtr<ID3D12Resource> ParticleSortList_ = nullptr;
+	ComPtr<ID3D12Resource> deadCounterBuffer_ = nullptr;
+	ComPtr<ID3D12Resource> sortCounterBuffer_ = nullptr;
 	UINT PARTICLE_COUNT = 10000;
 	std::vector<Particle> particles;
 

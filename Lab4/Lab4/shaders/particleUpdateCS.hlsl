@@ -10,6 +10,12 @@ struct ParticleData
     float padding2;
 };
 
+struct SortParticle
+{
+    uint index;
+    float distance;
+};
+
 cbuffer TimeConstants : register(b0)
 {
     float deltaTime;
@@ -18,7 +24,7 @@ cbuffer TimeConstants : register(b0)
 
 RWStructuredBuffer<ParticleData> Particles : register(u0);
 AppendStructuredBuffer<uint> DeadList : register(u1);
-
+RWStructuredBuffer<SortParticle> SortList : register(u2);
 
 [numthreads(256, 1, 1)]
 void UpdateCS( uint3 DTid : SV_DispatchThreadID )

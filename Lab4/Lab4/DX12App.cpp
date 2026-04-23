@@ -370,10 +370,14 @@ void DX12App::InitUAVBuffers()
 		nullptr, IID_PPV_ARGS(&RWParticleBuffer_)));
 	ThrowIfFailed(m_device_->CreateCommittedResource(&defaultHeapProp, D3D12_HEAP_FLAG_NONE, &uavDesc, D3D12_RESOURCE_STATE_COMMON,
 		nullptr, IID_PPV_ARGS(&ParticleDeadList_)));
+	ThrowIfFailed(m_device_->CreateCommittedResource(&defaultHeapProp, D3D12_HEAP_FLAG_NONE, &uavDesc, D3D12_RESOURCE_STATE_COMMON,
+		nullptr, IID_PPV_ARGS(&ParticleSortList_)));
 
-	auto counterDesc = CD3DX12_RESOURCE_DESC::Buffer(4, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
-	ThrowIfFailed(m_device_->CreateCommittedResource(&defaultHeapProp, D3D12_HEAP_FLAG_NONE, &counterDesc, D3D12_RESOURCE_STATE_COMMON,
-		nullptr, IID_PPV_ARGS(&counterBuffer_)));
+	auto CounterDesc = CD3DX12_RESOURCE_DESC::Buffer(4, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	ThrowIfFailed(m_device_->CreateCommittedResource(&defaultHeapProp, D3D12_HEAP_FLAG_NONE, &CounterDesc, D3D12_RESOURCE_STATE_COMMON,
+		nullptr, IID_PPV_ARGS(&deadCounterBuffer_)));
+	ThrowIfFailed(m_device_->CreateCommittedResource(&defaultHeapProp, D3D12_HEAP_FLAG_NONE, &CounterDesc, D3D12_RESOURCE_STATE_COMMON,
+		nullptr, IID_PPV_ARGS(&sortCounterBuffer_)));
 
 	D3D12_UNORDERED_ACCESS_VIEW_DESC uavView = {};
 	uavView.Buffer.NumElements = PARTICLE_COUNT;
@@ -387,19 +391,23 @@ void DX12App::InitUAVBuffers()
 	auto uavHandle = UAVHeap_->GetCPUDescriptorHandleForHeapStart();
 	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	CD3DX12_CPU_DESCRIPTOR_HANDLE Handle(uavHandle, 0, size);
-	
-	m_device_->CreateUnorderedAccessView(ParticleDeadList_.Get(), counterBuffer_.Get(), &uavView, Handle);
+	m_device_->CreateUnorderedAccessView(ParticleDeadList_.Get(), deadCounterBuffer_.Get(), &uavView, Handle);
+
+	uavView.Buffer.StructureByteStride = sizeof(SortParticle);
+	uavView.Buffer.CounterOffsetInBytes = 0;
+	CD3DX12_CPU_DESCRIPTOR_HANDLE SortHandle(uavHandle, 1, size);
+	m_device_->CreateUnorderedAccessView(ParticleSortList_.Get(), sortCounterBuffer_.Get(), &uavView, SortHandle);
 
 	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
 	CD3DX12_RESOURCE_BARRIER deadListToCopy = CD3DX12_RESOURCE_BARRIER::Transition(ParticleDeadList_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
-	CD3DX12_RESOURCE_BARRIER counterToCopy = CD3DX12_RESOURCE_BARRIER::Transition(counterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
+	CD3DX12_RESOURCE_BARRIER counterToCopy = CD3DX12_RESOURCE_BARRIER::Transition(deadCounterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
 	D3D12_RESOURCE_BARRIER resourceBarrier[] = {deadListToCopy, counterToCopy};
 	m_command_list_->ResourceBarrier(_countof(resourceBarrier), resourceBarrier);
 	m_command_list_->CopyResource(ParticleDeadList_.Get(), DeadListUpload->Resource());
-	m_command_list_->CopyResource(counterBuffer_.Get(), counterUpload->Resource());
+	m_command_list_->CopyResource(deadCounterBuffer_.Get(), counterUpload->Resource());
 	CD3DX12_RESOURCE_BARRIER toSRV = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	CD3DX12_RESOURCE_BARRIER deadListToUAV = CD3DX12_RESOURCE_BARRIER::Transition(ParticleDeadList_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	CD3DX12_RESOURCE_BARRIER counterToUAV = CD3DX12_RESOURCE_BARRIER::Transition(counterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	CD3DX12_RESOURCE_BARRIER counterToUAV = CD3DX12_RESOURCE_BARRIER::Transition(deadCounterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	D3D12_RESOURCE_BARRIER Barriers[] = {toSRV, deadListToUAV, counterToUAV};
 	m_command_list_->ResourceBarrier(_countof(Barriers), Barriers);
 	m_command_list_->Close();

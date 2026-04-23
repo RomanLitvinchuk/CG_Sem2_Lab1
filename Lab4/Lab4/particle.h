@@ -15,5 +15,9 @@ struct Particle {
 	float pad;
 };
 
+struct SortParticle {
+	uint32_t index;
+	float distance;
+};
 
 #endif //PARTICLE_H_
