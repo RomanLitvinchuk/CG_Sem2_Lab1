@@ -25,4 +25,9 @@ struct ParticleConstants {
 	float deltaTime;
 };
 
+struct Emitter {
+	Vector3 Position;
+	BoundingBox bounds;
+};
+
 #endif //PARTICLE_H_

@@ -195,10 +195,20 @@ void DX12App::Draw()
 	m_command_list_->IASetIndexBuffer(&mSphereIbv);
 
 	m_command_list_->DrawIndexedInstanced(mSphereIndexCount, 500, 0, 0, 0);*/
+	bool isEmitterInside = true;
+	for (int i = 0; i < 6; ++i) {
+		PlaneIntersectionType type = emitter.bounds.Intersects(camera.planes[i]);
+		if (type == PlaneIntersectionType::BACK) {
+			isEmitterInside = false;
+			break;
+		}
+	}
 	DrawWireframe(m_command_list_);
 	EmitParticles();
 	ComputeParticles();
-	DrawParticles(m_command_list_);
+	if (isEmitterInside) {
+		DrawParticles(m_command_list_);
+	}
 	CD3DX12_RESOURCE_BARRIER barrierBack = CD3DX12_RESOURCE_BARRIER::Transition(
 		CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,

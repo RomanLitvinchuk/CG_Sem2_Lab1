@@ -63,6 +63,7 @@ public:
 	void DrawParticles(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void ComputeParticles();
 	void EmitParticles();
+	void InitEmitter();
 
 	void FlushCommandQueue();
 
@@ -171,6 +172,7 @@ private:
 	ComPtr<ID3D12Resource> sortCounterBuffer_ = nullptr;
 	UINT PARTICLE_COUNT = 16384;
 	std::vector<Particle> particles;
+	Emitter emitter;
 
 
 	std::vector<MeshInstanceData> instances;

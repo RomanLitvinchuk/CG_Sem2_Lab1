@@ -185,6 +185,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	MyFramework.CreateIndexBuffer();
 	MyFramework.InitUploadBuffers();
     MyFramework.InitUAVBuffers();
+    MyFramework.InitEmitter();
 	MyFramework.CreateConstantBufferView();
     MyFramework.InitRenderSystem();
 

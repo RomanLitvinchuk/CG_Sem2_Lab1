@@ -60,3 +60,12 @@ void DX12App::DrawParticles(ComPtr<ID3D12GraphicsCommandList> m_command_list) {
 
 	m_command_list_->DrawInstanced(1, PARTICLE_COUNT, 0, 0);
 }
+
+void DX12App::InitEmitter() {
+	emitter.Position = DirectX::SimpleMath::Vector3(-599.0f, 0.0f, 0.0f);
+	float MaxVerticalDist = 50.0f * 12.0f; 
+	float MaxHorizontalDist = 1.0f + (1.0f * 12.0f); 
+
+	emitter.bounds.Center = emitter.Position + DirectX::SimpleMath::Vector3(0, MaxVerticalDist / 2.0f, 0);
+	emitter.bounds.Extents = DirectX::SimpleMath::Vector3(MaxHorizontalDist, MaxVerticalDist / 2.0f, MaxHorizontalDist);
+}
