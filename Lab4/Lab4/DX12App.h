@@ -134,6 +134,7 @@ private:
 	ComPtr<ID3D12DescriptorHeap> m_RTV_heap_ = nullptr;
 	ComPtr<ID3D12DescriptorHeap> m_DSV_heap_ = nullptr;
 	ComPtr<ID3D12DescriptorHeap> m_CBV_SRV_heap_ = nullptr;
+	ComPtr<ID3D12DescriptorHeap> UAVHeap_ = nullptr;
 	ComPtr<ID3D12DescriptorHeap> m_sampler_heap = nullptr;
 	int m_current_back_buffer_ = 0;
 
@@ -160,9 +161,11 @@ private:
 	std::unique_ptr<UploadBuffer<HullBuffer>> HullCB = nullptr;
 	std::unique_ptr<UploadBuffer<MeshInstanceData>> InstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<WireframeInstanceData>> WireframeInstanceBuffer = nullptr;
+
 	std::unique_ptr<UploadBuffer<Particle>> ParticleBuffer = nullptr;
 	ComPtr<ID3D12Resource> RWParticleBuffer_ = nullptr;
-
+	ComPtr<ID3D12Resource> ParticleDeadList_ = nullptr;
+	ComPtr<ID3D12Resource> counterBuffer_ = nullptr;
 	UINT PARTICLE_COUNT = 10000;
 	std::vector<Particle> particles;
 

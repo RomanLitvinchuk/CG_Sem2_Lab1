@@ -112,7 +112,13 @@ void DX12App::CreateCBVDescriptorHeap() {
 	CBV_SRV_HeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	CBV_SRV_HeapDesc.NodeMask = 0;
 	ThrowIfFailed(m_device_->CreateDescriptorHeap(&CBV_SRV_HeapDesc, IID_PPV_ARGS(&m_CBV_SRV_heap_)));
-	std::cout << "CBV heap is created" << std::endl;
+	
+	D3D12_DESCRIPTOR_HEAP_DESC UAV_heapDesc;
+	UAV_heapDesc.NumDescriptors = 10;
+	UAV_heapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	UAV_heapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	UAV_heapDesc.NodeMask = 0;
+	ThrowIfFailed(m_device_->CreateDescriptorHeap(&UAV_heapDesc, IID_PPV_ARGS(&UAVHeap_)));
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12App::GetBackBuffer() const {
@@ -341,31 +347,54 @@ void DX12App::InitUploadBuffers() {
 void DX12App::InitUAVBuffers()
 {
 	UINT byteSize = PARTICLE_COUNT * sizeof(Particle);
-	D3D12_RESOURCE_DESC RWParticle = {};
-	RWParticle.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-	RWParticle.Format = DXGI_FORMAT_UNKNOWN;
-	RWParticle.MipLevels = 1;
-	RWParticle.Alignment = 0;
-	RWParticle.DepthOrArraySize = 1;
-	RWParticle.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-	RWParticle.Width = byteSize;
-	RWParticle.Height = 1;
-	RWParticle.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-	RWParticle.SampleDesc.Count = 1;
-	RWParticle.SampleDesc.Quality = 0;
+	D3D12_RESOURCE_DESC uavDesc = {};
+	uavDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+	uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+	uavDesc.MipLevels = 1;
+	uavDesc.Alignment = 0;
+	uavDesc.DepthOrArraySize = 1;
+	uavDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+	uavDesc.Width = byteSize;
+	uavDesc.Height = 1;
+	uavDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+	uavDesc.SampleDesc.Count = 1;
+	uavDesc.SampleDesc.Quality = 0;
 
 	CD3DX12_HEAP_PROPERTIES defaultHeapProp(D3D12_HEAP_TYPE_DEFAULT);
-	ThrowIfFailed(m_device_->CreateCommittedResource(&defaultHeapProp, D3D12_HEAP_FLAG_NONE, &RWParticle, D3D12_RESOURCE_STATE_COMMON,
+	ThrowIfFailed(m_device_->CreateCommittedResource(&defaultHeapProp, D3D12_HEAP_FLAG_NONE, &uavDesc, D3D12_RESOURCE_STATE_COMMON,
 		nullptr, IID_PPV_ARGS(&RWParticleBuffer_)));
+	ThrowIfFailed(m_device_->CreateCommittedResource(&defaultHeapProp, D3D12_HEAP_FLAG_NONE, &uavDesc, D3D12_RESOURCE_STATE_COMMON,
+		nullptr, IID_PPV_ARGS(&ParticleDeadList_)));
+
+	auto counterDesc = CD3DX12_RESOURCE_DESC::Buffer(4, D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+	ThrowIfFailed(m_device_->CreateCommittedResource(&defaultHeapProp, D3D12_HEAP_FLAG_NONE, &counterDesc, D3D12_RESOURCE_STATE_COMMON,
+		nullptr, IID_PPV_ARGS(&counterBuffer_)));
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC uavView = {};
+	uavView.Buffer.NumElements = PARTICLE_COUNT;
+	uavView.Buffer.FirstElement = 0;
+	uavView.Buffer.StructureByteStride = sizeof(uint32_t);
+	uavView.Buffer.CounterOffsetInBytes = 0;
+	uavView.Format = DXGI_FORMAT_UNKNOWN;
+	uavView.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+	uavView.Buffer.Flags = D3D12_BUFFER_UAV_FLAG_NONE;
+
+	auto uavHandle = UAVHeap_->GetCPUDescriptorHandleForHeapStart();
+	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE Handle(uavHandle, 0, size);
+	
+	m_device_->CreateUnorderedAccessView(ParticleDeadList_.Get(), counterBuffer_.Get(), &uavView, Handle);
 
 	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
 	CD3DX12_RESOURCE_BARRIER toCopy = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_COPY_DEST);
-	D3D12_RESOURCE_BARRIER resourceBarrier = { toCopy };
-	m_command_list_->ResourceBarrier(1, &resourceBarrier);
+	CD3DX12_RESOURCE_BARRIER toUAV = CD3DX12_RESOURCE_BARRIER::Transition(counterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	CD3DX12_RESOURCE_BARRIER deadListBarrier = CD3DX12_RESOURCE_BARRIER::Transition(ParticleDeadList_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	D3D12_RESOURCE_BARRIER resourceBarrier[] = {toCopy, toUAV, deadListBarrier};
+	m_command_list_->ResourceBarrier(_countof(resourceBarrier), resourceBarrier);
 	m_command_list_->CopyResource(RWParticleBuffer_.Get(), ParticleBuffer->Resource());
 	CD3DX12_RESOURCE_BARRIER toCommon = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
-	resourceBarrier = { toCommon };
-	m_command_list_->ResourceBarrier(1, &resourceBarrier);
+	D3D12_RESOURCE_BARRIER oneBarrier = { toCommon };
+	m_command_list_->ResourceBarrier(1, &oneBarrier);
 	m_command_list_->Close();
 	ID3D12CommandList* cmdLists[] = {m_command_list_.Get()};
 	m_command_queue_->ExecuteCommandLists(_countof(cmdLists), cmdLists);

@@ -16,6 +16,7 @@ cbuffer TimeConstants : register(b0)
 };
 
 RWStructuredBuffer<Particle> Particles : register(u0);
+AppendStructuredBuffer<uint> DeadList : register(u1);
 
 
 [numthreads(256, 1, 1)]

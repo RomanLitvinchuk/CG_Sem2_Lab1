@@ -3,12 +3,18 @@
 void DX12App::ComputeParticles() {
 	m_command_list_->SetPipelineState(renderSystem->computePSO_.Get());
 	m_command_list_->SetComputeRootSignature(renderSystem->computeRS_.Get());
-
+	ID3D12DescriptorHeap* heaps[] = { UAVHeap_.Get() };
+	m_command_list_->SetDescriptorHeaps(_countof(heaps), heaps);
 	m_command_list_->SetComputeRootConstantBufferView(0, TimeBuffer->Resource()->GetGPUVirtualAddress());
 	CD3DX12_RESOURCE_BARRIER toUAV = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	D3D12_RESOURCE_BARRIER resourceBarrier = { toUAV };
 	m_command_list_->ResourceBarrier(1, &resourceBarrier);
 	m_command_list_->SetComputeRootUnorderedAccessView(1, RWParticleBuffer_->GetGPUVirtualAddress());
+	CD3DX12_GPU_DESCRIPTOR_HANDLE uavHandle(
+		UAVHeap_->GetGPUDescriptorHandleForHeapStart(),
+		0,
+		m_CbvSrvUav_descriptor_size_);
+	m_command_list_->SetComputeRootDescriptorTable(2, uavHandle);
 
 	m_command_list_->Dispatch(ceil(PARTICLE_COUNT / 256.0f), 1, 1);
 	CD3DX12_RESOURCE_BARRIER toCopy = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
