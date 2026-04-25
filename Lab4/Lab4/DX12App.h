@@ -58,6 +58,7 @@ public:
 	void Draw();
 	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
+	void DrawNYBalls();
 	void DrawToStreamOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawWireframe(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawParticles(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
@@ -182,7 +183,7 @@ private:
 	BVH octree;
 
 	std::vector<UINT> visibleIndices;
-
+	bool treeIsVisible;
 
 	const aiScene* sponza;
 	std::vector<Vertex> vertices;

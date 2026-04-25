@@ -1,9 +1,6 @@
 cbuffer cbPerObject : register(b0)
 {
-    float4x4 mWorld;
-    float4x4 mInvTWorld;
     float4x4 mViewProj;
-    float4x4 mTexTransform;
     float gTime;
     float pad[3];
 }

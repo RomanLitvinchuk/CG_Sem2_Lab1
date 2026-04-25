@@ -59,7 +59,6 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		for (int i = 0; i < sm.InstanceCount; i++) {
 			InstanceBuffer->CopyData(currentInstanceOffset + i, sm.instances[i]);
 		}
-
 		m_command_list_->SetGraphicsRootShaderResourceView(7, InstanceBuffer->Resource()->GetGPUVirtualAddress());
 
 		UINT matIndex = sm.materialIndex;
@@ -67,6 +66,7 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress() + matIndex * matSize;
 		m_command_list_->SetGraphicsRootConstantBufferView(3, matAddress);
 
+		if (materialData[matIndex].isTree == 1) treeIsVisible = true;
 		int texHeapIndex = materialData[matIndex].diffuseTextureIndex + 1;
 
 		CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(
@@ -154,6 +154,23 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->DrawInstanced(3, 1, 0, 0);
 }
 
+void DX12App::DrawNYBalls()
+{
+	m_command_list_->SetPipelineState(renderSystem->bulbPSO_.Get());
+	m_command_list_->SetGraphicsRootSignature(renderSystem->bulbRS_.Get());
+
+	m_command_list_->SetGraphicsRootConstantBufferView(0, CBUploadBuffer->Resource()->GetGPUVirtualAddress());
+
+	auto handle = renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	CD3DX12_GPU_DESCRIPTOR_HANDLE lightSrvHandle(handle, 3, size);
+	m_command_list_->SetGraphicsRootDescriptorTable(1, lightSrvHandle);
+
+	m_command_list_->IASetVertexBuffers(0, 1, &mSphereVbv);
+	m_command_list_->IASetIndexBuffer(&mSphereIbv);
+	m_command_list_->DrawIndexedInstanced(mSphereIndexCount, 500, 0, 0, 0);
+}
+
 
 
 void DX12App::Draw()
@@ -168,6 +185,7 @@ void DX12App::Draw()
 	m_command_list_->ClearRenderTargetView(renderSystem->g_buffer->DiffuseTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
 	m_command_list_->ClearRenderTargetView(renderSystem->g_buffer->NormalTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
 	m_command_list_->ClearDepthStencilView(renderSystem->g_buffer->DepthTex.dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	treeIsVisible = false;
 
 	if (isFirstFrame) {
 		DrawToStreamOutput(m_command_list_);
@@ -175,6 +193,7 @@ void DX12App::Draw()
 		isFirstFrame = false;
 	}
 	DrawToGBuffer(m_command_list_);
+
 	renderSystem->g_buffer->TransitToLightsRenderingState(m_command_list_);
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
@@ -193,8 +212,9 @@ void DX12App::Draw()
 
 	m_command_list_->IASetVertexBuffers(0, 1, &mSphereVbv);
 	m_command_list_->IASetIndexBuffer(&mSphereIbv);
-
 	m_command_list_->DrawIndexedInstanced(mSphereIndexCount, 500, 0, 0, 0);*/
+	if (treeIsVisible) DrawNYBalls();
+
 	bool isEmitterInside = true;
 	for (int i = 0; i < 6; ++i) {
 		PlaneIntersectionType type = emitter.bounds.Intersects(camera.planes[i]);
