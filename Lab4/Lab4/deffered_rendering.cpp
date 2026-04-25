@@ -200,19 +200,6 @@ void DX12App::Draw()
 	m_command_list_->ResourceBarrier(1, &barrier);
 	DrawLights(m_command_list_);
 
-	/*m_command_list_->SetPipelineState(renderSystem->bulbPSO_.Get());
-	m_command_list_->SetGraphicsRootSignature(renderSystem->bulbRS_.Get());
-
-	m_command_list_->SetGraphicsRootConstantBufferView(0, CBUploadBuffer->Resource()->GetGPUVirtualAddress());
-
-	auto handle = renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
-	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	CD3DX12_GPU_DESCRIPTOR_HANDLE lightSrvHandle(handle, 3, size);
-	m_command_list_->SetGraphicsRootDescriptorTable(1, lightSrvHandle);
-
-	m_command_list_->IASetVertexBuffers(0, 1, &mSphereVbv);
-	m_command_list_->IASetIndexBuffer(&mSphereIbv);
-	m_command_list_->DrawIndexedInstanced(mSphereIndexCount, 500, 0, 0, 0);*/
 	if (treeIsVisible) DrawNYBalls();
 
 	bool isEmitterInside = true;

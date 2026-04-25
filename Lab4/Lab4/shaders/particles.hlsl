@@ -25,6 +25,7 @@ struct PixelInput
     float4 position : SV_Position;
     float2 uv : TEXCOORD0;
     uint isAlive : BLENDINDICES0;
+    float currentAge : AGE0;
 };
 
 struct PixelOutput
@@ -42,6 +43,7 @@ PixelInput VS(uint instanceID : SV_InstanceID)
     output.uv = 0;
     output.color = particle.Color;
     output.isAlive = particle.isAlive;
+    output.currentAge = particle.currentAge;
     
     return output;
 }
@@ -49,7 +51,7 @@ PixelInput VS(uint instanceID : SV_InstanceID)
 PixelOutput PS(PixelInput input)
 {
     PixelOutput output;
-    output.Color = input.color;
+    output.Color = input.color + float4(0.0f, input.currentAge / 10.0f , input.currentAge / 10.0f, 0.0f);
     return output;
 }
 

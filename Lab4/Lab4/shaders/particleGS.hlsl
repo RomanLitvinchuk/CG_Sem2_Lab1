@@ -10,6 +10,7 @@ struct PixelInput
     float4 position : SV_POSITION;
     float2 uv : TEXCOORD0;
     uint isAlive : BLENDINDICES0;
+    float currentAge : AGE0;
 };
 
 PixelInput _offsetNprojected(PixelInput data, float2 offset, float2 uv, float4 color)

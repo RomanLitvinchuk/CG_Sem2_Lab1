@@ -29,7 +29,7 @@ void EmitCS( uint3 DTid : SV_DispatchThreadID )
     float r2 = frac(sin(index * 78.233) * 43758.5453);
     Particles[index].Velocity = float3(r1 * 2 - 1, 50.0f, r2 * 2 - 1);
     
-    Particles[index].Color = float4(1.0f, 0.5f, 0.0f, 1.0f);
+    Particles[index].Color = float4(1.0f, 0.0f, 0.0f, 1.0f);
     Particles[index].currentAge = 0.0f;
     Particles[index].deadAge = 10.0f + r1 * 2.0f;
     
