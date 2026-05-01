@@ -169,7 +169,7 @@ struct RenderingSystem {
 		sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 		device->CreateSampler(&sampDesc, samplerHeap->GetCPUDescriptorHandleForHeapStart());
 
-		sampDesc.Filter = D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT;
+		sampDesc.Filter = D3D12_FILTER_COMPARISON_MIN_MAG_MIP_LINEAR;
 		sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
 		sampDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
 		sampDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;

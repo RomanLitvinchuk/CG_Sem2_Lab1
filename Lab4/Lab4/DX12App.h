@@ -223,6 +223,7 @@ private:
 	bool isFirstFrame = true;
 
 	std::unique_ptr<ShadowMap> shadowMap_;
+	float SMAP_SIZE = 8192.0f;
 };
 
 #endif //DX12APP_

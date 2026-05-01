@@ -42,6 +42,7 @@ void UpdateCS( uint3 DTid : SV_DispatchThreadID )
         if (particle.currentAge >= particle.deadAge)
         {
             particle.isAlive = 0;
+            Particles[index] = particle;
             DeadList.Append(index);
             return;
         }

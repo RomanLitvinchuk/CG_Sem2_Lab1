@@ -53,6 +53,8 @@ private:
 struct ShadowConstants {
     Matrix lightViewProj;
     Matrix shadowTransform_;
+    float SMAP_SIZE;
+    float padding[3];
 };
 
 #endif //SHADOW_MAP

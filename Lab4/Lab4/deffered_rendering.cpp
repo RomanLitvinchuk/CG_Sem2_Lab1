@@ -30,6 +30,7 @@ void DX12App::InitRenderSystem() {
 
 	Matrix shadowTransform = lightView * lightProj * T;
 	shadowData.shadowTransform_ = shadowTransform;
+	shadowData.SMAP_SIZE = SMAP_SIZE;
 	ShadowCB->CopyData(0, shadowData);
 }
 
