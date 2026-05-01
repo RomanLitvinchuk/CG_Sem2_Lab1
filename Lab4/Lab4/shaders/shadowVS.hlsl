@@ -2,6 +2,7 @@ cbuffer ShadowConstants : register(b0)
 {
     row_major float4x4 lightViewProj;
     row_major float4x4 shadowTransform;
+    float4 distances;
 };
 
 struct InstanceData

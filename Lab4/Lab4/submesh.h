@@ -22,6 +22,7 @@ struct Submesh
     Matrix mTexTransform = Matrix::Identity;
     std::vector<MeshInstanceData> instances;
     UINT SOVertexCount;
+    int globalInstanceOffset;
 };
 
 #endif

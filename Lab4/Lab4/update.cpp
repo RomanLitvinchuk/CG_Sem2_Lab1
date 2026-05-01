@@ -102,4 +102,14 @@ void DX12App::Update() {
 			LightBuffer->CopyData(i, renderSystem->sceneLights_[i]);
 		}
 	}
+
+	UpdateCascades();
+	int numCascades = shadowMap_->GetNumCascades();
+	for (int i = 0; i < numCascades; ++i) {
+		ShadowConstants shadowData = {};
+		shadowData.lightViewProj = cascades_.viewProjMats[i];
+		shadowData.shadowTransform_ = cascades_.shadowTransform[i];
+		shadowData.cascadeDistances = Vector4(cascades_.distances[0], cascades_.distances[1], cascades_.distances[2], 0.0f);
+		ShadowCB->CopyData(i, shadowData);
+	}
 }

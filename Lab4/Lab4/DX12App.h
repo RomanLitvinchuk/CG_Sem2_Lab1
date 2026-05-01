@@ -93,6 +93,8 @@ public:
 	void InitRenderSystem();
 
 	void InitShadowMap();
+	std::vector<Vector3> GetFrustumCornersWorldSpace(Matrix invViewProj);
+	void UpdateCascades();
 
 	void Parsing();
 	void ParseFile(const std::string& filename, const Matrix& transform, UINT instanceCount);
@@ -114,6 +116,7 @@ public:
 	}
 
 	bool m_key_states[256] = { false };
+
 private:
 	void EnableDebug();
 	GameTimer gt;
@@ -224,6 +227,7 @@ private:
 
 	std::unique_ptr<ShadowMap> shadowMap_;
 	float SMAP_SIZE = 8192.0f;
+	CascadeData cascades_;
 };
 
 #endif //DX12APP_

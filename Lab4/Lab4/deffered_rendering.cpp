@@ -1,43 +1,47 @@
 #include "DX12App.h"
 #include <numeric>
 
+#define ALIGN_256(size) ((size + 255) & ~255)
+
 void DX12App::InitRenderSystem() {
 	renderSystem = new RenderingSystem(m_device_, m_client_width_, m_client_height_);
 
 	CreateStructuredBuffersSRV();
 
-	Vector3 lightDir = renderSystem->sceneLights_[0].lightDirection;
-	Vector3 targetPos = camera.mCameraPos;
-	//Vector3 lightPos = targetPos - lightDir * 500.0f;
-	Vector3 lightPos = Vector3(-50.0f, 5000.0f, 0.0f);
-	Vector3 up = Vector3(0.0f, 1.0f, 0.0f);
-	Matrix lightView = Matrix::CreateLookAt(lightPos, targetPos, up);
+	//Vector3 lightDir = renderSystem->sceneLights_[0].lightDirection;
+	//Vector3 targetPos = camera.mCameraPos;
+	////Vector3 lightPos = targetPos - lightDir * 500.0f;
+	//Vector3 lightPos = Vector3(-50.0f, 5000.0f, 0.0f);
+	//Vector3 up = Vector3(0.0f, 1.0f, 0.0f);
+	//Matrix lightView = Matrix::CreateLookAt(lightPos, targetPos, up);
 
-	float width = 15000.0f;
-	float height = 15000.0f;
-	float nearZ = 1.0f;
-	float farZ = 15000.0f;
-	ShadowConstants shadowData;
-	Matrix lightProj = Matrix::CreateOrthographic(width, height, nearZ, farZ);
-	shadowData.lightViewProj = lightView * lightProj;
+	//float width = 15000.0f;
+	//float height = 15000.0f;
+	//float nearZ = 1.0f;
+	//float farZ = 15000.0f;
+	//ShadowConstants shadowData;
+	//Matrix lightProj = Matrix::CreateOrthographic(width, height, nearZ, farZ);
+	//shadowData.lightViewProj = lightView * lightProj;
 
-	Matrix T(
-		0.5f, 0.0f, 0.0f, 0.0f,
-		0.0f, -0.5f, 0.0f, 0.0f,
-		0.0f, 0.0f, 1.0f, 0.0f,
-		0.5f, 0.5f, 0.0f, 1.0f);
+	//Matrix T(
+	//	0.5f, 0.0f, 0.0f, 0.0f,
+	//	0.0f, -0.5f, 0.0f, 0.0f,
+	//	0.0f, 0.0f, 1.0f, 0.0f,
+	//	0.5f, 0.5f, 0.0f, 1.0f);
 
 
-	Matrix shadowTransform = lightView * lightProj * T;
-	shadowData.shadowTransform_ = shadowTransform;
-	shadowData.SMAP_SIZE = SMAP_SIZE;
-	ShadowCB->CopyData(0, shadowData);
+	//Matrix shadowTransform = lightView * lightProj * T;
+	//shadowData.shadowTransform_ = shadowTransform;
+	//shadowData.SMAP_SIZE = SMAP_SIZE;
+	//ShadowCB->CopyData(0, shadowData);
 }
 
 void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->SetPipelineState(renderSystem->shadowPSO_.Get());
 	m_command_list_->SetGraphicsRootSignature(renderSystem->shadowRS_.Get());
 	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	m_command_list_->IASetVertexBuffers(0, 1, &VertexBuffers[0]);
+	m_command_list_->IASetIndexBuffer(&ibv);
 
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->Resource(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	m_command_list_->ResourceBarrier(1, &barrier);
@@ -47,26 +51,30 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	D3D12_RECT rect = shadowMap_->ScissorRect();
 	m_command_list_->RSSetScissorRects(1, &rect);
 
-	m_command_list_->ClearDepthStencilView(shadowMap_->Dsv(), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-	CD3DX12_CPU_DESCRIPTOR_HANDLE dsv = shadowMap_->Dsv();
-	m_command_list_->OMSetRenderTargets(0, nullptr, false, &dsv);
+	int numCascades = shadowMap_->GetNumCascades();
+	UINT elementSize = ALIGN_256(sizeof(ShadowConstants));
 
-	m_command_list_->SetGraphicsRootConstantBufferView(0, ShadowCB->Resource()->GetGPUVirtualAddress());
-	m_command_list_->IASetVertexBuffers(0, 1, &VertexBuffers[0]);
-	m_command_list_->IASetIndexBuffer(&ibv);
+	for (int i = 0; i < numCascades; ++i) {
+		m_command_list_->ClearDepthStencilView(shadowMap_->Dsv(i), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE dsv = shadowMap_->Dsv(i);
+		m_command_list_->OMSetRenderTargets(0, nullptr, false, &dsv);
 
-	UINT currentInstanceOffset = 0;
-	for (auto& sm : mSubmeshes) {
-		for (int i = 0; i < sm.InstanceCount; i++) {
-			InstanceBuffer->CopyData(currentInstanceOffset + i, sm.instances[i]);
+		auto address = ShadowCB->Resource()->GetGPUVirtualAddress();
+		address += i * elementSize;
+		m_command_list_->SetGraphicsRootConstantBufferView(0, address);
+		UINT currentInstanceOffset = 0;
+		for (auto& sm : mSubmeshes) {
+			for (int i = 0; i < sm.InstanceCount; i++) {
+				InstanceBuffer->CopyData(currentInstanceOffset + i, sm.instances[i]);
+			}
+			m_command_list_->SetGraphicsRootShaderResourceView(1, InstanceBuffer->Resource()->GetGPUVirtualAddress());
+			m_command_list_->DrawIndexedInstanced(
+				sm.indexCount,
+				sm.InstanceCount,
+				sm.startIndiceIndex,
+				sm.startVerticeIndex,
+				currentInstanceOffset);
 		}
-		m_command_list_->SetGraphicsRootShaderResourceView(1, InstanceBuffer->Resource()->GetGPUVirtualAddress());
-		m_command_list_->DrawIndexedInstanced(
-			sm.indexCount,
-			sm.InstanceCount,
-			sm.startIndiceIndex,
-			sm.startVerticeIndex,
-			currentInstanceOffset);
 	}
 	CD3DX12_RESOURCE_BARRIER backBarrier = CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->Resource(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	m_command_list_->ResourceBarrier(1, &backBarrier);

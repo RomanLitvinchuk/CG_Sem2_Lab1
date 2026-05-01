@@ -10,10 +10,17 @@ cbuffer LightCB : register(b1)
     uint lightCount;
 };
 
-cbuffer ShadowCB : register(b2)
+struct CascadeData
 {
     row_major float4x4 lightViewProj;
     row_major float4x4 shadowTransform;
+    float4 distances;
+    float4 padding[7];
+};
+
+cbuffer ShadowCB : register(b2)
+{
+    CascadeData g_Cascades[3];
 }
 
 Texture2D t_Diffuse : register(t0);
@@ -36,7 +43,7 @@ struct LightData
     float3 padding2;
 };
 StructuredBuffer<LightData> Lights : register(t3);
-Texture2D t_ShadowMap : register(t4);
+Texture2DArray t_ShadowMap : register(t4);
 
 struct PS_INPUT
 {
@@ -77,12 +84,32 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
     normal = normalize(normal * 2.0f - 1.0f);
     float3 worldPos = ReconstructWorldPos(input.TexCoord, depth);
     
-    float4 shadowPos = mul(float4(worldPos, 1.0f), shadowTransform);
-    shadowPos.xyz /= shadowPos.w;
-    float shadowFactor = t_ShadowMap.SampleCmpLevelZero(s_Border, shadowPos.xy, shadowPos.z - 0.005f);
-    //float shadowFactor = (depthInShadowMap < shadowPos.z ? 0.0f : 1.0f);
-    float3 viewDir = normalize(g_CameraPos - worldPos);
-
+    float3 viewDir = g_CameraPos - worldPos;
+    float pixelDepth = length(viewDir);
+    uint cascadeIndex = 0;
+    
+    [unroll]
+    for (uint j = 0; j < 3; ++j)
+    {
+        if (pixelDepth > g_Cascades[0].distances[j])
+        {
+            cascadeIndex = j + 1;
+        }
+    }
+    
+    float shadowFactor = 1.0f;
+    if (cascadeIndex < 3)
+    {
+        float4 shadowPos = mul(float4(worldPos, 1.0f), g_Cascades[cascadeIndex].shadowTransform);
+        shadowPos.xyz /= shadowPos.w;
+        shadowFactor = t_ShadowMap.SampleCmpLevelZero(
+            s_Border,
+            float3(shadowPos.xy, (float) cascadeIndex),
+            shadowPos.z - 0.002f 
+        );
+    }
+    
+    float3 viewVec = normalize(g_CameraPos - worldPos);
     float3 finalLight = float3(0.0f, 0.0f, 0.0f);
     for (uint i = 0; i < lightCount; i++)
     {
