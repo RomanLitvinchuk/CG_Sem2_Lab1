@@ -73,6 +73,19 @@ float3 ReconstructWorldPos(float2 texCoord, float depth)
     return worldPos.xyz / worldPos.w;
 }
 
+float3 ReconstructWorldPos(float2 texCoord, float depth, out float linearDepth)
+{
+    float x = texCoord.x * 2.0f - 1.0f;
+    float y = (1.0f - texCoord.y) * 2.0f - 1.0f;
+    
+    float4 ndcPos = float4(x, y, depth, 1.0f);
+    float4 worldPos = mul(ndcPos, g_InvViewProj);
+    
+    linearDepth = abs(1.0f / worldPos.w);
+    
+    return worldPos.xyz / worldPos.w;
+}
+
 float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
 {
     float depth = t_Depth.Sample(s_PointClamp, input.TexCoord).r;
@@ -82,10 +95,10 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
     float3 diffuse = t_Diffuse.Sample(s_PointClamp, input.TexCoord).rgb;
     float3 normal = t_Normal.Sample(s_PointClamp, input.TexCoord).xyz;
     normal = normalize(normal * 2.0f - 1.0f);
-    float3 worldPos = ReconstructWorldPos(input.TexCoord, depth);
     
-    float3 viewDir = g_CameraPos - worldPos;
-    float pixelDepth = length(viewDir);
+    float pixelDepth;
+    float3 worldPos = ReconstructWorldPos(input.TexCoord, depth, pixelDepth);
+    
     uint cascadeIndex = 0;
     
     [unroll]
@@ -98,6 +111,7 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
     }
     
     float shadowFactor = 1.0f;
+    cascadeIndex = min(cascadeIndex, 2u);
     if (cascadeIndex < 3)
     {
         float4 shadowPos = mul(float4(worldPos, 1.0f), g_Cascades[cascadeIndex].shadowTransform);

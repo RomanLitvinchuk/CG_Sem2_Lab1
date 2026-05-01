@@ -477,6 +477,7 @@ void DX12App::UpdateCascades()
 
 	Vector3 lightDir = renderSystem->sceneLights_[0].lightDirection;
 	lightDir.Normalize();
+	Vector3 up = (fabsf(lightDir.y) > 0.99f) ? Vector3::Right : Vector3::Up;
 
 	cascades_.distances[0] = 300.0f;
 	cascades_.distances[1] = 1000.0f;
@@ -501,7 +502,7 @@ void DX12App::UpdateCascades()
 		center /= corners.size();
 
 		Vector3 lightPos = center - lightDir * cascadeFar;
-		Matrix lightView = Matrix::CreateLookAt(center, center+lightDir, Vector3::Up);
+		Matrix lightView = Matrix::CreateLookAt(center, center+lightDir, up);
 
 		float minX = (std::numeric_limits<float>::max)();
 		float maxX = std::numeric_limits<float>::lowest();
