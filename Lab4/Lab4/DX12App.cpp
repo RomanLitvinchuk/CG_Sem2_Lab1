@@ -206,16 +206,6 @@ void DX12App::CreateSamplerHeap() {
 	sampDesc.MaxAnisotropy = 1;
 	sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 	m_device_->CreateSampler(&sampDesc, m_sampler_heap->GetCPUDescriptorHandleForHeapStart());
-	
-	sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
-	sampDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-	sampDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-	sampDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
-
-	auto handle = m_sampler_heap->GetCPUDescriptorHandleForHeapStart();
-	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
-	CD3DX12_CPU_DESCRIPTOR_HANDLE sampHandle(handle, 1, size);
-	m_device_->CreateSampler(&sampDesc, sampHandle);
 }
 
 void DX12App::SetViewport() {

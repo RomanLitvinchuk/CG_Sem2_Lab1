@@ -8,15 +8,15 @@ void DX12App::InitRenderSystem() {
 
 	Vector3 lightDir = renderSystem->sceneLights_[0].lightDirection;
 	Vector3 targetPos = camera.mCameraPos;
-	//Vector3 lightPos = targetPos - lightDir * 5000.0f;
-	Vector3 lightPos = Vector3(-50.0f, 10000.0f, 0.0f);
+	//Vector3 lightPos = targetPos - lightDir * 500.0f;
+	Vector3 lightPos = Vector3(-50.0f, 5000.0f, 0.0f);
 	Vector3 up = Vector3(0.0f, 1.0f, 0.0f);
 	Matrix lightView = Matrix::CreateLookAt(lightPos, targetPos, up);
 
-	float width = 20000.0f;
-	float height = 20000.0f;
+	float width = 15000.0f;
+	float height = 15000.0f;
 	float nearZ = 1.0f;
-	float farZ = 11000.0f;
+	float farZ = 15000.0f;
 	ShadowConstants shadowData;
 	Matrix lightProj = Matrix::CreateOrthographic(width, height, nearZ, farZ);
 	shadowData.lightViewProj = lightView * lightProj;

@@ -22,7 +22,7 @@ Texture2D t_Depth : register(t2);
 
 
 SamplerState s_PointClamp : register(s0);
-SamplerState s_Border : register(s1);
+SamplerComparisonState s_Border : register(s1);
 
 struct LightData
 {
@@ -79,8 +79,8 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
     
     float4 shadowPos = mul(float4(worldPos, 1.0f), shadowTransform);
     shadowPos.xyz /= shadowPos.w;
-    float depthInShadowMap = t_ShadowMap.Sample(s_Border, shadowPos.xy).r;
-    float shadowFactor = (depthInShadowMap < shadowPos.z - 0.005f ? 0.0f : 1.0f);
+    float shadowFactor = t_ShadowMap.SampleCmpLevelZero(s_Border, shadowPos.xy, shadowPos.z - 0.005f);
+    //float shadowFactor = (depthInShadowMap < shadowPos.z ? 0.0f : 1.0f);
     float3 viewDir = normalize(g_CameraPos - worldPos);
 
     float3 finalLight = float3(0.0f, 0.0f, 0.0f);

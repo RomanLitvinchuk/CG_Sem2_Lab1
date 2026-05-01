@@ -154,7 +154,7 @@ struct RenderingSystem {
 		D3D12_DESCRIPTOR_HEAP_DESC sampHeapDesc = {};
 		sampHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 		sampHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-		sampHeapDesc.NumDescriptors = 1;
+		sampHeapDesc.NumDescriptors = 2;
 		ThrowIfFailed(device->CreateDescriptorHeap(&sampHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&samplerHeap));
 
 		D3D12_SAMPLER_DESC sampDesc = {};
@@ -168,6 +168,21 @@ struct RenderingSystem {
 		sampDesc.MaxAnisotropy = 1;
 		sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 		device->CreateSampler(&sampDesc, samplerHeap->GetCPUDescriptorHandleForHeapStart());
+
+		sampDesc.Filter = D3D12_FILTER_COMPARISON_MIN_LINEAR_MAG_MIP_POINT;
+		sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+		sampDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		sampDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		sampDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+		sampDesc.BorderColor[0] = 1.0f;
+		sampDesc.BorderColor[1] = 1.0f;
+		sampDesc.BorderColor[2] = 1.0f;
+		sampDesc.BorderColor[3] = 1.0f;
+
+		auto handle = samplerHeap->GetCPUDescriptorHandleForHeapStart();
+		auto size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+		CD3DX12_CPU_DESCRIPTOR_HANDLE smpHandle(handle, 1, size);
+		device->CreateSampler(&sampDesc, smpHandle);
 	}
 };
 
