@@ -24,6 +24,7 @@ void DX12App::Update() {
 	ParticleConstants particleData;
 	particleData.deltaTime = gt.DeltaTime();
 	particleData.CameraPos = camera.mCameraPos;
+	particleData.particlesCount = PARTICLE_COUNT;
 	ParticleConstantsBuffer->CopyData(0, particleData);
 
 	if (camera.isFrustumCullingEnabled) {

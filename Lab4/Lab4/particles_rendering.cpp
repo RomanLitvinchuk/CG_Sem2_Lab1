@@ -14,7 +14,7 @@ void DX12App::EmitParticles() {
 		0,
 		m_CbvSrvUav_descriptor_size_);
 	m_command_list_->SetComputeRootDescriptorTable(1, uavHandle);
-	m_command_list_->Dispatch(1, 1, 1);
+	m_command_list_->Dispatch(4, 1, 1);
 	CD3DX12_RESOURCE_BARRIER uavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(RWParticleBuffer_.Get());
 	m_command_list_->ResourceBarrier(1, &uavBarrier);
 }

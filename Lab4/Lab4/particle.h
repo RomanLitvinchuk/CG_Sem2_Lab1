@@ -23,6 +23,7 @@ struct SortParticle {
 struct ParticleConstants {
 	Vector3 CameraPos;
 	float deltaTime;
+	int particlesCount;
 };
 
 struct Emitter {
