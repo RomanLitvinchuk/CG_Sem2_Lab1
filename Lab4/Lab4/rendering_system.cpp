@@ -116,20 +116,26 @@ void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D
 }
 
 void RenderingSystem::CreateLightRS(ComPtr<ID3D12Device> device) {
-	CD3DX12_ROOT_PARAMETER rootParameter[4];
+	CD3DX12_ROOT_PARAMETER rootParameter[6];
 	CD3DX12_DESCRIPTOR_RANGE srvTable[4];
 	srvTable[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	srvTable[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
 	srvTable[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
 	srvTable[3].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 3);
-	CD3DX12_DESCRIPTOR_RANGE samplerTable;
-	samplerTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+	CD3DX12_DESCRIPTOR_RANGE smTable;
+	smTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 4);
+	CD3DX12_DESCRIPTOR_RANGE samplerTable[2];
+	samplerTable[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+	samplerTable[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 1);
+
 	rootParameter[0].InitAsConstantBufferView(0);
 	rootParameter[1].InitAsConstants(1, 1);
 	rootParameter[2].InitAsDescriptorTable(4, srvTable, D3D12_SHADER_VISIBILITY_ALL);
-	rootParameter[3].InitAsDescriptorTable(1, &samplerTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[3].InitAsDescriptorTable(2, samplerTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[4].InitAsDescriptorTable(1, &smTable);
+	rootParameter[5].InitAsConstantBufferView(2);
 
-	CD3DX12_ROOT_SIGNATURE_DESC rootSignDesc(4, rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	CD3DX12_ROOT_SIGNATURE_DESC rootSignDesc(6, rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
 	ComPtr<ID3DBlob> errorBlob = nullptr;
@@ -602,7 +608,7 @@ void RenderingSystem::CreateShadowPSO(ComPtr<ID3D12Device> device, std::vector<D
 	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
 	//rastDesc.CullMode = D3D12_CULL_MODE_NONE;
 	rastDesc.FrontCounterClockwise = true;
-	rastDesc.DepthBias = 100000;
+	rastDesc.DepthBias = 0;
 	rastDesc.SlopeScaledDepthBias = 1.0f;
 	rastDesc.DepthBiasClamp = 0.0f;
 	psoDesc.RasterizerState = rastDesc;

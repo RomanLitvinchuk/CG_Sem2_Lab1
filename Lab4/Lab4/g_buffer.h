@@ -42,7 +42,7 @@ struct GBuffer {
 		
 		D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
 		srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		srvDesc.NumDescriptors = 4;
+		srvDesc.NumDescriptors = 5;
 		srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		ThrowIfFailed(device->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&SRVDescriptorHeap)));
 

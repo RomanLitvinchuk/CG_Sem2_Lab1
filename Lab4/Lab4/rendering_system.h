@@ -139,7 +139,7 @@ struct RenderingSystem {
 
 		LightConstants sun = {};
 		sun.lightType = 0; // Directional
-		sun.lightDirection = { 0.0f, 0.0f, 1.0f };
+		sun.lightDirection = { 0.0f, -1.0f, 0.0f };
 		sun.lightColor = { 1.0f, 0.9f, 0.8f };
 		sceneLights_.push_back(sun);
 

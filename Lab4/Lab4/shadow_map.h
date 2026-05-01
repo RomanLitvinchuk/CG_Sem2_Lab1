@@ -51,6 +51,7 @@ private:
 };
 
 struct ShadowConstants {
+    Matrix lightViewProj;
     Matrix shadowTransform_;
 };
 

@@ -1,6 +1,7 @@
 cbuffer ShadowConstants : register(b0)
 {
-    float4x4 shadowTransform;
+    row_major float4x4 lightViewProj;
+    row_major float4x4 shadowTransform;
 };
 
 struct InstanceData
@@ -27,6 +28,6 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID)
     VertexOut vout;
     float4x4 mWorld = Instances[instanceID].mWorld;
     float4 posW = mul(float4(vin.posL, 1.0f), mWorld);
-    vout.posH = mul(posW, shadowTransform);
+    vout.posH = mul(posW, lightViewProj);
     return vout;
 }

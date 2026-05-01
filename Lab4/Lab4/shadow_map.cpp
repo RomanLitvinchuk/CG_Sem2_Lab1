@@ -124,14 +124,14 @@ UINT ShadowMap::Height() const {
 }
 
 void DX12App::InitShadowMap() {
-    shadowMap_ = std::make_unique<ShadowMap>(m_device_.Get(), 2048, 2048);
+    shadowMap_ = std::make_unique<ShadowMap>(m_device_.Get(), 4096, 4096);
 
-    auto handle = m_CBV_SRV_heap_->GetCPUDescriptorHandleForHeapStart();
+    auto handle = renderSystem->g_buffer->SRVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
     auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-    CD3DX12_CPU_DESCRIPTOR_HANDLE smHandle(handle, mTextures.size() + 1, size);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE smHandle(handle, 4, size);
 
-    auto gpuHandle = m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart();
-    CD3DX12_GPU_DESCRIPTOR_HANDLE smGpuHandle(gpuHandle, mTextures.size() + 1, size);
+    auto gpuHandle = renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+    CD3DX12_GPU_DESCRIPTOR_HANDLE smGpuHandle(gpuHandle, 4, size);
 
     auto dsvHandle = m_DSV_heap_->GetCPUDescriptorHandleForHeapStart();
     size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);

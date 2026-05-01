@@ -185,7 +185,6 @@ void DX12App::CreateSRV() {
 		desc.Texture2D.MipLevels = tex->Resource->GetDesc().MipLevels;
 
 		m_device_->CreateShaderResourceView(tex->Resource.Get(), &desc, h);
-		std::cout << "SRV is created" << std::endl;
 	}
 }
 
@@ -193,9 +192,8 @@ void DX12App::CreateSamplerHeap() {
 	D3D12_DESCRIPTOR_HEAP_DESC sampHeapDesc = {};
 	sampHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	sampHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
-	sampHeapDesc.NumDescriptors = 1;
+	sampHeapDesc.NumDescriptors = 2;
 	ThrowIfFailed(m_device_->CreateDescriptorHeap(&sampHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&m_sampler_heap));
-	std::cout << "Sampler heap is created" << std::endl;
 
 	D3D12_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -208,7 +206,16 @@ void DX12App::CreateSamplerHeap() {
 	sampDesc.MaxAnisotropy = 1;
 	sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
 	m_device_->CreateSampler(&sampDesc, m_sampler_heap->GetCPUDescriptorHandleForHeapStart());
-	std::cout << "Sampler Descriptor is created" << std::endl;
+	
+	sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+	sampDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+	sampDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+	sampDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_BORDER;
+
+	auto handle = m_sampler_heap->GetCPUDescriptorHandleForHeapStart();
+	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE sampHandle(handle, 1, size);
+	m_device_->CreateSampler(&sampDesc, sampHandle);
 }
 
 void DX12App::SetViewport() {
@@ -222,7 +229,6 @@ void DX12App::SetViewport() {
 
 void DX12App::SetScissor() {
 	m_scissor_rect_ = { 0, 0, m_client_width_, m_client_height_ };
-	std::cout << "Scissor is set" << std::endl;
 }
 
 void DX12App::CalculateGameStats(HWND hWnd) {
@@ -269,10 +275,6 @@ void DX12App::InitProjectionMatrix() {
 		1.0f,                       
 		100000.0f                    
 	);
-
-	std::cout << "Projection matrix initialized. Aspect ratio: "
-		<< aspectRatio << std::endl;
-	
 }
 
 
@@ -290,7 +292,6 @@ void DX12App::CreateVertexBuffer() {
 	vbv.SizeInBytes = vbByteSize;
 	vbv.StrideInBytes = sizeof(Vertex);
 	VertexBuffers[0] = { vbv };
-	std::cout << "Vertex Buffer is set" << std::endl;
 }
 
 
@@ -306,7 +307,6 @@ void DX12App::CreateIndexBuffer() {
 	ibv.BufferLocation = IndexBufferGPU_->GetGPUVirtualAddress();
 	ibv.SizeInBytes = ibByteSize;
 	ibv.Format = DXGI_FORMAT_R32_UINT;
-	std::cout << "Index buffer is set" << std::endl;
 }
 
 void DX12App::InitUploadBuffers() {

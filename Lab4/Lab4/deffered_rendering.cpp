@@ -7,17 +7,19 @@ void DX12App::InitRenderSystem() {
 	CreateStructuredBuffersSRV();
 
 	Vector3 lightDir = renderSystem->sceneLights_[0].lightDirection;
-	Vector3 targetPos = Vector3(0.0f, 0.0f, 0.0f);
-	Vector3 lightPos = targetPos - lightDir * 5000.0f;
+	Vector3 targetPos = camera.mCameraPos;
+	//Vector3 lightPos = targetPos - lightDir * 5000.0f;
+	Vector3 lightPos = Vector3(-50.0f, 10000.0f, 0.0f);
 	Vector3 up = Vector3(0.0f, 1.0f, 0.0f);
 	Matrix lightView = Matrix::CreateLookAt(lightPos, targetPos, up);
 
-	float width = 2000.0f;
-	float height = 2000.0f;
+	float width = 20000.0f;
+	float height = 20000.0f;
 	float nearZ = 1.0f;
-	float farZ = 10000.0f;
-
+	float farZ = 11000.0f;
+	ShadowConstants shadowData;
 	Matrix lightProj = Matrix::CreateOrthographic(width, height, nearZ, farZ);
+	shadowData.lightViewProj = lightView * lightProj;
 
 	Matrix T(
 		0.5f, 0.0f, 0.0f, 0.0f,
@@ -27,8 +29,7 @@ void DX12App::InitRenderSystem() {
 
 
 	Matrix shadowTransform = lightView * lightProj * T;
-	ShadowConstants shadowData;
-	shadowData.shadowTransform_ = shadowTransform.Transpose();
+	shadowData.shadowTransform_ = shadowTransform;
 	ShadowCB->CopyData(0, shadowData);
 }
 
@@ -53,8 +54,8 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->IASetVertexBuffers(0, 1, &VertexBuffers[0]);
 	m_command_list_->IASetIndexBuffer(&ibv);
 
+	UINT currentInstanceOffset = 0;
 	for (auto& sm : mSubmeshes) {
-		UINT currentInstanceOffset = 0;
 		for (int i = 0; i < sm.InstanceCount; i++) {
 			InstanceBuffer->CopyData(currentInstanceOffset + i, sm.instances[i]);
 		}
@@ -66,7 +67,7 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 			sm.startVerticeIndex,
 			currentInstanceOffset);
 	}
-	CD3DX12_RESOURCE_BARRIER backBarrier = CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->Resource(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	CD3DX12_RESOURCE_BARRIER backBarrier = CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->Resource(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 	m_command_list_->ResourceBarrier(1, &backBarrier);
 }
 
@@ -115,10 +116,10 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	m_command_list_->SetGraphicsRootConstantBufferView(6, HullCB->Resource()->GetGPUVirtualAddress());
 
+	UINT currentInstanceOffset = 0;
 	for (UINT idx : visibleIndices)
 	{
 		auto& sm = mSubmeshes[idx];
-		UINT currentInstanceOffset = 0;
 		for (int i = 0; i < sm.InstanceCount; i++) {
 			InstanceBuffer->CopyData(currentInstanceOffset + i, sm.instances[i]);
 		}
@@ -212,10 +213,12 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->SetGraphicsRoot32BitConstant(1, count, 0);
 	m_command_list_->SetGraphicsRootDescriptorTable(2, renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 	m_command_list_->SetGraphicsRootDescriptorTable(3, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
+	m_command_list_->SetGraphicsRootDescriptorTable(4, shadowMap_->Srv());
+	m_command_list_->SetGraphicsRootConstantBufferView(5, ShadowCB->Resource()->GetGPUVirtualAddress());
 
 	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_command_list_->DrawInstanced(3, 1, 0, 0);
-	CD3DX12_RESOURCE_BARRIER backBarrier = CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->Resource(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_GENERIC_READ);
+	CD3DX12_RESOURCE_BARRIER backBarrier = CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->Resource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_GENERIC_READ);
 	m_command_list_->ResourceBarrier(1, &backBarrier);
 }
 
