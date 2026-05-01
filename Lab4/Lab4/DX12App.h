@@ -28,6 +28,7 @@
 #include <DirectXCollision.h>
 #include "octree.h"
 #include "particle.h"
+#include "shadow_map.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -56,6 +57,7 @@ public:
 	void CalculateGameStats(HWND hWnd);
 
 	void Draw();
+	void DrawShadows(ComPtr < ID3D12GraphicsCommandList> m_command_list_);
 	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawNYBalls();
@@ -89,6 +91,8 @@ public:
 	void BuildBulbGeometry();
 	void BuildBoxGeometry();
 	void InitRenderSystem();
+
+	void InitShadowMap();
 
 	void Parsing();
 	void ParseFile(const std::string& filename, const Matrix& transform, UINT instanceCount);
@@ -162,6 +166,7 @@ private:
 	std::unique_ptr<UploadBuffer<HullBuffer>> HullCB = nullptr;
 	std::unique_ptr<UploadBuffer<MeshInstanceData>> InstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<WireframeInstanceData>> WireframeInstanceBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<ShadowConstants>> ShadowCB = nullptr;
 
 	std::unique_ptr<UploadBuffer<uint32_t>> DeadListUpload_ = nullptr;
 	std::unique_ptr<UploadBuffer<uint32_t>> deadCounterUpload_ = nullptr;
@@ -216,6 +221,8 @@ private:
 	ComPtr<ID3D12Resource> readbackBuffer_ = nullptr;
 	D3D12_STREAM_OUTPUT_BUFFER_VIEW SOView_ = {};
 	bool isFirstFrame = true;
+
+	std::unique_ptr<ShadowMap> shadowMap_;
 };
 
 #endif //DX12APP_

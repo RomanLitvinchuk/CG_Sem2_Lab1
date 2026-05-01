@@ -97,7 +97,7 @@ void DX12App::CreateRTVAndDSVDescriptorHeaps() {
 	std::cout << "RTV heap is created" << std::endl;
 
 	D3D12_DESCRIPTOR_HEAP_DESC DSVHeapDesc;
-	DSVHeapDesc.NumDescriptors = 1;
+	DSVHeapDesc.NumDescriptors = 2;
 	DSVHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	DSVHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DSVHeapDesc.NodeMask = 0;
@@ -107,7 +107,7 @@ void DX12App::CreateRTVAndDSVDescriptorHeaps() {
 
 void DX12App::CreateCBVDescriptorHeap() {
 	D3D12_DESCRIPTOR_HEAP_DESC CBV_SRV_HeapDesc;
-	CBV_SRV_HeapDesc.NumDescriptors = 1 + mTextures.size();
+	CBV_SRV_HeapDesc.NumDescriptors = 2 + mTextures.size();
 	CBV_SRV_HeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	CBV_SRV_HeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	CBV_SRV_HeapDesc.NodeMask = 0;
@@ -323,6 +323,7 @@ void DX12App::InitUploadBuffers() {
 	InstanceBuffer = std::make_unique<UploadBuffer<MeshInstanceData>>(m_device_.Get(), 1000, false);
 	HullCB = std::make_unique<UploadBuffer<HullBuffer>>(m_device_.Get(), 1, true);
 	WireframeInstanceBuffer = std::make_unique<UploadBuffer<WireframeInstanceData>>(m_device_.Get(), 1000, false); 
+	ShadowCB = std::make_unique<UploadBuffer<ShadowConstants>>(m_device_.Get(), 1, true);
 
 	DeadListUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), PARTICLE_COUNT, false);
 	deadCounterUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), 1, false);

@@ -188,6 +188,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
     MyFramework.InitEmitter();
 	MyFramework.CreateConstantBufferView();
     MyFramework.InitRenderSystem();
+    MyFramework.InitShadowMap();
 
 
 	wnd.RegisterRawInputDevice();
