@@ -36,13 +36,13 @@ struct GBuffer {
 	GBuffer(int width, int height, ComPtr<ID3D12Device> device) {
 		D3D12_DESCRIPTOR_HEAP_DESC rtvDesc = {};
 		rtvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		rtvDesc.NumDescriptors = 2;
+		rtvDesc.NumDescriptors = 5;
 		rtvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 		ThrowIfFailed(device->CreateDescriptorHeap(&rtvDesc, IID_PPV_ARGS(&RTVDescriptorHeap)));
 		
 		D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
 		srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		srvDesc.NumDescriptors = 5;
+		srvDesc.NumDescriptors = 6;
 		srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		ThrowIfFailed(device->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&SRVDescriptorHeap)));
 

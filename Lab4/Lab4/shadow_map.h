@@ -21,8 +21,12 @@ public:
     UINT Width()const;
     UINT Height()const;
     ID3D12Resource* Resource();
+    ID3D12Resource* ColorResource();
     CD3DX12_GPU_DESCRIPTOR_HANDLE Srv()const;
     CD3DX12_CPU_DESCRIPTOR_HANDLE Dsv(int index)const;
+
+    CD3DX12_GPU_DESCRIPTOR_HANDLE ColorSrv() const;
+    CD3DX12_CPU_DESCRIPTOR_HANDLE Rtv(int index) const;
 
     D3D12_VIEWPORT Viewport()const;
     D3D12_RECT ScissorRect()const;
@@ -30,7 +34,10 @@ public:
     void BuildDescriptors(
         CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv,
         CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv,
-        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv);
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv,
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hColorCPUSrv,
+        CD3DX12_GPU_DESCRIPTOR_HANDLE hColorGPUSrv,
+        CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv);
 
     void OnResize(UINT newWidth, UINT newHeight);
     int GetNumCascades() const { return NUM_CASCADES; }
@@ -50,6 +57,10 @@ private:
     CD3DX12_GPU_DESCRIPTOR_HANDLE mhGpuSrv;
     CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuDsv[3];
     ComPtr<ID3D12Resource> mShadowMap = nullptr;
+    CD3DX12_CPU_DESCRIPTOR_HANDLE mhColorCpuSrv;
+    CD3DX12_GPU_DESCRIPTOR_HANDLE mhColorGpuSrv;
+    CD3DX12_CPU_DESCRIPTOR_HANDLE mhCpuRtv[3];
+    ComPtr<ID3D12Resource> mColorShadowMap = nullptr;
 };
 
 struct ShadowConstants {

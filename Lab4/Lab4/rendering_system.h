@@ -63,6 +63,11 @@ struct RenderingSystem {
 	ComPtr<ID3D12RootSignature> shadowRS_ = nullptr;
 	ComPtr<ID3D12PipelineState> shadowPSO_ = nullptr;
 	ComPtr<ID3DBlob> shadowVS_ = nullptr;
+	ComPtr<ID3DBlob> shadowPS_ = nullptr;
+
+	ComPtr<ID3D12RootSignature> shadowLightRS_ = nullptr;
+	ComPtr<ID3D12PipelineState> shadowLightPSO_ = nullptr;
+	ComPtr<ID3DBlob> shadowLightPS_ = nullptr;
 
 	GBuffer* g_buffer = nullptr;
 
@@ -148,7 +153,6 @@ struct RenderingSystem {
 		CreateBulbRS(device);
 		CreateBulbPSO(device, inputLayout_);
 
-		//CreateTessPSO(device, layout);
 
 
 		D3D12_DESCRIPTOR_HEAP_DESC sampHeapDesc = {};

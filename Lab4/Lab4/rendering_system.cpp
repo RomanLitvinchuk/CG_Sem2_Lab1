@@ -89,6 +89,8 @@ void RenderingSystem::CompileShaders() {
 	particleEmitCS_ = d3dUtil::CompileShader(L"shaders/particleEmitCS.hlsl", nullptr, "EmitCS", "cs_5_0");
 
 	shadowVS_ = d3dUtil::CompileShader(L"shaders/shadowVS.hlsl", nullptr, "VS", "vs_5_0");
+	shadowPS_ = d3dUtil::CompileShader(L"shaders/shadowVS.hlsl", nullptr, "PS", "ps_5_0");
+	shadowLightPS_ = d3dUtil::CompileShader(L"shaders/lightWithST.hlsl", nullptr, "PS_DeferredLighting", "ps_5_0");
 }
 
 void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
@@ -116,7 +118,7 @@ void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D
 }
 
 void RenderingSystem::CreateLightRS(ComPtr<ID3D12Device> device) {
-	CD3DX12_ROOT_PARAMETER rootParameter[6];
+	CD3DX12_ROOT_PARAMETER rootParameter[7];
 	CD3DX12_DESCRIPTOR_RANGE srvTable[4];
 	srvTable[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	srvTable[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
@@ -127,6 +129,8 @@ void RenderingSystem::CreateLightRS(ComPtr<ID3D12Device> device) {
 	CD3DX12_DESCRIPTOR_RANGE samplerTable[2];
 	samplerTable[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 	samplerTable[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 1);
+	CD3DX12_DESCRIPTOR_RANGE scTable;
+	scTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 5);
 
 	rootParameter[0].InitAsConstantBufferView(0);
 	rootParameter[1].InitAsConstants(1, 1);
@@ -134,8 +138,10 @@ void RenderingSystem::CreateLightRS(ComPtr<ID3D12Device> device) {
 	rootParameter[3].InitAsDescriptorTable(2, samplerTable, D3D12_SHADER_VISIBILITY_PIXEL);
 	rootParameter[4].InitAsDescriptorTable(1, &smTable);
 	rootParameter[5].InitAsConstantBufferView(2);
+	rootParameter[6].InitAsDescriptorTable(1, &scTable);
 
-	CD3DX12_ROOT_SIGNATURE_DESC rootSignDesc(6, rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootSignDesc(7, rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
 	ComPtr<ID3DBlob> errorBlob = nullptr;
@@ -579,11 +585,18 @@ void RenderingSystem::CreateParticlesEmitPSO(ComPtr<ID3D12Device> device)
 
 void RenderingSystem::CreateShadowRS(ComPtr<ID3D12Device> device)
 {
-	CD3DX12_ROOT_PARAMETER rootParameter[2];
+	CD3DX12_ROOT_PARAMETER rootParameter[5];
 	rootParameter[0].InitAsConstantBufferView(0);
 	rootParameter[1].InitAsShaderResourceView(0);
+	rootParameter[2].InitAsConstantBufferView(1);
+	CD3DX12_DESCRIPTOR_RANGE shadowTable;
+	shadowTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+	rootParameter[3].InitAsDescriptorTable(1, &shadowTable);
+	CD3DX12_DESCRIPTOR_RANGE samplerTable;
+	samplerTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+	rootParameter[4].InitAsDescriptorTable(1, &samplerTable);
 
-	CD3DX12_ROOT_SIGNATURE_DESC rootDesc(2, rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	CD3DX12_ROOT_SIGNATURE_DESC rootDesc(5, rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> errorBlob;
 	ComPtr<ID3DBlob> serializedRootDesc;
@@ -604,7 +617,7 @@ void RenderingSystem::CreateShadowPSO(ComPtr<ID3D12Device> device, std::vector<D
 	psoDesc.InputLayout = { layout.data(), (UINT)layout.size() };
 	psoDesc.pRootSignature = shadowRS_.Get();
 	psoDesc.VS = { reinterpret_cast<BYTE*>(shadowVS_->GetBufferPointer()), shadowVS_->GetBufferSize() };
-	psoDesc.PS = { nullptr, 0 };
+	psoDesc.PS = { reinterpret_cast<BYTE*>(shadowPS_->GetBufferPointer()), shadowPS_->GetBufferSize() };
 	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
 	//rastDesc.CullMode = D3D12_CULL_MODE_NONE;
 	rastDesc.FrontCounterClockwise = true;
@@ -616,11 +629,10 @@ void RenderingSystem::CreateShadowPSO(ComPtr<ID3D12Device> device, std::vector<D
 	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
 	psoDesc.SampleMask = UINT_MAX;
 	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
-	psoDesc.NumRenderTargets = 0;
-	psoDesc.RTVFormats[0] = DXGI_FORMAT_UNKNOWN;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&shadowPSO_)));
 }
-

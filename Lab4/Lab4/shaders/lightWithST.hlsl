@@ -44,7 +44,7 @@ struct LightData
 };
 StructuredBuffer<LightData> Lights : register(t3);
 Texture2DArray t_ShadowMap : register(t4);
-Texture2DArray t_ShadowColor : register(t5);
+Texture2D t_Shadow : register(t5);
 
 struct PS_INPUT
 {
@@ -112,7 +112,6 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
     }
     
     float shadowFactor = 1.0f;
-    float4 shadowColor = float4(0.0f, 0.0f, 0.0f, 1.0f);
     cascadeIndex = min(cascadeIndex, 2u);
     if (cascadeIndex < 3)
     {
@@ -121,11 +120,10 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
         shadowFactor = t_ShadowMap.SampleCmpLevelZero(
             s_Border,
             float3(shadowPos.xy, (float) cascadeIndex),
-            shadowPos.z - 0.002f 
+            shadowPos.z - 0.002f
         );
-        shadowColor = t_ShadowColor.Sample(s_PointClamp, float3(shadowPos.xy, (float) cascadeIndex));
     }
-    
+    float3 shadowColor = t_Shadow.Sample(s_PointClamp, input.TexCoord);
     float3 viewVec = normalize(g_CameraPos - worldPos);
     float3 finalLight = float3(0.0f, 0.0f, 0.0f);
     for (uint i = 0; i < lightCount; i++)
@@ -136,7 +134,7 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
         {
             float3 lightDir = normalize(-light.g_LightDirection);
             float NdotL = max(dot(normal, lightDir), 0.0f);
-            finalLight += diffuse * light.g_LightColor * NdotL * lerp(shadowColor.rgb * 2.0f, float3(1.0f, 1.0f, 1.0f), shadowFactor);
+            finalLight += diffuse * light.g_LightColor * NdotL * shadowFactor * shadowColor;
         }
         else if (light.g_LightType == 1) // Point
         {

@@ -23,6 +23,7 @@ struct Submesh
     std::vector<MeshInstanceData> instances;
     UINT SOVertexCount;
     int globalInstanceOffset;
+
 };
 
 #endif

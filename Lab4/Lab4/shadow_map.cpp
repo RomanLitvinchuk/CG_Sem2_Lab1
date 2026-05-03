@@ -43,11 +43,44 @@ void ShadowMap::BuildResource()
         IID_PPV_ARGS(&mShadowMap)));
     mShadowMap.Get()->SetName(L"Shadow Map Texture");
 
+    D3D12_RESOURCE_DESC colorDesc = {};
+    colorDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    colorDesc.Alignment = 0;
+    colorDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    colorDesc.Width = mWidth;
+    colorDesc.Height = mHeight;
+    colorDesc.DepthOrArraySize = NUM_CASCADES;
+    colorDesc.SampleDesc.Count = 1;
+    colorDesc.SampleDesc.Quality = 0;
+    colorDesc.MipLevels = 1;
+    colorDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    colorDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+    D3D12_CLEAR_VALUE colorClear;
+    colorClear.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    colorClear.Color[0] = 1.0f; 
+    colorClear.Color[1] = 1.0f;
+    colorClear.Color[2] = 1.0f;
+    colorClear.Color[3] = 1.0f;
+
+    ThrowIfFailed(md3dDevice->CreateCommittedResource(
+        &heapDefault,
+        D3D12_HEAP_FLAG_NONE,
+        &colorDesc,
+        D3D12_RESOURCE_STATE_GENERIC_READ,
+        &colorClear,
+        IID_PPV_ARGS(&mColorShadowMap)));
+    mColorShadowMap->SetName(L"Color Shadow Map");
 }
 
 ID3D12Resource* ShadowMap::Resource()
 {
     return mShadowMap.Get();
+}
+
+ID3D12Resource* ShadowMap::ColorResource()
+{
+    return mColorShadowMap.Get();
 }
 
 CD3DX12_GPU_DESCRIPTOR_HANDLE ShadowMap::Srv()const
@@ -60,6 +93,16 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE ShadowMap::Dsv(int index)const
     return mhCpuDsv[index];
 }
 
+CD3DX12_GPU_DESCRIPTOR_HANDLE ShadowMap::ColorSrv() const
+{
+    return mhColorGpuSrv;
+}
+
+CD3DX12_CPU_DESCRIPTOR_HANDLE ShadowMap::Rtv(int index) const
+{
+    return mhCpuRtv[index];
+}
+
 D3D12_VIEWPORT ShadowMap::Viewport() const
 {
     return mViewport;
@@ -70,15 +113,24 @@ D3D12_RECT ShadowMap::ScissorRect() const
     return mScissorRect;
 }
 
-void ShadowMap::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv, CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv, CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv)
+void ShadowMap::BuildDescriptors(CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuSrv, CD3DX12_GPU_DESCRIPTOR_HANDLE hGpuSrv, CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuDsv,
+                                 CD3DX12_CPU_DESCRIPTOR_HANDLE hColorCPUSrv, CD3DX12_GPU_DESCRIPTOR_HANDLE hColorGPUSrv, CD3DX12_CPU_DESCRIPTOR_HANDLE hCpuRtv)
 {
     mhCpuSrv = hCpuSrv;
     mhGpuSrv = hGpuSrv;
+    mhColorCpuSrv = hColorCPUSrv;
+    mhColorGpuSrv = hColorGPUSrv;
     UINT dsvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
     for (int i = 0; i < NUM_CASCADES; ++i) {
         mhCpuDsv[i] = hCpuDsv;
         hCpuDsv.Offset(1, dsvDescriptorSize);
+    }
+
+    UINT rtvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    for (int i = 0; i < NUM_CASCADES; ++i) {
+        mhCpuRtv[i] = hCpuRtv;
+        hCpuRtv.Offset(1, rtvDescriptorSize);
     }
 
     BuildDescriptors();
@@ -108,6 +160,28 @@ void ShadowMap::BuildDescriptors() {
         dsvDesc.Texture2DArray.MipSlice = 0;
 
         md3dDevice->CreateDepthStencilView(mShadowMap.Get(), &dsvDesc, mhCpuDsv[i]);
+    }
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC colorSrvDesc = {};
+    colorSrvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    colorSrvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    colorSrvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+    colorSrvDesc.Texture2DArray.MostDetailedMip = 0;
+    colorSrvDesc.Texture2DArray.MipLevels = 1;
+    colorSrvDesc.Texture2DArray.ArraySize = NUM_CASCADES;
+    colorSrvDesc.Texture2DArray.ResourceMinLODClamp = 0.0f;
+    colorSrvDesc.Texture2DArray.PlaneSlice = 0;
+    md3dDevice->CreateShaderResourceView(mColorShadowMap.Get(), &colorSrvDesc, mhColorCpuSrv);
+
+    for (int i = 0; i < NUM_CASCADES; i++) {
+        D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+        rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+        rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+        rtvDesc.Texture2DArray.FirstArraySlice = i;
+        rtvDesc.Texture2DArray.ArraySize = 1;
+        rtvDesc.Texture2DArray.MipSlice = 0;
+
+        md3dDevice->CreateRenderTargetView(mColorShadowMap.Get(), &rtvDesc, mhCpuRtv[i]);
     }
 }
 
@@ -149,5 +223,15 @@ void DX12App::InitShadowMap() {
     size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
     CD3DX12_CPU_DESCRIPTOR_HANDLE smDsvHandle(dsvHandle, 1, size);
 
-    shadowMap_->BuildDescriptors(smHandle, smGpuHandle, smDsvHandle);
+    handle = renderSystem->g_buffer->SRVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE colorCpuHandle(handle, 5, size);
+    gpuHandle = renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+    CD3DX12_GPU_DESCRIPTOR_HANDLE colorGpuHandle(gpuHandle, 5, size);
+
+    auto rtvHandle = renderSystem->g_buffer->RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    CD3DX12_CPU_DESCRIPTOR_HANDLE colorRtvHandle(rtvHandle, 2, size);
+
+    shadowMap_->BuildDescriptors(smHandle, smGpuHandle, smDsvHandle, colorCpuHandle, colorGpuHandle, colorRtvHandle);
 }

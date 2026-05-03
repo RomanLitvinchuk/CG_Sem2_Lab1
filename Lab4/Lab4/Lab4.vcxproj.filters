@@ -75,6 +75,9 @@
     <ClCompile Include="shadow_map.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="cascades.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="window_class.h">
@@ -179,6 +182,9 @@
       <Filter>Исходные файлы</Filter>
     </FxCompile>
     <FxCompile Include="shaders\shadowVS.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\lightWithST.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
   </ItemGroup>

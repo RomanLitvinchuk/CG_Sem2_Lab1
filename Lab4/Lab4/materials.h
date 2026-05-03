@@ -30,7 +30,8 @@ struct MaterialConstants
 
     int displacementTextureIndex = 0;
     int hasDisplacementTexture = 0;
-    int pad[2];
+    int shadowTextureIndex = 0;
+    int hasShadowTexture = 0;
 
 
 };

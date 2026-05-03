@@ -28,7 +28,8 @@ cbuffer cbMaterial : register(b1)
     
     int gDisplacementTextureIndex;
     int gHasDisplacementTexture;
-    int2 padding;
+    int gShadowTextureIndex;
+    int gHasShadowTexture;
 }
 
 Texture2D DiffuseMap : register(t0);

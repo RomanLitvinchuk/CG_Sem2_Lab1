@@ -53,7 +53,8 @@ void DX12App::Parsing() {
 	Transform = Matrix::CreateScale(100.0f) * Matrix::CreateRotationX(3.14 / 2) * Matrix::CreateTranslation(400.0f, 110.0f, -50.0f);
 	//ParseFile("models/SM_Chisel.fbx", Transform, 500);
 
-
+	Transform = Matrix::CreateScale(30.0f) * Matrix::CreateTranslation(400.0f, 200.0f, 0.0f);
+	ParseFile("models/HydraMoonSimpleCube.fbx", Transform, 1);
 	visibleIndices.reserve(mSubmeshes.size());
 
 	octree.Build(mSubmeshes);
@@ -296,6 +297,18 @@ void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMateria
 		if (mTextures.count(wName)) {
 			MatConst.displacementTextureIndex = mTextures[wName]->srvHeapIndex;
 			MatConst.hasDisplacementTexture = 1;
+		}
+	}
+
+	if (filename.find("HydraMoonSimpleCube") != std::string::npos) {
+		std::wstring wName = L"white";
+		if (mTextures.count(wName)) {
+			MatConst.diffuseTextureIndex = mTextures[wName]->srvHeapIndex;
+		}
+		wName = L"rainbow";
+		if (mTextures.count(wName)) {
+			MatConst.shadowTextureIndex = mTextures[wName]->srvHeapIndex;
+			MatConst.hasShadowTexture = 1;
 		}
 	}
 
