@@ -187,5 +187,8 @@
     <FxCompile Include="shaders\lightWithST.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\billboard.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

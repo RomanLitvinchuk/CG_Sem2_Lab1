@@ -55,8 +55,11 @@ void DX12App::Parsing() {
 
 	Transform = Matrix::CreateScale(30.0f) * Matrix::CreateTranslation(400.0f, 200.0f, 0.0f);
 	ParseFile("models/HydraMoonSimpleCube.fbx", Transform, 1);
-	visibleIndices.reserve(mSubmeshes.size());
 
+	Transform = Matrix::CreateScale(30.0f) * Matrix::CreateTranslation(700.0f, 0.0f, 0.0f);
+	ParseFile("models/Minecraft Tree.obj", Transform, 1);
+
+	visibleIndices.reserve(mSubmeshes.size());
 	octree.Build(mSubmeshes);
 }
 
@@ -146,6 +149,22 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 	submesh.startIndiceIndex = startIndex;
 	submesh.startVerticeIndex = 0;
 	submesh.materialIndex = mesh->mMaterialIndex + materialOffset;
+	submesh.mWorld = transform;
+
+	if (filename.find("Minecraft Tree") != std::string::npos) {
+		submesh.startIndiceIndexLOD1 = static_cast<UINT>(indices.size());
+		submesh.startVerticeIndexLOD1 = 0;
+
+		for (int i = 0; i < mesh->mNumFaces; i += 2) {
+			aiFace face = mesh->mFaces[i];
+			for (int j = 0; j < face.mNumIndices; ++j) {
+				indices.push_back(face.mIndices[j] + vertexOffset);
+			}
+		}
+		submesh.indexCountLOD1 = static_cast<UINT>(indices.size() - submesh.startIndiceIndexLOD1);
+		submesh.hasLOD1 = submesh.indexCountLOD1 > 0;
+
+	}
 
 	DirectX::BoundingBox::CreateFromPoints(
 		submesh.box,
@@ -309,6 +328,14 @@ void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMateria
 		if (mTextures.count(wName)) {
 			MatConst.shadowTextureIndex = mTextures[wName]->srvHeapIndex;
 			MatConst.hasShadowTexture = 1;
+		}
+	}
+
+	if (filename.find("Minecraft Tree") != std::string::npos) {
+		std::wstring wName = L"tree_billboard";
+		if (mTextures.count(wName)) {
+			MatConst.hasBillboardTexture = 1;
+			MatConst.billboardTextureIndex = mTextures[wName]->srvHeapIndex;
 		}
 	}
 

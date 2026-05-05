@@ -69,6 +69,11 @@ struct RenderingSystem {
 	ComPtr<ID3D12PipelineState> shadowLightPSO_ = nullptr;
 	ComPtr<ID3DBlob> shadowLightPS_ = nullptr;
 
+	ComPtr<ID3D12RootSignature> billboardRS_ = nullptr;
+	ComPtr<ID3D12PipelineState> billboardPSO_ = nullptr;
+	ComPtr<ID3DBlob> billboardVS_ = nullptr;
+	ComPtr<ID3DBlob> billboardPS_ = nullptr;
+
 	GBuffer* g_buffer = nullptr;
 
 	std::vector<LightConstants> sceneLights_;
@@ -111,6 +116,9 @@ struct RenderingSystem {
 	void CreateShadowRS(ComPtr<ID3D12Device> device);
 	void CreateShadowPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
 
+	void CreateBillboardRS(ComPtr<ID3D12Device> device);
+	void CreateBillboardPSO(ComPtr<ID3D12Device> device);
+
 	void GenerateTreeLights(std::vector<LightConstants>& lightsArray, Vector3 treeBasePosition, float treeHeight, float treeBaseRadius, int count);
 
 	RenderingSystem(ComPtr<ID3D12Device> device, int width, int height) {
@@ -139,6 +147,9 @@ struct RenderingSystem {
 
 		CreateShadowRS(device);
 		CreateShadowPSO(device, inputLayout_);
+
+		CreateBillboardRS(device);
+		CreateBillboardPSO(device);
 
 		g_buffer = new GBuffer(width, height, device);
 

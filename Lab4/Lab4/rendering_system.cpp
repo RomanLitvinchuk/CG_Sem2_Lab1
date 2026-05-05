@@ -91,6 +91,9 @@ void RenderingSystem::CompileShaders() {
 	shadowVS_ = d3dUtil::CompileShader(L"shaders/shadowVS.hlsl", nullptr, "VS", "vs_5_0");
 	shadowPS_ = d3dUtil::CompileShader(L"shaders/shadowVS.hlsl", nullptr, "PS", "ps_5_0");
 	shadowLightPS_ = d3dUtil::CompileShader(L"shaders/lightWithST.hlsl", nullptr, "PS_DeferredLighting", "ps_5_0");
+
+	billboardVS_ = d3dUtil::CompileShader(L"shaders/billboard.hlsl", nullptr, "VS", "vs_5_0");
+	billboardPS_ = d3dUtil::CompileShader(L"shaders/billboard.hlsl", nullptr, "PS", "ps_5_0");
 }
 
 void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
@@ -635,4 +638,56 @@ void RenderingSystem::CreateShadowPSO(ComPtr<ID3D12Device> device, std::vector<D
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&shadowPSO_)));
+}
+
+void RenderingSystem::CreateBillboardRS(ComPtr<ID3D12Device> device)
+{
+	CD3DX12_ROOT_PARAMETER rootParameter[5];
+	rootParameter[0].InitAsShaderResourceView(0);
+	rootParameter[1].InitAsConstantBufferView(0);
+	rootParameter[2].InitAsConstantBufferView(1);
+	CD3DX12_DESCRIPTOR_RANGE texTable;
+	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+	rootParameter[3].InitAsDescriptorTable(1, &texTable);
+	CD3DX12_DESCRIPTOR_RANGE sampleTable;
+	sampleTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+	rootParameter[4].InitAsDescriptorTable(1, &sampleTable);
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootDesc(5, rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	ComPtr<ID3DBlob> errorBlob;
+	ComPtr<ID3DBlob> serializedRootDesc;
+
+	ThrowIfFailed(D3D12SerializeRootSignature(&rootDesc, D3D_ROOT_SIGNATURE_VERSION_1, serializedRootDesc.GetAddressOf(), errorBlob.GetAddressOf()));
+
+	if (errorBlob != nullptr) {
+		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+	}
+
+	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&billboardRS_)));
+}
+
+void RenderingSystem::CreateBillboardPSO(ComPtr<ID3D12Device> device)
+{
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
+	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	psoDesc.InputLayout = { nullptr, 0 };
+	psoDesc.pRootSignature = billboardRS_.Get();
+	psoDesc.VS = { reinterpret_cast<BYTE*>(billboardVS_->GetBufferPointer()), billboardVS_->GetBufferSize() };
+	psoDesc.PS = { reinterpret_cast<BYTE*>(billboardPS_->GetBufferPointer()), billboardPS_->GetBufferSize() };
+	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
+	rastDesc.FrontCounterClockwise = true;
+	rastDesc.CullMode = D3D12_CULL_MODE_NONE;
+	psoDesc.RasterizerState = rastDesc;
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 2;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	psoDesc.RTVFormats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.SampleDesc.Quality = 0;
+	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&billboardPSO_)));
 }

@@ -24,6 +24,10 @@ struct Submesh
     UINT SOVertexCount;
     int globalInstanceOffset;
 
+    UINT indexCountLOD1 = 0;
+    UINT startIndiceIndexLOD1 = 0;
+    UINT startVerticeIndexLOD1 = 0;
+    bool hasLOD1 = false;
 };
 
 #endif

@@ -33,7 +33,9 @@ struct MaterialConstants
     int shadowTextureIndex = 0;
     int hasShadowTexture = 0;
 
-
+    int billboardTextureIndex = 0;
+    int hasBillboardTexture = 0;
+    int pad[2];
 };
 
 //static_assert(sizeof(MaterialConstants) == 160,

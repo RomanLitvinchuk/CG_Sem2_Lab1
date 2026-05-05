@@ -46,12 +46,33 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		m_command_list_->SetGraphicsRootConstantBufferView(0, address);
 
 		UINT currentInstanceOffset = 0;
+		const float LOD_DISTANCE = 600.0f * 600.0f;
+		const float BILLBOARD_DISTANCE = 900.0f * 900.0f;
+		Vector3 cameraPos = camera.mCameraPos;
 		for (auto& sm : mSubmeshes) {
-			for (int i = 0; i < sm.InstanceCount; i++) {
-				InstanceBuffer->CopyData(currentInstanceOffset + i, sm.instances[i]);
-			}
-			m_command_list_->SetGraphicsRootShaderResourceView(1, InstanceBuffer->Resource()->GetGPUVirtualAddress());
 
+			std::vector<MeshInstanceData> lod0_instances;
+			std::vector<MeshInstanceData> lod1_instances;
+			std::vector<MeshInstanceData> billboards;
+
+			lod0_instances.reserve(sm.InstanceCount);
+			if (sm.hasLOD1) lod1_instances.reserve(sm.InstanceCount);
+
+			for (int i = 0; i < sm.InstanceCount; i++) {
+				Vector3 instancePos(sm.instances[i].World_._41, sm.instances[i].World_._42, sm.instances[i].World_._43);
+				float distSq = Vector3::DistanceSquared(cameraPos, instancePos);
+
+				if (sm.hasLOD1 && distSq > BILLBOARD_DISTANCE) {
+					billboards.push_back(sm.instances[i]);
+				}
+				else if (sm.hasLOD1 && distSq > LOD_DISTANCE) 
+				{
+					lod1_instances.push_back(sm.instances[i]);
+				}
+				else {
+					lod0_instances.push_back(sm.instances[i]);
+				}
+			}
 			UINT matIndex = sm.materialIndex;
 			UINT matBufferSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
 			D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress() + matIndex * matBufferSize;
@@ -63,13 +84,34 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 				texHeapIndex,
 				m_CbvSrvUav_descriptor_size_);
 			m_command_list_->SetGraphicsRootDescriptorTable(3, srvHandle);
+			if (!lod0_instances.empty()) {
+				for (size_t i = 0; i < lod0_instances.size(); i++) {
+					InstanceBuffer->CopyData(currentInstanceOffset + i, lod0_instances[i]);
+				}
+				m_command_list_->SetGraphicsRootShaderResourceView(1, InstanceBuffer->Resource()->GetGPUVirtualAddress());
+				m_command_list_->DrawIndexedInstanced(
+					sm.indexCount,
+					static_cast<UINT>(lod0_instances.size()),
+					sm.startIndiceIndex,
+					sm.startVerticeIndex,
+					currentInstanceOffset);
+				currentInstanceOffset += sm.InstanceCount;
+			}
+			if (!lod1_instances.empty() && billboards.empty()) {
+				for (size_t i = 0; i < lod1_instances.size(); i++) {
+					InstanceBuffer->CopyData(currentInstanceOffset + i, lod1_instances[i]);
+				}
+				m_command_list_->SetGraphicsRootShaderResourceView(1, InstanceBuffer->Resource()->GetGPUVirtualAddress());
 
-			m_command_list_->DrawIndexedInstanced(
-				sm.indexCount,
-				sm.InstanceCount,
-				sm.startIndiceIndex,
-				sm.startVerticeIndex,
-				currentInstanceOffset);
+				m_command_list_->DrawIndexedInstanced(
+					sm.indexCountLOD1,
+					static_cast<UINT>(lod1_instances.size()),
+					sm.startIndiceIndexLOD1,
+					sm.startVerticeIndexLOD1,
+					currentInstanceOffset);
+
+				currentInstanceOffset += static_cast<UINT>(lod1_instances.size());
+			}
 		}
 	}
 	CD3DX12_RESOURCE_BARRIER backBarriers[2] = {
@@ -91,9 +133,6 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		visibleIndices.resize(mSubmeshes.size());
 		std::iota(visibleIndices.begin(), visibleIndices.end(), 0);
 	}
-
-	m_command_list_->SetPipelineState(renderSystem->opaquePSO_.Get());
-
 	m_command_list_->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvs[] = {
@@ -107,31 +146,51 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	m_command_list_->SetGraphicsRootSignature(renderSystem->opaqueRS_.Get());
 
+	CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle(m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
+	CD3DX12_GPU_DESCRIPTOR_HANDLE samplerHandle(m_sampler_heap->GetGPUDescriptorHandleForHeapStart());
+
 	m_command_list_->IASetVertexBuffers(0, 1, &VertexBuffers[0]);
 	m_command_list_->IASetIndexBuffer(&ibv);
-	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-
-	CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle(
-		m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
-
-	m_command_list_->SetGraphicsRootDescriptorTable(0, cbvHandle);
-
-	m_command_list_->SetGraphicsRootDescriptorTable(
-		2,
-		m_sampler_heap->GetGPUDescriptorHandleForHeapStart());
-
-	UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
-
-	m_command_list_->SetGraphicsRootConstantBufferView(6, HullCB->Resource()->GetGPUVirtualAddress());
 
 	UINT currentInstanceOffset = 0;
+	const float LOD_DISTANCE = 600.0f * 600.0f;
+	const float BILLBOARD_DISTANCE = 900.0f * 900.0f;
+	Vector3 cameraPos = camera.mCameraPos;
 	for (UINT idx : visibleIndices)
 	{
 		auto& sm = mSubmeshes[idx];
-		for (int i = 0; i < sm.InstanceCount; i++) {
-			InstanceBuffer->CopyData(currentInstanceOffset + i, sm.instances[i]);
+
+		m_command_list_->SetGraphicsRootSignature(renderSystem->opaqueRS_.Get());
+		m_command_list_->SetPipelineState(renderSystem->opaquePSO_.Get());
+		m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+		m_command_list_->SetGraphicsRootDescriptorTable(0, cbvHandle); 
+		m_command_list_->SetGraphicsRootDescriptorTable(2, samplerHandle); 
+		m_command_list_->SetGraphicsRootConstantBufferView(6, HullCB->Resource()->GetGPUVirtualAddress());
+
+		std::vector<MeshInstanceData> lod0_instances;
+		std::vector<MeshInstanceData> lod1_instances;
+		std::vector<MeshInstanceData> billboards;
+
+		lod0_instances.reserve(sm.InstanceCount);
+		if (sm.hasLOD1) {
+			lod1_instances.reserve(sm.InstanceCount);
+			billboards.reserve(sm.InstanceCount);
 		}
-		m_command_list_->SetGraphicsRootShaderResourceView(7, InstanceBuffer->Resource()->GetGPUVirtualAddress());
+		for (int i = 0; i < sm.InstanceCount; i++) {
+			Vector3 instancePos(sm.instances[i].World_._41, sm.instances[i].World_._42, sm.instances[i].World_._43);
+			float distSq = Vector3::DistanceSquared(cameraPos, instancePos);
+
+			if (sm.hasLOD1 && distSq > BILLBOARD_DISTANCE) {
+				billboards.push_back(sm.instances[i]);
+			}
+			else if (sm.hasLOD1 && distSq > LOD_DISTANCE) {
+				lod1_instances.push_back(sm.instances[i]);
+			}
+			else {
+				lod0_instances.push_back(sm.instances[i]);
+			}
+		}
 
 		UINT matIndex = sm.materialIndex;
 		UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
@@ -165,39 +224,79 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 		m_command_list_->SetGraphicsRootDescriptorTable(4, normHandle);
 
-		if (sm.name_.find("Sketchfab") != std::string::npos)
-		{
-			m_command_list_->SetPipelineState(renderSystem->bakedPSO_.Get());
-			D3D12_VERTEX_BUFFER_VIEW bakedVbv;
-			bakedVbv.BufferLocation = SOBuffer_->GetGPUVirtualAddress();
-			bakedVbv.StrideInBytes = sizeof(BakedVertex);
-			bakedVbv.SizeInBytes = SOMesh.SOVertexCount * sizeof(BakedVertex);
+		if (!lod0_instances.empty()) {
+			for (size_t i = 0; i < lod0_instances.size(); i++) {
+				InstanceBuffer->CopyData(currentInstanceOffset + i, lod0_instances[i]);
+			}
+			m_command_list_->SetGraphicsRootShaderResourceView(7, InstanceBuffer->Resource()->GetGPUVirtualAddress());
 
-			m_command_list_->IASetVertexBuffers(0, 1, &bakedVbv);
-			m_command_list_->DrawInstanced(
-				SOMesh.SOVertexCount,
-				sm.InstanceCount,
-				0,
-				currentInstanceOffset);
-			m_command_list_->IASetVertexBuffers(0, 1, &VertexBuffers[0]);
+			if (sm.name_.find("Sketchfab") != std::string::npos)
+			{
+				m_command_list_->SetPipelineState(renderSystem->bakedPSO_.Get());
+				D3D12_VERTEX_BUFFER_VIEW bakedVbv;
+				bakedVbv.BufferLocation = SOBuffer_->GetGPUVirtualAddress();
+				bakedVbv.StrideInBytes = sizeof(BakedVertex);
+				bakedVbv.SizeInBytes = SOMesh.SOVertexCount * sizeof(BakedVertex);
+
+				m_command_list_->IASetVertexBuffers(0, 1, &bakedVbv);
+				m_command_list_->DrawInstanced(
+					SOMesh.SOVertexCount,
+					sm.InstanceCount,
+					0,
+					currentInstanceOffset);
+				m_command_list_->IASetVertexBuffers(0, 1, &VertexBuffers[0]);
+			}
+			else {
+				m_command_list_->DrawIndexedInstanced(
+					sm.indexCount,
+					static_cast<UINT>(lod0_instances.size()),
+					sm.startIndiceIndex,
+					sm.startVerticeIndex,
+					currentInstanceOffset);
+			}
+			currentInstanceOffset += static_cast<UINT>(lod0_instances.size());
 		}
-		else {
+
+		if (!lod1_instances.empty()) {
+			for (size_t i = 0; i < lod1_instances.size(); i++) {
+				InstanceBuffer->CopyData(currentInstanceOffset + i, lod1_instances[i]);
+			}
+			m_command_list_->SetGraphicsRootShaderResourceView(7, InstanceBuffer->Resource()->GetGPUVirtualAddress());
+
 			m_command_list_->DrawIndexedInstanced(
-				sm.indexCount,
-				sm.InstanceCount,
-				sm.startIndiceIndex,
-				sm.startVerticeIndex,
+				sm.indexCountLOD1,
+				static_cast<UINT>(lod1_instances.size()),
+				sm.startIndiceIndexLOD1,
+				sm.startVerticeIndexLOD1,
 				currentInstanceOffset);
+
+			currentInstanceOffset += static_cast<UINT>(lod1_instances.size());
 		}
+		
+		if (!billboards.empty()) {
+			m_command_list_->SetGraphicsRootSignature(renderSystem->billboardRS_.Get());
+			m_command_list_->SetPipelineState(renderSystem->billboardPSO_.Get());
+			m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			for (size_t i = 0; i < billboards.size(); i++) {
+				InstanceBuffer->CopyData(currentInstanceOffset + i, billboards[i]);
+			}
+			m_command_list_->SetGraphicsRootShaderResourceView(0, InstanceBuffer->Resource()->GetGPUVirtualAddress());
+			m_command_list_->SetGraphicsRootConstantBufferView(1, CameraCB->Resource()->GetGPUVirtualAddress());
+			m_command_list_->SetGraphicsRootConstantBufferView(2, CBUploadBuffer->Resource()->GetGPUVirtualAddress());
+			int bTextureIndex = materialData[matIndex].billboardTextureIndex + 1;
+			CD3DX12_GPU_DESCRIPTOR_HANDLE bHandle(m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart(), bTextureIndex, m_CbvSrvUav_descriptor_size_);
+			m_command_list_->SetGraphicsRootDescriptorTable(3, bHandle);
+			m_command_list_->SetGraphicsRootDescriptorTable(4, m_sampler_heap->GetGPUDescriptorHandleForHeapStart());
+			m_command_list_->DrawInstanced(
+				4,
+				static_cast<UINT>(billboards.size()),
+				0,
+				currentInstanceOffset
+			);
 
-		currentInstanceOffset += sm.InstanceCount;
-
-		if (sm.name_.find("Sketchfab") != std::string::npos)
-		{
-			m_command_list_->SetPipelineState(renderSystem->opaquePSO_.Get());
+			currentInstanceOffset += static_cast<UINT>(billboards.size());
 		}
 	}
-
 }
 
 void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {

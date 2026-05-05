@@ -30,6 +30,10 @@ cbuffer cbMaterial : register(b1)
     int gHasDisplacementTexture;
     int gShadowTextureIndex;
     int gHasShadowTexture;
+    
+    int billboardTextureIndex;
+    int hasbillboardTexture;
+    int2 pad2;
 }
 
 Texture2D DiffuseMap : register(t0);
