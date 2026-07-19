@@ -31,8 +31,8 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> HS_ = nullptr;
 	ComPtr<ID3DBlob> DS_ = nullptr;
 
-	ComPtr<ID3D12PipelineState> tessPSO_ = nullptr;
-	ComPtr<ID3DBlob> tessPS_ = nullptr;
+	//ComPtr<ID3D12PipelineState> tessPSO_ = nullptr;
+	//ComPtr<ID3DBlob> tessPS_ = nullptr;
 	ComPtr<ID3DBlob> tessVS_ = nullptr;
 
 	ComPtr<ID3D12RootSignature> streamOutputRS_ = nullptr;

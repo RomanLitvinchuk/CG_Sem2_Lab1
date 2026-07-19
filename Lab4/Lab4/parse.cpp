@@ -324,11 +324,13 @@ void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMateria
 		std::wstring wName = L"white";
 		if (mTextures.count(wName)) {
 			MatConst.diffuseTextureIndex = mTextures[wName]->srvHeapIndex;
+			mTextures[wName]->isSRGB = true;
 		}
 		wName = L"rainbow";
 		if (mTextures.count(wName)) {
 			MatConst.shadowTextureIndex = mTextures[wName]->srvHeapIndex;
 			MatConst.hasShadowTexture = 1;
+			mTextures[wName]->isSRGB = true;
 		}
 	}
 
@@ -337,6 +339,7 @@ void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMateria
 		if (mTextures.count(wName)) {
 			MatConst.hasBillboardTexture = 1;
 			MatConst.billboardTextureIndex = mTextures[wName]->srvHeapIndex;
+			mTextures[wName]->isSRGB = true;
 		}
 	}
 
