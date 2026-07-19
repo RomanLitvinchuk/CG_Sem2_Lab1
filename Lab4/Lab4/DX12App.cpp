@@ -137,9 +137,14 @@ ID3D12Resource* DX12App::CurrentBackBuffer() const {
 
 void DX12App::CreateRTV() {
 	CD3DX12_CPU_DESCRIPTOR_HANDLE RTV_heap_handle_(m_RTV_heap_->GetCPUDescriptorHandleForHeapStart());
+
+	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+
 	for (UINT i = 0; i < 2; i++) {
 		ThrowIfFailed(m_swap_chain_->GetBuffer(i, IID_PPV_ARGS(&m_swap_chain_buffer_[i])));
-		m_device_->CreateRenderTargetView(m_swap_chain_buffer_[i].Get(), nullptr, RTV_heap_handle_);
+		m_device_->CreateRenderTargetView(m_swap_chain_buffer_[i].Get(), &rtvDesc, RTV_heap_handle_);
 		RTV_heap_handle_.Offset(1, m_RTV_descriptor_size_);
 	}
 	std::cout << "RTV is created" << std::endl;
@@ -181,7 +186,14 @@ void DX12App::CreateSRV() {
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
 		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		desc.Format = tex->Resource->GetDesc().Format;
+		//desc.Format = tex->Resource->GetDesc().Format;
+		DXGI_FORMAT format = tex->Resource->GetDesc().Format;
+
+		if (tex->isSRGB) {
+			format = d3dUtil::MakeSRGB(format);
+		}
+
+		desc.Format = format;
 		desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 		desc.Texture2D.MipLevels = tex->Resource->GetDesc().MipLevels;
 

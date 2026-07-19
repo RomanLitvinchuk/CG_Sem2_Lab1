@@ -250,6 +250,7 @@ void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMateria
 
 		if (mTextures.count(wName)) {
 			MatConst.diffuseTextureIndex = mTextures[wName]->srvHeapIndex;
+			mTextures[wName]->isSRGB = true;
 		}
 		else {
 			std::cout << "DO NOT FIND DIFFUSE TEXTURE" << std::endl;

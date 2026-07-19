@@ -175,5 +175,6 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
         }
 
     }
+    finalLight = finalLight / (finalLight + 1.0f);
     return float4(finalLight, 1.0f);
 }
