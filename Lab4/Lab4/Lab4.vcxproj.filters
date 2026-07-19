@@ -78,6 +78,9 @@
     <ClCompile Include="cascades.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="post_process.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="window_class.h">
@@ -138,6 +141,9 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="shadow_map.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="post_process.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

@@ -278,33 +278,6 @@ void RenderingSystem::CreateBulbPSO(ComPtr<ID3D12Device> device, std::vector<D3D
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&bulbPSO_)));
 }
 
-//void RenderingSystem::CreateTessPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
-//{
-//	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
-//	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
-//	psoDesc.InputLayout = { layout.data(), (UINT)layout.size() };
-//	psoDesc.pRootSignature = opaqueRS_.Get();
-//	psoDesc.VS = { reinterpret_cast<BYTE*>(tessVS_->GetBufferPointer()), tessVS_->GetBufferSize() };
-//	psoDesc.HS = { reinterpret_cast<BYTE*>(HS_->GetBufferPointer()), HS_->GetBufferSize() };
-//	psoDesc.DS = { reinterpret_cast<BYTE*>(DS_->GetBufferPointer()), DS_->GetBufferSize() };
-//	psoDesc.PS = { reinterpret_cast<BYTE*>(tessPS_->GetBufferPointer()), tessPS_->GetBufferSize() };
-//	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
-//	//rastDesc.CullMode = D3D12_CULL_MODE_NONE;
-//	rastDesc.FrontCounterClockwise = true;
-//	psoDesc.RasterizerState = rastDesc;
-//	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
-//	psoDesc.DepthStencilState = CD3DX12_DEPTH_STENCIL_DESC(D3D12_DEFAULT);
-//	psoDesc.SampleMask = UINT_MAX;
-//	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
-//	psoDesc.NumRenderTargets = 2;
-//	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
-//	psoDesc.RTVFormats[1] = DXGI_FORMAT_R16G16B16A16_FLOAT;
-//	psoDesc.SampleDesc.Count = 1;
-//	psoDesc.SampleDesc.Quality = 0;
-//	psoDesc.DSVFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
-//	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&tessPSO_)));
-//}
-
 void RenderingSystem::CreateStreamOutputRS(ComPtr<ID3D12Device> device)
 {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[8];

@@ -16,5 +16,4 @@ struct Texture
 	bool isSRGB = false;
 };
 
-
 #endif TEXTURE_H_

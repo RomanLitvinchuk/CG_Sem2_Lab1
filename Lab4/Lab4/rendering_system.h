@@ -5,6 +5,7 @@
 #include <wrl.h>
 #include "g_buffer.h"
 #include "light.h"
+#include "post_process.h"
 #include <SimpleMath.h>
 
 using namespace Microsoft::WRL;
@@ -31,8 +32,6 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> HS_ = nullptr;
 	ComPtr<ID3DBlob> DS_ = nullptr;
 
-	//ComPtr<ID3D12PipelineState> tessPSO_ = nullptr;
-	//ComPtr<ID3DBlob> tessPS_ = nullptr;
 	ComPtr<ID3DBlob> tessVS_ = nullptr;
 
 	ComPtr<ID3D12RootSignature> streamOutputRS_ = nullptr;
@@ -74,7 +73,8 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> billboardVS_ = nullptr;
 	ComPtr<ID3DBlob> billboardPS_ = nullptr;
 
-	GBuffer* g_buffer = nullptr;
+	std::unique_ptr<GBuffer> g_buffer = nullptr;
+	std::unique_ptr<PostProcess> post_process = nullptr;
 
 	std::vector<LightConstants> sceneLights_;
 	ComPtr<ID3D12DescriptorHeap> samplerHeap = nullptr;
@@ -94,8 +94,6 @@ struct RenderingSystem {
 
 	void CreateBulbRS(ComPtr<ID3D12Device> device);
 	void CreateBulbPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
-
-	void CreateTessPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
 
 	void CreateStreamOutputRS(ComPtr<ID3D12Device> device);
 	void CreateStreamOutputPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
@@ -151,7 +149,8 @@ struct RenderingSystem {
 		CreateBillboardRS(device);
 		CreateBillboardPSO(device);
 
-		g_buffer = new GBuffer(width, height, device);
+		g_buffer = std::make_unique<GBuffer>(width, height, device);
+		post_process = std::make_unique<PostProcess>(width, height, device);
 
 		LightConstants sun = {};
 		sun.lightType = 0; // Directional
