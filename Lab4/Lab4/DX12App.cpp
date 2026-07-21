@@ -397,7 +397,7 @@ void DX12App::InitUAVBuffers()
 	m_command_list_->CopyResource(deadCounterBuffer_.Get(), deadCounterUpload_->Resource());
 	CD3DX12_RESOURCE_BARRIER toSRV = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	CD3DX12_RESOURCE_BARRIER deadListToUAV = CD3DX12_RESOURCE_BARRIER::Transition(ParticleDeadList_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
-	CD3DX12_RESOURCE_BARRIER deadCounterToUAV = CD3DX12_RESOURCE_BARRIER::Transition(deadCounterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	CD3DX12_RESOURCE_BARRIER deadCounterToUAV = CD3DX12_RESOURCE_BARRIER::Transition(deadCounterBuffer_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	CD3DX12_RESOURCE_BARRIER sortCounterToUAV = CD3DX12_RESOURCE_BARRIER::Transition(sortCounterBuffer_.Get(), D3D12_RESOURCE_STATE_COMMON, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	D3D12_RESOURCE_BARRIER Barriers[] = {toSRV, deadListToUAV, deadCounterToUAV, sortCounterToUAV};
 	m_command_list_->ResourceBarrier(_countof(Barriers), Barriers);
@@ -433,6 +433,7 @@ void DX12App::OnResize() {
 	CreateRTV();
 	CreateDSV();
 	renderSystem->g_buffer->OnResize(m_client_width_, m_client_height_, m_device_);
+	renderSystem->post_process->OnResize(m_client_width_, m_client_height_, m_device_);
 	SetViewport();
 	SetScissor();
 	ThrowIfFailed(m_command_list_->Close());

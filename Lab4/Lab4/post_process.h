@@ -24,7 +24,9 @@ struct PostProcess {
 	void CreateTexture(int width, int height, ComPtr<ID3D12Device> device);
 	void CreateSRV(ComPtr<ID3D12Device> device);
 	void CreateRTV(ComPtr<ID3D12Device> device);
-	void onResize(int width, int height, ComPtr<ID3D12Device> device);
+	void TransitToRTV(ComPtr<ID3D12GraphicsCommandList> commandList);
+	void TransitToSRV(ComPtr<ID3D12GraphicsCommandList> commandList);
+	void OnResize(int width, int height, ComPtr<ID3D12Device> device);
 
 	PostProcess(int width, int height, ComPtr<ID3D12Device> device) {
 		D3D12_DESCRIPTOR_HEAP_DESC descHeap = {};

@@ -307,11 +307,9 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		LightBuffer->CopyData(i, renderSystem->sceneLights_[i]);
 	}
 
-	m_command_list_->ClearRenderTargetView(GetBackBuffer(), Colors::Black, 0, nullptr);
-
-	D3D12_CPU_DESCRIPTOR_HANDLE bb = GetBackBuffer();
+	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->ppTexture_.rtvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv = renderSystem->g_buffer->DepthTex.dsvHandle;
-	m_command_list_->OMSetRenderTargets(1, &bb, true, &dsv);
+	m_command_list_->OMSetRenderTargets(1, &rtv, true, &dsv);
 	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->g_buffer->SRVDescriptorHeap.Get(), renderSystem->samplerHeap.Get() };
 	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
@@ -359,9 +357,11 @@ void DX12App::Draw()
 	m_command_list_->RSSetScissorRects(1, &m_scissor_rect_);
 
 	renderSystem->g_buffer->TransitToOpaqueRenderingState(m_command_list_);
+	renderSystem->post_process->TransitToRTV(m_command_list_);
 
 	m_command_list_->ClearRenderTargetView(renderSystem->g_buffer->DiffuseTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
 	m_command_list_->ClearRenderTargetView(renderSystem->g_buffer->NormalTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+	m_command_list_->ClearRenderTargetView(renderSystem->post_process->ppTexture_.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
 	m_command_list_->ClearDepthStencilView(renderSystem->g_buffer->DepthTex.dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 	treeIsVisible = false;
 
@@ -394,6 +394,10 @@ void DX12App::Draw()
 	if (isEmitterInside) {
 		DrawParticles(m_command_list_);
 	}
+
+	renderSystem->post_process->TransitToSRV(m_command_list_);
+	DrawPPTonemap(m_command_list_);
+
 	CD3DX12_RESOURCE_BARRIER barrierBack = CD3DX12_RESOURCE_BARRIER::Transition(
 		CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,

@@ -81,6 +81,9 @@
     <ClCompile Include="post_process.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="PP_drawcalls.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="window_class.h">
@@ -194,6 +197,9 @@
       <Filter>Исходные файлы</Filter>
     </FxCompile>
     <FxCompile Include="shaders\billboard.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\PPTonemapping.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
   </ItemGroup>

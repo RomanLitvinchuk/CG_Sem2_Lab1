@@ -147,6 +147,7 @@
     <ClCompile Include="parse.cpp" />
     <ClCompile Include="particles_rendering.cpp" />
     <ClCompile Include="post_process.cpp" />
+    <ClCompile Include="PP_drawcalls.cpp" />
     <ClCompile Include="rendering_system.cpp" />
     <ClCompile Include="shadow_map.cpp" />
     <ClCompile Include="stream_output.cpp" />
@@ -216,6 +217,9 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="shaders\particles.hlsl">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+    </FxCompile>
+    <FxCompile Include="shaders\PPTonemapping.hlsl">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
     </FxCompile>
     <FxCompile Include="shaders\shadowVS.hlsl">

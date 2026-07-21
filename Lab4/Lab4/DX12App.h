@@ -57,7 +57,7 @@ public:
 	void CalculateGameStats(HWND hWnd);
 
 	void Draw();
-	void DrawShadows(ComPtr < ID3D12GraphicsCommandList> m_command_list_);
+	void DrawShadows(ComPtr <ID3D12GraphicsCommandList> m_command_list_);
 	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawNYBalls();
@@ -67,6 +67,8 @@ public:
 	void ComputeParticles();
 	void EmitParticles();
 	void InitEmitter();
+
+	void DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 
 	void FlushCommandQueue();
 

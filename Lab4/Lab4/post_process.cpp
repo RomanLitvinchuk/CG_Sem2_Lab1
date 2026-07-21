@@ -36,7 +36,21 @@ void PostProcess::CreateRTV(ComPtr<ID3D12Device> device)
 	device->CreateRenderTargetView(ppTexture_.Resource.Get(), &rtvDesc, rtvHandle);
 }
 
-void PostProcess::onResize(int width, int height, ComPtr<ID3D12Device> device)
+void PostProcess::TransitToRTV(ComPtr<ID3D12GraphicsCommandList> commandList)
+{
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(ppTexture_.Resource.Get(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	D3D12_RESOURCE_BARRIER barriers[] = { barrier };
+	commandList->ResourceBarrier(_countof(barriers), barriers);
+}
+
+void PostProcess::TransitToSRV(ComPtr<ID3D12GraphicsCommandList> commandList)
+{
+	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(ppTexture_.Resource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
+	D3D12_RESOURCE_BARRIER barriers[] = { barrier };
+	commandList->ResourceBarrier(_countof(barriers), barriers);
+}
+
+void PostProcess::OnResize(int width, int height, ComPtr<ID3D12Device> device)
 {
 	ppTexture_.Resource.Reset();
 
