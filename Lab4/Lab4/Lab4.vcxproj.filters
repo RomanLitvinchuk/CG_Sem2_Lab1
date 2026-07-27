@@ -202,5 +202,8 @@
     <FxCompile Include="shaders\PPTonemapping.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\PPOutput.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

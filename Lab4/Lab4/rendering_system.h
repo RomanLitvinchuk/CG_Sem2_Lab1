@@ -21,7 +21,7 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> opaqueVS_ = nullptr;
 	ComPtr<ID3DBlob> opaquePS_ = nullptr;
 
-	ComPtr<ID3DBlob> lightVS_ = nullptr;
+	ComPtr<ID3DBlob> fullscreenTriangleVS_ = nullptr;
 	ComPtr<ID3DBlob> lightPS_ = nullptr;
 
 	ComPtr<ID3D12RootSignature> bulbRS_ = nullptr;
@@ -73,10 +73,14 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> billboardVS_ = nullptr;
 	ComPtr<ID3DBlob> billboardPS_ = nullptr;
 
-	ComPtr<ID3D12RootSignature> pp_tonemappingRS_ = nullptr;
+	ComPtr<ID3D12RootSignature> pp_defaultRS_ = nullptr;
 	ComPtr<ID3D12PipelineState> pp_tonemappingPSO_ = nullptr;
-	ComPtr<ID3DBlob> pp_tonemappingVS_ = nullptr;
 	ComPtr<ID3DBlob> pp_tonemappingPS_ = nullptr;
+
+	ComPtr<ID3D12PipelineState> pp_outputPSO_ = nullptr;
+	ComPtr<ID3DBlob> pp_outputPS_ = nullptr;
+
+
 
 	std::unique_ptr<GBuffer> g_buffer = nullptr;
 	std::unique_ptr<PostProcess> post_process = nullptr;
@@ -122,8 +126,10 @@ struct RenderingSystem {
 	void CreateBillboardRS(ComPtr<ID3D12Device> device);
 	void CreateBillboardPSO(ComPtr<ID3D12Device> device);
 
-	void CreatePPTonemappingRS(ComPtr<ID3D12Device> device);
+	void CreatePPDefaultRS(ComPtr<ID3D12Device> device);
 	void CreatePPTonemappingPSO(ComPtr<ID3D12Device> device);
+
+	void CreatePPOutputPSO(ComPtr<ID3D12Device> device);
 
 	void GenerateTreeLights(std::vector<LightConstants>& lightsArray, Vector3 treeBasePosition, float treeHeight, float treeBaseRadius, int count);
 
@@ -171,7 +177,7 @@ struct RenderingSystem {
 		CreateBulbRS(device);
 		CreateBulbPSO(device, inputLayout_);
 
-		CreatePPTonemappingRS(device);
+		CreatePPDefaultRS(device);
 		CreatePPTonemappingPSO(device);
 
 

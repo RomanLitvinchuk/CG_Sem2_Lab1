@@ -109,3 +109,10 @@ void GBuffer::OnResize(int width, int height, ComPtr<ID3D12Device> device) {
 	CreateRTVandDSV(device);
 	CreateSRV(device);
 }
+
+void GBuffer::ClearGBuffer(ComPtr<ID3D12GraphicsCommandList> commandList)
+{
+	commandList->ClearRenderTargetView(DiffuseTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+	commandList->ClearRenderTargetView(NormalTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+	commandList->ClearDepthStencilView(DepthTex.dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+}

@@ -4,6 +4,7 @@
 #include <wrl.h>
 #include <string>
 #include <SimpleMath.h>
+#include "post_process.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -21,6 +22,8 @@ public:
 		const std::string& entrypoint,
 		const std::string& target);
 	static DXGI_FORMAT MakeSRGB(DXGI_FORMAT format);
+	static void Barrier(ComPtr<ID3D12GraphicsCommandList> commandList, PPTexture* texture, D3D12_RESOURCE_STATES newState);
+
 private:
 };
 

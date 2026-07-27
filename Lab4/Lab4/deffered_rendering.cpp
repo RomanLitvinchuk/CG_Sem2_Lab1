@@ -197,7 +197,7 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress() + matIndex * matSize;
 		m_command_list_->SetGraphicsRootConstantBufferView(3, matAddress);
 
-		if (materialData[matIndex].isTree == 1) treeIsVisible = true;
+		treeIsVisible = materialData[matIndex].isTree == 1;
 		int texHeapIndex = materialData[matIndex].diffuseTextureIndex + 1;
 
 		CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(
@@ -307,7 +307,7 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		LightBuffer->CopyData(i, renderSystem->sceneLights_[i]);
 	}
 
-	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->ppTexture_.rtvHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->HDR_Texture_A.rtvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv = renderSystem->g_buffer->DepthTex.dsvHandle;
 	m_command_list_->OMSetRenderTargets(1, &rtv, true, &dsv);
 	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->g_buffer->SRVDescriptorHeap.Get(), renderSystem->samplerHeap.Get() };
@@ -357,12 +357,13 @@ void DX12App::Draw()
 	m_command_list_->RSSetScissorRects(1, &m_scissor_rect_);
 
 	renderSystem->g_buffer->TransitToOpaqueRenderingState(m_command_list_);
-	renderSystem->post_process->TransitToRTV(m_command_list_);
 
-	m_command_list_->ClearRenderTargetView(renderSystem->g_buffer->DiffuseTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
-	m_command_list_->ClearRenderTargetView(renderSystem->g_buffer->NormalTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
-	m_command_list_->ClearRenderTargetView(renderSystem->post_process->ppTexture_.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
-	m_command_list_->ClearDepthStencilView(renderSystem->g_buffer->DepthTex.dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	renderSystem->g_buffer->ClearGBuffer(m_command_list_);
+	renderSystem->post_process->ClearPostProcess(m_command_list_);
+
+	PPTexture* ppWriteTexture = &renderSystem->post_process->HDR_Texture_A;
+	PPTexture* ppReadTexture = &renderSystem->post_process->HDR_Texture_B;
+
 	treeIsVisible = false;
 
 	if (isFirstFrame) {
@@ -395,9 +396,14 @@ void DX12App::Draw()
 		DrawParticles(m_command_list_);
 	}
 
-	renderSystem->post_process->TransitToSRV(m_command_list_);
-	DrawPPTonemap(m_command_list_);
+	//Здесь будут шейдеры до тонмаппинга
 
+	renderSystem->post_process->SwapTextures(m_command_list_, ppWriteTexture, ppReadTexture);
+	DrawPPTonemap(m_command_list_, ppReadTexture);
+	ppReadTexture = &renderSystem->post_process->LDR_Texture_A;
+	ppWriteTexture = &renderSystem->post_process->LDR_Texture_B;
+	//Здесь будут шейдеры после тонмаппинга
+	DrawPPOutput(m_command_list_, ppReadTexture);
 	CD3DX12_RESOURCE_BARRIER barrierBack = CD3DX12_RESOURCE_BARRIER::Transition(
 		CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,

@@ -68,7 +68,8 @@ public:
 	void EmitParticles();
 	void InitEmitter();
 
-	void DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
+	void DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readHDR);
+	void DrawPPOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readLDR);
 
 	void FlushCommandQueue();
 

@@ -61,7 +61,7 @@ void RenderingSystem::CompileShaders() {
 	opaquePS_ = d3dUtil::CompileShader(L"shaders/opaque.hlsl", nullptr, "PS", "ps_5_0");
 
 
-	lightVS_ = d3dUtil::CompileShader(L"shaders/light.hlsl", nullptr, "VS_FullScreenTriangle", "vs_5_0");
+	fullscreenTriangleVS_ = d3dUtil::CompileShader(L"shaders/light.hlsl", nullptr, "VS_FullScreenTriangle", "vs_5_0");
 	lightPS_ = d3dUtil::CompileShader(L"shaders/light.hlsl", nullptr, "PS_DeferredLighting", "ps_5_0");
 
 
@@ -95,8 +95,8 @@ void RenderingSystem::CompileShaders() {
 	billboardVS_ = d3dUtil::CompileShader(L"shaders/billboard.hlsl", nullptr, "VS", "vs_5_0");
 	billboardPS_ = d3dUtil::CompileShader(L"shaders/billboard.hlsl", nullptr, "PS", "ps_5_0");
 
-	pp_tonemappingVS_ = d3dUtil::CompileShader(L"shaders/PPTonemapping.hlsl", nullptr, "VS_FullScreenTriangle", "vs_5_0");
 	pp_tonemappingPS_ = d3dUtil::CompileShader(L"shaders/PPTonemapping.hlsl", nullptr, "PS", "ps_5_0");
+	pp_outputPS_ = d3dUtil::CompileShader(L"shaders/PPOutput.hlsl", nullptr, "PS", "ps_5_0");
 }
 
 void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
@@ -185,7 +185,7 @@ void RenderingSystem::CreateLightPSO(ComPtr<ID3D12Device> device) {
 	psoDesc.InputLayout = { nullptr, 0 };
 	psoDesc.Flags = D3D12_PIPELINE_STATE_FLAG_NONE;
 	psoDesc.pRootSignature = lightRS_.Get();
-	psoDesc.VS = { reinterpret_cast<BYTE*>(lightVS_->GetBufferPointer()), lightVS_->GetBufferSize() };
+	psoDesc.VS = { reinterpret_cast<BYTE*>(fullscreenTriangleVS_->GetBufferPointer()), fullscreenTriangleVS_->GetBufferSize() };
 	psoDesc.PS = { reinterpret_cast<BYTE*>(lightPS_->GetBufferPointer()), lightPS_->GetBufferSize() };
 	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
 	psoDesc.RasterizerState = rastDesc;
@@ -668,7 +668,7 @@ void RenderingSystem::CreateBillboardPSO(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&billboardPSO_)));
 }
 
-void RenderingSystem::CreatePPTonemappingRS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreatePPDefaultRS(ComPtr<ID3D12Device> device)
 {
 	CD3DX12_ROOT_PARAMETER rootParameter[2];
 	CD3DX12_DESCRIPTOR_RANGE srvTable;
@@ -689,7 +689,7 @@ void RenderingSystem::CreatePPTonemappingRS(ComPtr<ID3D12Device> device)
 		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
 	}
 
-	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&pp_tonemappingRS_)));
+	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&pp_defaultRS_)));
 }
 
 void RenderingSystem::CreatePPTonemappingPSO(ComPtr<ID3D12Device> device)
@@ -697,9 +697,40 @@ void RenderingSystem::CreatePPTonemappingPSO(ComPtr<ID3D12Device> device)
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	psoDesc.InputLayout = { nullptr, 0 };
-	psoDesc.pRootSignature = pp_tonemappingRS_.Get();
-	psoDesc.VS = { reinterpret_cast<BYTE*>(pp_tonemappingVS_->GetBufferPointer()), pp_tonemappingVS_->GetBufferSize()};
+	psoDesc.pRootSignature = pp_defaultRS_.Get();
+	psoDesc.VS = { reinterpret_cast<BYTE*>(fullscreenTriangleVS_->GetBufferPointer()), fullscreenTriangleVS_->GetBufferSize()};
 	psoDesc.PS = { reinterpret_cast<BYTE*>(pp_tonemappingPS_->GetBufferPointer()), pp_tonemappingPS_->GetBufferSize() };
+	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
+	//rastDesc.CullMode = D3D12_CULL_MODE_NONE;
+	rastDesc.FrontCounterClockwise = false;
+	psoDesc.RasterizerState = rastDesc;
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+
+	CD3DX12_DEPTH_STENCIL_DESC dsDesc(D3D12_DEFAULT);
+	dsDesc.DepthEnable = false;
+	dsDesc.StencilEnable = false;
+	dsDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	dsDesc.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;
+
+	psoDesc.DepthStencilState = dsDesc;
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.SampleDesc.Quality = 0;
+	psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pp_tonemappingPSO_)));
+}
+
+void RenderingSystem::CreatePPOutputPSO(ComPtr<ID3D12Device> device)
+{
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
+	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	psoDesc.InputLayout = { nullptr, 0 };
+	psoDesc.pRootSignature = pp_defaultRS_.Get();
+	psoDesc.VS = { reinterpret_cast<BYTE*>(fullscreenTriangleVS_->GetBufferPointer()), fullscreenTriangleVS_->GetBufferSize() };
+	psoDesc.PS = { reinterpret_cast<BYTE*>(pp_outputPS_->GetBufferPointer()), pp_outputPS_->GetBufferSize() };
 	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
 	//rastDesc.CullMode = D3D12_CULL_MODE_NONE;
 	rastDesc.FrontCounterClockwise = false;
@@ -720,5 +751,6 @@ void RenderingSystem::CreatePPTonemappingPSO(ComPtr<ID3D12Device> device)
 	psoDesc.SampleDesc.Count = 1;
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
-	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pp_tonemappingPSO_)));
+	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pp_outputPSO_)));
 }
+

@@ -12,27 +12,34 @@ using namespace DirectX;
 
 struct PPTexture {
 	ComPtr<ID3D12Resource> Resource = nullptr;
+	D3D12_RESOURCE_STATES currentState;
 	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
 };
 
 struct PostProcess {
-	PPTexture ppTexture_;
+	PPTexture HDR_Texture_A;
+	PPTexture HDR_Texture_B;
+	PPTexture LDR_Texture_A;
+	PPTexture LDR_Texture_B;
 	ComPtr<ID3D12DescriptorHeap> srvHeap_;
 	ComPtr<ID3D12DescriptorHeap> rtvHeap_;
 
 	void CreateTexture(int width, int height, ComPtr<ID3D12Device> device);
 	void CreateSRV(ComPtr<ID3D12Device> device);
 	void CreateRTV(ComPtr<ID3D12Device> device);
-	void TransitToRTV(ComPtr<ID3D12GraphicsCommandList> commandList);
-	void TransitToSRV(ComPtr<ID3D12GraphicsCommandList> commandList);
+
+	void ClearPostProcess(ComPtr<ID3D12GraphicsCommandList> commandList);
+	void BarriersToDefault(ComPtr<ID3D12GraphicsCommandList> commandList);
+	void SwapTextures(ComPtr<ID3D12GraphicsCommandList> commandList, PPTexture*& writeTexture, PPTexture*& readTexture);
 	void OnResize(int width, int height, ComPtr<ID3D12Device> device);
 
 	PostProcess(int width, int height, ComPtr<ID3D12Device> device) {
 		D3D12_DESCRIPTOR_HEAP_DESC descHeap = {};
 		descHeap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 		descHeap.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		descHeap.NumDescriptors = 1;
+		descHeap.NumDescriptors = 4;
 		ThrowIfFailed(device->CreateDescriptorHeap(&descHeap, IID_PPV_ARGS(&srvHeap_)));
 
 		descHeap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;

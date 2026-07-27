@@ -73,8 +73,6 @@ void DX12App::CreateSwapChain(HWND hWnd) {
 	swDesc.BufferDesc.Format = m_back_buffer_format_;
 	swDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	swDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
-	//swDesc.SampleDesc.Count = (msQualityLevels_.NumQualityLevels > 0) ? 4 : 1;
-	//swDesc.SampleDesc.Quality = (msQualityLevels_.NumQualityLevels > 0) ? msQualityLevels_.NumQualityLevels - 1 : 0;
 	swDesc.SampleDesc.Count = 1;
 	swDesc.SampleDesc.Quality = 0;
 	swDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
