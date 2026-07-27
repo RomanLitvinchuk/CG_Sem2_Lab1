@@ -64,10 +64,6 @@ struct RenderingSystem {
 	ComPtr<ID3DBlob> shadowVS_ = nullptr;
 	ComPtr<ID3DBlob> shadowPS_ = nullptr;
 
-	ComPtr<ID3D12RootSignature> shadowLightRS_ = nullptr;
-	ComPtr<ID3D12PipelineState> shadowLightPSO_ = nullptr;
-	ComPtr<ID3DBlob> shadowLightPS_ = nullptr;
-
 	ComPtr<ID3D12RootSignature> billboardRS_ = nullptr;
 	ComPtr<ID3D12PipelineState> billboardPSO_ = nullptr;
 	ComPtr<ID3DBlob> billboardVS_ = nullptr;
@@ -179,6 +175,7 @@ struct RenderingSystem {
 
 		CreatePPDefaultRS(device);
 		CreatePPTonemappingPSO(device);
+		CreatePPOutputPSO(device);
 
 
 

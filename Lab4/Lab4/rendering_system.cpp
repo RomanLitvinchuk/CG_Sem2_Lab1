@@ -90,7 +90,6 @@ void RenderingSystem::CompileShaders() {
 
 	shadowVS_ = d3dUtil::CompileShader(L"shaders/shadowVS.hlsl", nullptr, "VS", "vs_5_0");
 	shadowPS_ = d3dUtil::CompileShader(L"shaders/shadowVS.hlsl", nullptr, "PS", "ps_5_0");
-	shadowLightPS_ = d3dUtil::CompileShader(L"shaders/lightWithST.hlsl", nullptr, "PS_DeferredLighting", "ps_5_0");
 
 	billboardVS_ = d3dUtil::CompileShader(L"shaders/billboard.hlsl", nullptr, "VS", "vs_5_0");
 	billboardPS_ = d3dUtil::CompileShader(L"shaders/billboard.hlsl", nullptr, "PS", "ps_5_0");

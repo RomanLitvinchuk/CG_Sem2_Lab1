@@ -20,7 +20,7 @@ void DX12App::DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_, P
 
 void DX12App::DrawPPOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readLDR)
 {
-	m_command_list_->SetPipelineState(renderSystem->pp_tonemappingPSO_.Get());
+	m_command_list_->SetPipelineState(renderSystem->pp_outputPSO_.Get());
 	m_command_list_->SetGraphicsRootSignature(renderSystem->pp_defaultRS_.Get());
 	m_command_list_->ClearRenderTargetView(GetBackBuffer(), Colors::Black, 0, nullptr);
 	D3D12_CPU_DESCRIPTOR_HANDLE bb = GetBackBuffer();

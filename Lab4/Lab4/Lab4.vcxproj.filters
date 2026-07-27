@@ -193,9 +193,6 @@
     <FxCompile Include="shaders\shadowVS.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
-    <FxCompile Include="shaders\lightWithST.hlsl">
-      <Filter>Исходные файлы</Filter>
-    </FxCompile>
     <FxCompile Include="shaders\billboard.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
@@ -203,6 +200,9 @@
       <Filter>Исходные файлы</Filter>
     </FxCompile>
     <FxCompile Include="shaders\PPOutput.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\lightWithST.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
   </ItemGroup>
