@@ -205,5 +205,8 @@
     <FxCompile Include="shaders\lightWithST.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
+    <FxCompile Include="shaders\PPVignette.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
   </ItemGroup>
 </Project>

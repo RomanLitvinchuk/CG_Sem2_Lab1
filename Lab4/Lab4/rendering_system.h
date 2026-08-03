@@ -73,9 +73,11 @@ struct RenderingSystem {
 	ComPtr<ID3D12PipelineState> pp_tonemappingPSO_ = nullptr;
 	ComPtr<ID3DBlob> pp_tonemappingPS_ = nullptr;
 
+	ComPtr<ID3D12PipelineState> pp_vignettePSO_ = nullptr;
+	ComPtr<ID3DBlob> pp_vignettePS_ = nullptr;
+
 	ComPtr<ID3D12PipelineState> pp_outputPSO_ = nullptr;
 	ComPtr<ID3DBlob> pp_outputPS_ = nullptr;
-
 
 
 	std::unique_ptr<GBuffer> g_buffer = nullptr;
@@ -124,6 +126,8 @@ struct RenderingSystem {
 
 	void CreatePPDefaultRS(ComPtr<ID3D12Device> device);
 	void CreatePPTonemappingPSO(ComPtr<ID3D12Device> device);
+
+	void CreatePPVignettePSO(ComPtr<ID3D12Device> device);
 
 	void CreatePPOutputPSO(ComPtr<ID3D12Device> device);
 
@@ -175,6 +179,7 @@ struct RenderingSystem {
 
 		CreatePPDefaultRS(device);
 		CreatePPTonemappingPSO(device);
+		CreatePPVignettePSO(device);
 		CreatePPOutputPSO(device);
 
 

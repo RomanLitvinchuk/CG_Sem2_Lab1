@@ -400,10 +400,14 @@ void DX12App::Draw()
 
 	renderSystem->post_process->SwapTextures(m_command_list_, ppWriteTexture, ppReadTexture);
 	DrawPPTonemap(m_command_list_, ppReadTexture);
-	ppReadTexture = &renderSystem->post_process->LDR_Texture_A;
-	ppWriteTexture = &renderSystem->post_process->LDR_Texture_B;
-	//Здесь будут шейдеры после тонмаппинга
+	ppReadTexture = &renderSystem->post_process->LDR_Texture_B;
+	ppWriteTexture = &renderSystem->post_process->LDR_Texture_A;
+	renderSystem->post_process->SwapTextures(m_command_list_, ppWriteTexture, ppReadTexture);
+
+	DrawPPVignette(m_command_list_, ppReadTexture, ppWriteTexture);
+	renderSystem->post_process->SwapTextures(m_command_list_, ppWriteTexture, ppReadTexture);
 	DrawPPOutput(m_command_list_, ppReadTexture);
+
 	CD3DX12_RESOURCE_BARRIER barrierBack = CD3DX12_RESOURCE_BARRIER::Transition(
 		CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_RENDER_TARGET,

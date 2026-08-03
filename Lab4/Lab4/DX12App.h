@@ -69,6 +69,7 @@ public:
 	void InitEmitter();
 
 	void DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readHDR);
+	void DrawPPVignette(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readLDR, PPTexture* writeLDR);
 	void DrawPPOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readLDR);
 
 	void FlushCommandQueue();
