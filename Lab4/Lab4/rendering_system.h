@@ -62,7 +62,6 @@ struct RenderingSystem {
 	ComPtr<ID3D12RootSignature> shadowRS_ = nullptr;
 	ComPtr<ID3D12PipelineState> shadowPSO_ = nullptr;
 	ComPtr<ID3DBlob> shadowVS_ = nullptr;
-	ComPtr<ID3DBlob> shadowPS_ = nullptr;
 
 	ComPtr<ID3D12RootSignature> billboardRS_ = nullptr;
 	ComPtr<ID3D12PipelineState> billboardPSO_ = nullptr;

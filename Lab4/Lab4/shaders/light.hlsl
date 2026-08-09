@@ -44,7 +44,6 @@ struct LightData
 };
 StructuredBuffer<LightData> Lights : register(t3);
 Texture2DArray t_ShadowMap : register(t4);
-Texture2DArray t_ShadowColor : register(t5);
 
 struct PS_INPUT
 {
@@ -118,12 +117,28 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
     {
         float4 shadowPos = mul(float4(worldPos, 1.0f), g_Cascades[cascadeIndex].shadowTransform);
         shadowPos.xyz /= shadowPos.w;
-        shadowFactor = t_ShadowMap.SampleCmpLevelZero(
-            s_Border,
-            float3(shadowPos.xy, (float) cascadeIndex),
-            shadowPos.z - 0.002f 
-        );
-        shadowColor = t_ShadowColor.Sample(s_PointClamp, float3(shadowPos.xy, (float) cascadeIndex));
+        float width, height, elements;
+        t_ShadowMap.GetDimensions(width, height, elements);
+        float2 texelSize = float2(1.0f / width, 1.0f / height);
+        float percentLit = 0.0f;
+        [unroll]
+        for (int x = -1; x <= 1; ++x)
+        {
+            [unroll]
+            for (int y = -1; y <= 1; ++y)
+            {
+                float2 offset = float2(x, y) * texelSize;
+                
+                percentLit += t_ShadowMap.SampleCmpLevelZero(
+                    s_Border,
+                    float3(shadowPos.xy + offset, (float) cascadeIndex),
+                    shadowPos.z - 0.002f 
+                ).r;
+            }
+        }
+
+        shadowFactor = percentLit / 9.0f;
+        shadowColor = float4(0.15f, 0.15f, 0.15f, 1.0f);
     }
     
     float3 viewVec = normalize(g_CameraPos - worldPos);

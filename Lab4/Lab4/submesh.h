@@ -32,6 +32,7 @@ struct Submesh
     std::vector<MeshInstanceData> sorted_lod0;
     std::vector<MeshInstanceData> sorted_lod1;
     std::vector<MeshInstanceData> sorted_billboards;
+    int shadowInstanceOffset = 0;
 };
 
 #endif

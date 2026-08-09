@@ -36,6 +36,21 @@ void DX12App::sortLODs(){
 }
 
 void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
+
+	UINT totalInstances = 0;
+	for (auto& sm : mSubmeshes) {
+		if (sm.sorted_lod0.empty()) continue;
+
+		for (size_t i = 0; i < sm.sorted_lod0.size(); ++i) {
+			InstanceBuffer->CopyData(totalInstances + i, sm.sorted_lod0[i]);
+		}
+
+		sm.shadowInstanceOffset = totalInstances;
+		totalInstances += static_cast<UINT>(sm.sorted_lod0.size());
+	}
+
+	if (totalInstances == 0) return;
+
 	m_command_list_->SetPipelineState(renderSystem->shadowPSO_.Get());
 	m_command_list_->SetGraphicsRootSignature(renderSystem->shadowRS_.Get());
 	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
@@ -45,9 +60,8 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	ID3D12DescriptorHeap* descriptorHeaps[] = { m_CBV_SRV_heap_.Get(), renderSystem->samplerHeap.Get() };
 	m_command_list_->SetDescriptorHeaps(2, descriptorHeaps);
 
-	CD3DX12_RESOURCE_BARRIER barriers[2] = {
+	CD3DX12_RESOURCE_BARRIER barriers[] = {
 		CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->Resource(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE),
-		CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->ColorResource(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_RENDER_TARGET)
 	};
 	m_command_list_->ResourceBarrier(_countof(barriers), barriers);
 
@@ -55,69 +69,39 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->RSSetViewports(1, &vp);
 	D3D12_RECT rect = shadowMap_->ScissorRect();
 	m_command_list_->RSSetScissorRects(1, &rect);
-	m_command_list_->SetGraphicsRootDescriptorTable(4, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
-	int numCascades = shadowMap_->GetNumCascades();
-	UINT elementSize = ALIGN_256(sizeof(ShadowConstants));
+	m_command_list_->SetGraphicsRootShaderResourceView(1, InstanceBuffer->Resource()->GetGPUVirtualAddress());
+
+	const D3D12_GPU_VIRTUAL_ADDRESS shadowCbBaseAddress = ShadowCB->Resource()->GetGPUVirtualAddress();
+	const UINT shadowElementSize = ALIGN_256(sizeof(ShadowConstants));
+	const D3D12_GPU_VIRTUAL_ADDRESS matBaseAddress = MaterialCB->Resource()->GetGPUVirtualAddress();
+	const UINT matBufferSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
+	const CD3DX12_GPU_DESCRIPTOR_HANDLE srvHeapStart(m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart());
+
+	const int numCascades = shadowMap_->GetNumCascades();
 
 	for (int i = 0; i < numCascades; ++i) {
 		m_command_list_->ClearDepthStencilView(shadowMap_->Dsv(i), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
-		m_command_list_->ClearRenderTargetView(shadowMap_->Rtv(i), Color(1.0f, 1.0f, 1.0f, 1.0f), 0, nullptr);
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsv = shadowMap_->Dsv(i);
-		CD3DX12_CPU_DESCRIPTOR_HANDLE rtv = shadowMap_->Rtv(i);
-		m_command_list_->OMSetRenderTargets(1, &rtv, false, &dsv);
+		m_command_list_->OMSetRenderTargets(0, nullptr, false, &dsv);
 
-		auto address = ShadowCB->Resource()->GetGPUVirtualAddress();
-		address += i * elementSize;
-		m_command_list_->SetGraphicsRootConstantBufferView(0, address);
+		m_command_list_->SetGraphicsRootConstantBufferView(0, shadowCbBaseAddress + i * shadowElementSize);
 
-		UINT currentInstanceOffset = 0;
-		Vector3 cameraPos = camera.mCameraPos;
 		for (auto& sm : mSubmeshes) {
-			UINT matIndex = sm.materialIndex;
-			UINT matBufferSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
-			D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress() + matIndex * matBufferSize;
-			m_command_list_->SetGraphicsRootConstantBufferView(2, matAddress);
+			if (sm.sorted_lod0.empty()) continue;
 
-			int texHeapIndex = materialData[matIndex].shadowTextureIndex + 1;
-			CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(
-				m_CBV_SRV_heap_->GetGPUDescriptorHandleForHeapStart(),
-				texHeapIndex,
-				m_CbvSrvUav_descriptor_size_);
-			m_command_list_->SetGraphicsRootDescriptorTable(3, srvHandle);
-			if (!sm.sorted_lod0.empty()) {
-				for (size_t i = 0; i < sm.sorted_lod0.size(); i++) {
-					InstanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod0[i]);
-				}
-				m_command_list_->SetGraphicsRootShaderResourceView(1, InstanceBuffer->Resource()->GetGPUVirtualAddress());
-				m_command_list_->DrawIndexedInstanced(
-					sm.indexCount,
-					static_cast<UINT>(sm.sorted_lod0.size()),
-					sm.startIndiceIndex,
-					sm.startVerticeIndex,
-					currentInstanceOffset);
-				currentInstanceOffset += static_cast<UINT>(sm.sorted_lod0.size());
-			}
-			if (!sm.sorted_lod1.empty() && sm.sorted_billboards.empty()) {
-				for (size_t i = 0; i < sm.sorted_lod1.size(); i++) {
-					InstanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod1[i]);
-				}
-				m_command_list_->SetGraphicsRootShaderResourceView(1, InstanceBuffer->Resource()->GetGPUVirtualAddress());
-
-				m_command_list_->DrawIndexedInstanced(
-					sm.indexCountLOD1,
-					static_cast<UINT>(sm.sorted_lod1.size()),
-					sm.startIndiceIndexLOD1,
-					sm.startVerticeIndexLOD1,
-					currentInstanceOffset);
-
-				currentInstanceOffset += static_cast<UINT>(sm.sorted_lod1.size());
-			}
+			m_command_list_->DrawIndexedInstanced(
+				sm.indexCount,
+				static_cast<UINT>(sm.sorted_lod0.size()),
+				sm.startIndiceIndex,
+				sm.startVerticeIndex,
+				sm.shadowInstanceOffset
+			);
 		}
 	}
-	CD3DX12_RESOURCE_BARRIER backBarriers[2] = {
+
+	CD3DX12_RESOURCE_BARRIER backBarriers[] = {
 		CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->Resource(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
-		CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->ColorResource(), D3D12_RESOURCE_STATE_RENDER_TARGET, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
 	};
 	m_command_list_->ResourceBarrier(_countof(backBarriers), backBarriers);
 }
@@ -295,12 +279,10 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->SetGraphicsRootDescriptorTable(3, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
 	m_command_list_->SetGraphicsRootDescriptorTable(4, shadowMap_->Srv());
 	m_command_list_->SetGraphicsRootConstantBufferView(5, ShadowCB->Resource()->GetGPUVirtualAddress());
-	m_command_list_->SetGraphicsRootDescriptorTable(6, shadowMap_->ColorSrv());
 
 	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_command_list_->DrawInstanced(3, 1, 0, 0);
-	CD3DX12_RESOURCE_BARRIER backBarriers[2] = { CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->Resource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_GENERIC_READ),
-												 CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->ColorResource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_GENERIC_READ)};
+	CD3DX12_RESOURCE_BARRIER backBarriers[] = { CD3DX12_RESOURCE_BARRIER::Transition(shadowMap_->Resource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_GENERIC_READ)};
 	m_command_list_->ResourceBarrier(_countof(backBarriers), backBarriers);
 }
 

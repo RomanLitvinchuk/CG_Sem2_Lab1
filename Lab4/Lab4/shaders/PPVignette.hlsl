@@ -11,7 +11,7 @@ float4 PS(PS_INPUT input) : SV_Target
 {
     float4 color = t_PPTexture.Sample(s_PointClamp, input.Tex);
 
-    float radius = 0.1;
+    float radius = 0.2;
     float softness = 0.45;
 
     float2 centerOffset = input.Tex - 0.5;
