@@ -9,6 +9,32 @@ void DX12App::InitRenderSystem() {
 	CreateStructuredBuffersSRV();
 }
 
+void DX12App::sortLODs(){
+	for (auto& sm : mSubmeshes) {
+		sm.sorted_lod0.clear();
+		sm.sorted_lod1.clear();
+		sm.sorted_billboards.clear();
+		sm.sorted_lod0.reserve(sm.InstanceCount);
+		if (sm.hasLOD1) sm.sorted_lod1.reserve(sm.InstanceCount);
+
+		for (int i = 0; i < sm.InstanceCount; i++) {
+			Vector3 instancePos(sm.instances[i].World_._41, sm.instances[i].World_._42, sm.instances[i].World_._43);
+			float distSq = Vector3::DistanceSquared(camera.mCameraPos, instancePos);
+
+			if (sm.hasLOD1 && distSq > BILLBOARD_DISTANCE) {
+				sm.sorted_billboards.push_back(sm.instances[i]);
+			}
+			else if (sm.hasLOD1 && distSq > LOD_DISTANCE)
+			{
+				sm.sorted_lod1.push_back(sm.instances[i]);
+			}
+			else {
+				sm.sorted_lod0.push_back(sm.instances[i]);
+			}
+		}
+	}
+}
+
 void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->SetPipelineState(renderSystem->shadowPSO_.Get());
 	m_command_list_->SetGraphicsRootSignature(renderSystem->shadowRS_.Get());
@@ -46,33 +72,8 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		m_command_list_->SetGraphicsRootConstantBufferView(0, address);
 
 		UINT currentInstanceOffset = 0;
-		const float LOD_DISTANCE = 600.0f * 600.0f;
-		const float BILLBOARD_DISTANCE = 900.0f * 900.0f;
 		Vector3 cameraPos = camera.mCameraPos;
 		for (auto& sm : mSubmeshes) {
-
-			std::vector<MeshInstanceData> lod0_instances;
-			std::vector<MeshInstanceData> lod1_instances;
-			std::vector<MeshInstanceData> billboards;
-
-			lod0_instances.reserve(sm.InstanceCount);
-			if (sm.hasLOD1) lod1_instances.reserve(sm.InstanceCount);
-
-			for (int i = 0; i < sm.InstanceCount; i++) {
-				Vector3 instancePos(sm.instances[i].World_._41, sm.instances[i].World_._42, sm.instances[i].World_._43);
-				float distSq = Vector3::DistanceSquared(cameraPos, instancePos);
-
-				if (sm.hasLOD1 && distSq > BILLBOARD_DISTANCE) {
-					billboards.push_back(sm.instances[i]);
-				}
-				else if (sm.hasLOD1 && distSq > LOD_DISTANCE) 
-				{
-					lod1_instances.push_back(sm.instances[i]);
-				}
-				else {
-					lod0_instances.push_back(sm.instances[i]);
-				}
-			}
 			UINT matIndex = sm.materialIndex;
 			UINT matBufferSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
 			D3D12_GPU_VIRTUAL_ADDRESS matAddress = MaterialCB->Resource()->GetGPUVirtualAddress() + matIndex * matBufferSize;
@@ -84,33 +85,33 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 				texHeapIndex,
 				m_CbvSrvUav_descriptor_size_);
 			m_command_list_->SetGraphicsRootDescriptorTable(3, srvHandle);
-			if (!lod0_instances.empty()) {
-				for (size_t i = 0; i < lod0_instances.size(); i++) {
-					InstanceBuffer->CopyData(currentInstanceOffset + i, lod0_instances[i]);
+			if (!sm.sorted_lod0.empty()) {
+				for (size_t i = 0; i < sm.sorted_lod0.size(); i++) {
+					InstanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod0[i]);
 				}
 				m_command_list_->SetGraphicsRootShaderResourceView(1, InstanceBuffer->Resource()->GetGPUVirtualAddress());
 				m_command_list_->DrawIndexedInstanced(
 					sm.indexCount,
-					static_cast<UINT>(lod0_instances.size()),
+					static_cast<UINT>(sm.sorted_lod0.size()),
 					sm.startIndiceIndex,
 					sm.startVerticeIndex,
 					currentInstanceOffset);
-				currentInstanceOffset += sm.InstanceCount;
+				currentInstanceOffset += static_cast<UINT>(sm.sorted_lod0.size());
 			}
-			if (!lod1_instances.empty() && billboards.empty()) {
-				for (size_t i = 0; i < lod1_instances.size(); i++) {
-					InstanceBuffer->CopyData(currentInstanceOffset + i, lod1_instances[i]);
+			if (!sm.sorted_lod1.empty() && sm.sorted_billboards.empty()) {
+				for (size_t i = 0; i < sm.sorted_lod1.size(); i++) {
+					InstanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod1[i]);
 				}
 				m_command_list_->SetGraphicsRootShaderResourceView(1, InstanceBuffer->Resource()->GetGPUVirtualAddress());
 
 				m_command_list_->DrawIndexedInstanced(
 					sm.indexCountLOD1,
-					static_cast<UINT>(lod1_instances.size()),
+					static_cast<UINT>(sm.sorted_lod1.size()),
 					sm.startIndiceIndexLOD1,
 					sm.startVerticeIndexLOD1,
 					currentInstanceOffset);
 
-				currentInstanceOffset += static_cast<UINT>(lod1_instances.size());
+				currentInstanceOffset += static_cast<UINT>(sm.sorted_lod1.size());
 			}
 		}
 	}
@@ -153,8 +154,6 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->IASetIndexBuffer(&ibv);
 
 	UINT currentInstanceOffset = 0;
-	const float LOD_DISTANCE = 600.0f * 600.0f;
-	const float BILLBOARD_DISTANCE = 900.0f * 900.0f;
 	Vector3 cameraPos = camera.mCameraPos;
 	for (UINT idx : visibleIndices)
 	{
@@ -167,30 +166,6 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		m_command_list_->SetGraphicsRootDescriptorTable(0, cbvHandle); 
 		m_command_list_->SetGraphicsRootDescriptorTable(2, samplerHandle); 
 		m_command_list_->SetGraphicsRootConstantBufferView(6, HullCB->Resource()->GetGPUVirtualAddress());
-
-		std::vector<MeshInstanceData> lod0_instances;
-		std::vector<MeshInstanceData> lod1_instances;
-		std::vector<MeshInstanceData> billboards;
-
-		lod0_instances.reserve(sm.InstanceCount);
-		if (sm.hasLOD1) {
-			lod1_instances.reserve(sm.InstanceCount);
-			billboards.reserve(sm.InstanceCount);
-		}
-		for (int i = 0; i < sm.InstanceCount; i++) {
-			Vector3 instancePos(sm.instances[i].World_._41, sm.instances[i].World_._42, sm.instances[i].World_._43);
-			float distSq = Vector3::DistanceSquared(cameraPos, instancePos);
-
-			if (sm.hasLOD1 && distSq > BILLBOARD_DISTANCE) {
-				billboards.push_back(sm.instances[i]);
-			}
-			else if (sm.hasLOD1 && distSq > LOD_DISTANCE) {
-				lod1_instances.push_back(sm.instances[i]);
-			}
-			else {
-				lod0_instances.push_back(sm.instances[i]);
-			}
-		}
 
 		UINT matIndex = sm.materialIndex;
 		UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
@@ -224,9 +199,9 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 		m_command_list_->SetGraphicsRootDescriptorTable(4, normHandle);
 
-		if (!lod0_instances.empty()) {
-			for (size_t i = 0; i < lod0_instances.size(); i++) {
-				InstanceBuffer->CopyData(currentInstanceOffset + i, lod0_instances[i]);
+		if (!sm.sorted_lod0.empty()) {
+			for (size_t i = 0; i < sm.sorted_lod0.size(); i++) {
+				InstanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod0[i]);
 			}
 			m_command_list_->SetGraphicsRootShaderResourceView(7, InstanceBuffer->Resource()->GetGPUVirtualAddress());
 
@@ -249,36 +224,36 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 			else {
 				m_command_list_->DrawIndexedInstanced(
 					sm.indexCount,
-					static_cast<UINT>(lod0_instances.size()),
+					static_cast<UINT>(sm.sorted_lod0.size()),
 					sm.startIndiceIndex,
 					sm.startVerticeIndex,
 					currentInstanceOffset);
 			}
-			currentInstanceOffset += static_cast<UINT>(lod0_instances.size());
+			currentInstanceOffset += static_cast<UINT>(sm.sorted_lod0.size());
 		}
 
-		if (!lod1_instances.empty()) {
-			for (size_t i = 0; i < lod1_instances.size(); i++) {
-				InstanceBuffer->CopyData(currentInstanceOffset + i, lod1_instances[i]);
+		if (!sm.sorted_lod1.empty()) {
+			for (size_t i = 0; i < sm.sorted_lod1.size(); i++) {
+				InstanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod1[i]);
 			}
 			m_command_list_->SetGraphicsRootShaderResourceView(7, InstanceBuffer->Resource()->GetGPUVirtualAddress());
 
 			m_command_list_->DrawIndexedInstanced(
 				sm.indexCountLOD1,
-				static_cast<UINT>(lod1_instances.size()),
+				static_cast<UINT>(sm.sorted_lod1.size()),
 				sm.startIndiceIndexLOD1,
 				sm.startVerticeIndexLOD1,
 				currentInstanceOffset);
 
-			currentInstanceOffset += static_cast<UINT>(lod1_instances.size());
+			currentInstanceOffset += static_cast<UINT>(sm.sorted_lod1.size());
 		}
 		
-		if (!billboards.empty()) {
+		if (!sm.sorted_billboards.empty()) {
 			m_command_list_->SetGraphicsRootSignature(renderSystem->billboardRS_.Get());
 			m_command_list_->SetPipelineState(renderSystem->billboardPSO_.Get());
 			m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-			for (size_t i = 0; i < billboards.size(); i++) {
-				InstanceBuffer->CopyData(currentInstanceOffset + i, billboards[i]);
+			for (size_t i = 0; i < sm.sorted_billboards.size(); i++) {
+				InstanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_billboards[i]);
 			}
 			m_command_list_->SetGraphicsRootShaderResourceView(0, InstanceBuffer->Resource()->GetGPUVirtualAddress());
 			m_command_list_->SetGraphicsRootConstantBufferView(1, CameraCB->Resource()->GetGPUVirtualAddress());
@@ -289,12 +264,12 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 			m_command_list_->SetGraphicsRootDescriptorTable(4, m_sampler_heap->GetGPUDescriptorHandleForHeapStart());
 			m_command_list_->DrawInstanced(
 				4,
-				static_cast<UINT>(billboards.size()),
+				static_cast<UINT>(sm.sorted_billboards.size()),
 				0,
 				currentInstanceOffset
 			);
 
-			currentInstanceOffset += static_cast<UINT>(billboards.size());
+			currentInstanceOffset += static_cast<UINT>(sm.sorted_billboards.size());
 		}
 	}
 }
@@ -352,6 +327,7 @@ void DX12App::Draw()
 {
 	ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
 	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), renderSystem->opaquePSO_.Get()));
+	sortLODs();
 	DrawShadows(m_command_list_);
 	m_command_list_->RSSetViewports(1, &vp_);
 	m_command_list_->RSSetScissorRects(1, &m_scissor_rect_);

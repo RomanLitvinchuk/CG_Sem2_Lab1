@@ -28,6 +28,10 @@ struct Submesh
     UINT startIndiceIndexLOD1 = 0;
     UINT startVerticeIndexLOD1 = 0;
     bool hasLOD1 = false;
+
+    std::vector<MeshInstanceData> sorted_lod0;
+    std::vector<MeshInstanceData> sorted_lod1;
+    std::vector<MeshInstanceData> sorted_billboards;
 };
 
 #endif

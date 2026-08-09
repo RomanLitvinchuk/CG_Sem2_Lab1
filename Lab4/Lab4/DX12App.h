@@ -56,6 +56,7 @@ public:
 
 	void CalculateGameStats(HWND hWnd);
 
+	void sortLODs();
 	void Draw();
 	void DrawShadows(ComPtr <ID3D12GraphicsCommandList> m_command_list_);
 	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
@@ -205,7 +206,11 @@ private:
 	std::vector<aiMaterial*> mMaterials_;
 	std::vector<int> mMeshesMaterialIndex;
 	std::vector<MaterialConstants> materialData;
+
 	std::vector<Submesh> mSubmeshes;
+	const float LOD_DISTANCE = 600.0f * 600.0f;
+	const float BILLBOARD_DISTANCE = 900.0f * 900.0f;
+
 	Submesh SOMesh;
 	ComPtr<ID3D12Resource> mDefaultTexture;
 	std::vector<std::string> materialNames;
