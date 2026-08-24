@@ -7,6 +7,7 @@
 #include "light.h"
 #include "post_process.h"
 #include <SimpleMath.h>
+#include "ssao.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX::SimpleMath;
@@ -81,6 +82,7 @@ struct RenderingSystem {
 
 	std::unique_ptr<GBuffer> g_buffer = nullptr;
 	std::unique_ptr<PostProcess> post_process = nullptr;
+	std::unique_ptr<SSAO> ssao = nullptr;
 
 	std::vector<LightConstants> sceneLights_;
 	ComPtr<ID3D12DescriptorHeap> samplerHeap = nullptr;
@@ -164,6 +166,7 @@ struct RenderingSystem {
 
 		g_buffer = std::make_unique<GBuffer>(width, height, device);
 		post_process = std::make_unique<PostProcess>(width, height, device);
+		ssao = std::make_unique<SSAO>(device, width, height);
 
 		LightConstants sun = {};
 		sun.lightType = 0; // Directional
