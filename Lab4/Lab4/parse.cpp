@@ -2,10 +2,12 @@
 #include <filesystem>
 #include "DDSTextureLoader.h"
 
+#define RESERVED_TEXTURES 1
+
 void DX12App::LoadTextures()
 {
 	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
-	UINT index = 0;
+	UINT index = RESERVED_TEXTURES + 1;
 
 	for (auto& entry : std::filesystem::directory_iterator(L"textures"))
 	{
@@ -18,7 +20,11 @@ void DX12App::LoadTextures()
 		auto tex = std::make_unique<Texture>();
 		tex->name_ = std::string(name.begin(), name.end());
 		tex->filepath = path.wstring();
-		tex->srvHeapIndex = index++;
+		if (tex->name_.find("noise") != std::string::npos) {
+			tex->srvHeapIndex = 1;
+			tex->isSRGB = false;
+		}
+		else tex->srvHeapIndex = index++;
 
 		ThrowIfFailed(CreateDDSTextureFromFile12(
 			m_device_.Get(),
@@ -46,12 +52,6 @@ void DX12App::Parsing() {
 
 	Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(100.0f, 500.0f, 0.0f);
 	ParseFile("models/Sketchfab.fbx", Transform, 1);
-
-	Transform = Matrix::CreateScale(25.0f) * Matrix::CreateTranslation(400.0f, 200.0f, 0.0f);
-	//ParseFile("models/TOPOR.obj", Transform, 1);
-
-	Transform = Matrix::CreateScale(100.0f) * Matrix::CreateRotationX(3.14 / 2) * Matrix::CreateTranslation(400.0f, 110.0f, -50.0f);
-	//ParseFile("models/SM_Chisel.fbx", Transform, 500);
 
 	Transform = Matrix::CreateScale(30.0f) * Matrix::CreateTranslation(400.0f, 200.0f, 0.0f);
 	ParseFile("models/HydraMoonSimpleCube.fbx", Transform, 1);

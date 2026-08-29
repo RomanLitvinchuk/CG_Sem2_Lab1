@@ -18,6 +18,9 @@ void DX12App::Update() {
 	Matrices matricesData;
 	matricesData.Proj = camera.mProj_.Transpose();
 	matricesData.View = camera.mView_.Transpose();
+	Matrix invView = camera.mView_.Transpose();
+	invView = invView.Invert();
+	matricesData.invView = invView;
 	MatricesBuffer->CopyData(0, matricesData);
 	Matrix ViewProj = camera.mView_ * camera.mProj_;
 
@@ -48,7 +51,8 @@ void DX12App::Update() {
 
 	ObjectConstants obj;
 	Matrix TWorld = camera.mWorld_.Transpose();
-	obj.mViewProj = ViewProj;
+	obj.View = camera.mView_.Transpose();
+	obj.Proj = camera.mProj_.Transpose();
 	obj.gTime = gt.TotalTime();
 	CBUploadBuffer->CopyData(0, obj);
 

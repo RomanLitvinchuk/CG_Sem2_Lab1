@@ -184,7 +184,6 @@ void DX12App::CreateSRV() {
 
 		D3D12_SHADER_RESOURCE_VIEW_DESC desc{};
 		desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-		//desc.Format = tex->Resource->GetDesc().Format;
 		DXGI_FORMAT format = tex->Resource->GetDesc().Format;
 
 		if (tex->isSRGB) {
@@ -325,6 +324,18 @@ void DX12App::InitUploadBuffers() {
 	HullCB = std::make_unique<UploadBuffer<HullBuffer>>(m_device_.Get(), 1, true);
 	WireframeInstanceBuffer = std::make_unique<UploadBuffer<WireframeInstanceData>>(m_device_.Get(), 1000, false); 
 	ShadowCB = std::make_unique<UploadBuffer<ShadowConstants>>(m_device_.Get(), 3, true);
+	SsaoBuffer = std::make_unique<UploadBuffer<SsaoConstants>>(m_device_.Get(), 1, true);
+
+	SsaoConstants ssaoConst;
+	ssaoConst.screenWidth = m_client_width_;
+	ssaoConst.screenHeight = m_client_height_;
+	ssaoConst.randomTextureSize = 64;
+	ssaoConst.sampleRadius = 1.0f;
+	ssaoConst.ssaoScale = 1.0f;
+	ssaoConst.ssaoBias = 0.1f;
+	ssaoConst.ssaoIntensity = 2.0f;
+	ssaoConst.padding = 0.0f;
+	SsaoBuffer->CopyData(0, ssaoConst);
 
 	DeadListUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), PARTICLE_COUNT, false);
 	deadCounterUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), 1, false);
@@ -432,6 +443,15 @@ void DX12App::OnResize() {
 	CreateDSV();
 	renderSystem->g_buffer->OnResize(m_client_width_, m_client_height_, m_device_);
 	renderSystem->post_process->OnResize(m_client_width_, m_client_height_, m_device_);
+	ID3D12Resource* noiseTexResource = nullptr;
+	auto iter = mTextures.find(L"noise");
+	if (iter != mTextures.end()) {
+		noiseTexResource = iter->second->Resource.Get();
+	}
+	renderSystem->ssao->OnResize(m_device_, m_client_width_, m_client_height_,
+		renderSystem->g_buffer->DepthTex.Resource.Get(),
+		renderSystem->g_buffer->NormalTex.Resource.Get(),
+		noiseTexResource);
 	SetViewport();
 	SetScissor();
 	ThrowIfFailed(m_command_list_->Close());

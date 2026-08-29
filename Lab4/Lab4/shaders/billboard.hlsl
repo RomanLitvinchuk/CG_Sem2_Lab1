@@ -7,7 +7,8 @@ cbuffer CameraCB : register(b0)
 
 cbuffer cbPerObject : register(b1)
 {
-    float4x4 mViewProj;
+    float4x4 mView;
+    float4x4 mProj;
     float gTime;
     float pad[3];
 }
@@ -50,7 +51,8 @@ VS_OUTPUT VS(uint vertexID : SV_VertexID, uint instanceID : SV_InstanceID)
     float3 worldPos = instanceWorldPos + (xAxis * localPos.x) + (yAxis * localPos.y);
 
     output.WorldPos = worldPos;
-    output.Pos = mul(float4(worldPos, 1.0f), mViewProj);
+    output.Pos = mul(float4(worldPos, 1.0f), mView);
+    output.Pos = mul(output.Pos, mProj);
     output.TexCoord = uv * 0.5f; 
     output.Normal = zAxis;
 

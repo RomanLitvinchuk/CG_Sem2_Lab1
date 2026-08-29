@@ -8,7 +8,8 @@ using namespace DirectX::SimpleMath;
 
 
 struct ObjectConstants {
-	Matrix mViewProj;
+	Matrix View;
+	Matrix Proj;
 	float gTime;
 	float pad[3];
 };
@@ -16,6 +17,7 @@ struct ObjectConstants {
 struct Matrices {
 	Matrix View;
 	Matrix Proj;
+	Matrix invView;
 };
 
 #endif //OBJECT_CONSTANTS_

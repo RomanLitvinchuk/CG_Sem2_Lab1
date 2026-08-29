@@ -160,7 +160,7 @@
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
-    <FxCompile Include="shaders\opaque.hlsl">
+    <FxCompile Include="shaders\gbuffer.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
     <FxCompile Include="shaders\bulb.hlsl">
@@ -209,6 +209,9 @@
       <Filter>Исходные файлы</Filter>
     </FxCompile>
     <FxCompile Include="shaders\PPVignette.hlsl">
+      <Filter>Исходные файлы</Filter>
+    </FxCompile>
+    <FxCompile Include="shaders\ssao.hlsl">
       <Filter>Исходные файлы</Filter>
     </FxCompile>
   </ItemGroup>

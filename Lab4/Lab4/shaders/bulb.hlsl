@@ -1,6 +1,7 @@
 cbuffer cbPerObject : register(b0)
 {
-    float4x4 mViewProj;
+    float4x4 mView;
+    float4x4 mProj;
     float gTime;
     float pad[3];
 }
@@ -36,7 +37,8 @@ PS_INPUT VS(VS_INPUT input, uint instanceID : SV_InstanceID)
     
     float3 worldPos = input.Position + Lights[instanceID].Position;
     
-    output.Pos = mul(float4(worldPos, 1.0f), mViewProj);
+    output.Pos = mul(float4(worldPos, 1.0f), mView);
+    output.Pos = mul(output.Pos, mProj);
     
     output.Color = Lights[instanceID].Color;
     return output;

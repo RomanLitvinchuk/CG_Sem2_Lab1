@@ -23,6 +23,13 @@ cbuffer ShadowCB : register(b2)
     CascadeData g_Cascades[3];
 }
 
+cbuffer Matrices : register(b3)
+{
+    float4x4 View;
+    float4x4 Proj;
+    float4x4 invView;
+}
+
 Texture2D t_Diffuse : register(t0);
 Texture2D t_Normal : register(t1);
 Texture2D t_Depth : register(t2);
@@ -94,6 +101,7 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
 
     float3 diffuse = t_Diffuse.Sample(s_PointClamp, input.TexCoord).rgb;
     float3 normal = t_Normal.Sample(s_PointClamp, input.TexCoord).xyz;
+    normal = mul(normal, (float3x3)invView);
     normal = normalize(normal * 2.0f - 1.0f);
     
     float pixelDepth;

@@ -1,6 +1,7 @@
 cbuffer cbPerObject : register(b0)
 {
-    float4x4 mViewProj;
+    float4x4 mView;
+    float4x4 mProj;
     float gTime;
     float pad[3];
 }
@@ -66,7 +67,8 @@ VS_OUTPUT BakedVS(BAKED_VS_INPUT input, uint instanceID : SV_InstanceID)
     float4x4 mInvTWorld = Instances[instanceID].mInvTWorld;
     
     output.Wpos = float4(input.bakedPos, 1.0f);
-    output.pos = mul(output.Wpos, mViewProj);
+    output.pos = mul(output.Wpos, mView);
+    output.pos = mul(output.pos, mProj);
     
     //float3 normalW = mul(input.localNormal, (float3x3) mInvTWorld);
     //output.normalW = normalize(normalW);

@@ -64,6 +64,10 @@ struct RenderingSystem {
 	ComPtr<ID3D12PipelineState> shadowPSO_ = nullptr;
 	ComPtr<ID3DBlob> shadowVS_ = nullptr;
 
+	ComPtr<ID3D12RootSignature> SsaoRS_ = nullptr;
+	ComPtr<ID3D12PipelineState> SsaoPSO_ = nullptr;
+	ComPtr<ID3DBlob> SsaoPS_ = nullptr;
+
 	ComPtr<ID3D12RootSignature> billboardRS_ = nullptr;
 	ComPtr<ID3D12PipelineState> billboardPSO_ = nullptr;
 	ComPtr<ID3DBlob> billboardVS_ = nullptr;
@@ -122,6 +126,9 @@ struct RenderingSystem {
 	void CreateShadowRS(ComPtr<ID3D12Device> device);
 	void CreateShadowPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
 
+	void CreateSSAORS(ComPtr<ID3D12Device> device);
+	void CreateSSAOPSO(ComPtr<ID3D12Device> device);
+
 	void CreateBillboardRS(ComPtr<ID3D12Device> device);
 	void CreateBillboardPSO(ComPtr<ID3D12Device> device);
 
@@ -134,7 +141,7 @@ struct RenderingSystem {
 
 	void GenerateTreeLights(std::vector<LightConstants>& lightsArray, Vector3 treeBasePosition, float treeHeight, float treeBaseRadius, int count);
 
-	RenderingSystem(ComPtr<ID3D12Device> device, int width, int height) {
+	RenderingSystem(ComPtr<ID3D12Device> device, int width, int height, ID3D12Resource* noiseTexture) {
 		BuildLayouts();
 		CreateOpaqueRS(device);
 		CompileShaders();
@@ -161,12 +168,15 @@ struct RenderingSystem {
 		CreateShadowRS(device);
 		CreateShadowPSO(device, inputLayout_);
 
+		CreateSSAORS(device);
+		CreateSSAOPSO(device);
+
 		CreateBillboardRS(device);
 		CreateBillboardPSO(device);
 
 		g_buffer = std::make_unique<GBuffer>(width, height, device);
 		post_process = std::make_unique<PostProcess>(width, height, device);
-		ssao = std::make_unique<SSAO>(device, width, height);
+		ssao = std::make_unique<SSAO>(device, width, height, g_buffer->DepthTex.Resource.Get(), g_buffer->NormalTex.Resource.Get(), noiseTexture);
 
 		LightConstants sun = {};
 		sun.lightType = 0; // Directional

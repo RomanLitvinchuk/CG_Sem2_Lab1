@@ -1,6 +1,7 @@
 cbuffer cbPerObject : register(b0)
 {
-    float4x4 mViewProj;
+    float4x4 mView;
+    float4x4 mProj;
     float gTime;
     float pad[3];
 }
@@ -110,7 +111,8 @@ VS_OUTPUT VS(VS_INPUT input, uint instanceID : SV_InstanceID)
     normalW = normalize(normalW);
     
     output.Wpos = mul(float4(localPos, 1.0f), mWorld);
-    output.pos = mul(output.Wpos, mViewProj);
+    output.pos = mul(output.Wpos, mView);
+    output.pos = mul(output.pos, mProj);
     
     output.normal = localNormal;
     output.normalW = normalW;
@@ -139,7 +141,8 @@ gBufferOutput PS(VS_OUTPUT input)
     }
     else
     {
-        ret.Normal = float4(input.normal.x, input.normal.y, input.normal.z, 0.0f);
+        ret.Normal = float4(input.normalW.x, input.normalW.y, input.normalW.z, 0.0f);
     }
+    ret.Normal = mul(ret.Normal, mView);
     return ret;
 }

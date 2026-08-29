@@ -3,6 +3,7 @@ cbuffer Matrices : register(b0)
 {
     float4x4 View;
     float4x4 Proj;
+    float4x4 invView;
 }
 
 struct ParticleData

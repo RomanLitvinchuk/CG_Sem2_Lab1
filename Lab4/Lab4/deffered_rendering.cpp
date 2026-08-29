@@ -4,7 +4,12 @@
 #define ALIGN_256(size) ((size + 255) & ~255)
 
 void DX12App::InitRenderSystem() {
-	renderSystem = new RenderingSystem(m_device_, m_client_width_, m_client_height_);
+	ID3D12Resource* noiseTexResource = nullptr;
+	auto iter = mTextures.find(L"noise");
+	if (iter != mTextures.end()) {
+		noiseTexResource = iter->second->Resource.Get();
+	}
+	renderSystem = new RenderingSystem(m_device_, m_client_width_, m_client_height_, noiseTexResource);
 
 	CreateStructuredBuffersSRV();
 }
@@ -279,6 +284,7 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->SetGraphicsRootDescriptorTable(3, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
 	m_command_list_->SetGraphicsRootDescriptorTable(4, shadowMap_->Srv());
 	m_command_list_->SetGraphicsRootConstantBufferView(5, ShadowCB->Resource()->GetGPUVirtualAddress());
+	m_command_list_->SetGraphicsRootConstantBufferView(6, MatricesBuffer->Resource()->GetGPUVirtualAddress());
 
 	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 	m_command_list_->DrawInstanced(3, 1, 0, 0);
@@ -318,6 +324,7 @@ void DX12App::Draw()
 
 	renderSystem->g_buffer->ClearGBuffer(m_command_list_);
 	renderSystem->post_process->ClearPostProcess(m_command_list_);
+	renderSystem->ssao->ClearSSAO(m_command_list_);
 
 	PPTexture* ppWriteTexture = &renderSystem->post_process->HDR_Texture_A;
 	PPTexture* ppReadTexture = &renderSystem->post_process->HDR_Texture_B;
@@ -330,7 +337,7 @@ void DX12App::Draw()
 		isFirstFrame = false;
 	}
 	DrawToGBuffer(m_command_list_);
-
+	DrawSSAO();
 	renderSystem->g_buffer->TransitToLightsRenderingState(m_command_list_);
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);

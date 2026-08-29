@@ -29,6 +29,7 @@
 #include "octree.h"
 #include "particle.h"
 #include "shadow_map.h"
+#include "ssao.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -59,6 +60,7 @@ public:
 	void sortLODs();
 	void Draw();
 	void DrawShadows(ComPtr <ID3D12GraphicsCommandList> m_command_list_);
+	void DrawSSAO();
 	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawNYBalls();
@@ -175,6 +177,7 @@ private:
 	std::unique_ptr<UploadBuffer<MeshInstanceData>> InstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<WireframeInstanceData>> WireframeInstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<ShadowConstants>> ShadowCB = nullptr;
+	std::unique_ptr<UploadBuffer<SsaoConstants>> SsaoBuffer = nullptr;
 
 	std::unique_ptr<UploadBuffer<uint32_t>> DeadListUpload_ = nullptr;
 	std::unique_ptr<UploadBuffer<uint32_t>> deadCounterUpload_ = nullptr;

@@ -38,7 +38,8 @@ SamplerState Sampler : register(s0);
 
 cbuffer cbPerObject : register(b0)
 {
-    float4x4 mViewProj;
+    float4x4 mView;
+    float4x4 mProj;
     float gTime;
     float pad[3];
 }

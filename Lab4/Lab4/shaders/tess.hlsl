@@ -1,6 +1,7 @@
 cbuffer cbPerObject : register(b0)
 {
-    float4x4 mViewProj;
+    float4x4 mView;
+    float4x4 mProj;
     float gTime;
     float pad[3];
 }
@@ -131,7 +132,7 @@ gBufferOutput TessPS(DS_OUTPUT input)
     }
     else
     {
-        ret.Normal = float4(input.normal.x, input.normal.y, input.normal.z, 0.0f);
+        ret.Normal = float4(input.normalW.x, input.normalW.y, input.normalW.z, 0.0f);
     }
     return ret;
 }
