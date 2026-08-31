@@ -326,8 +326,8 @@ void DX12App::Draw()
 	renderSystem->post_process->ClearPostProcess(m_command_list_);
 	renderSystem->ssao->ClearSSAO(m_command_list_);
 
-	PPTexture* ppWriteTexture = &renderSystem->post_process->HDR_Texture_A;
-	PPTexture* ppReadTexture = &renderSystem->post_process->HDR_Texture_B;
+	MyTexture* ppWriteTexture = &renderSystem->post_process->HDR_Texture_A;
+	MyTexture* ppReadTexture = &renderSystem->post_process->HDR_Texture_B;
 
 	treeIsVisible = false;
 
@@ -363,14 +363,14 @@ void DX12App::Draw()
 
 	//Здесь будут шейдеры до тонмаппинга
 
-	renderSystem->post_process->SwapTextures(m_command_list_, ppWriteTexture, ppReadTexture);
+	d3dUtil::SwapTextures(m_command_list_, ppWriteTexture, ppReadTexture);
 	DrawPPTonemap(m_command_list_, ppReadTexture);
 	ppReadTexture = &renderSystem->post_process->LDR_Texture_B;
 	ppWriteTexture = &renderSystem->post_process->LDR_Texture_A;
-	renderSystem->post_process->SwapTextures(m_command_list_, ppWriteTexture, ppReadTexture);
+	d3dUtil::SwapTextures(m_command_list_, ppWriteTexture, ppReadTexture);
 
 	DrawPPVignette(m_command_list_, ppReadTexture, ppWriteTexture);
-	renderSystem->post_process->SwapTextures(m_command_list_, ppWriteTexture, ppReadTexture);
+	d3dUtil::SwapTextures(m_command_list_, ppWriteTexture, ppReadTexture);
 	DrawPPOutput(m_command_list_, ppReadTexture);
 
 	CD3DX12_RESOURCE_BARRIER barrierBack = CD3DX12_RESOURCE_BARRIER::Transition(

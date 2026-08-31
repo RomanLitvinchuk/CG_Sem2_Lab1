@@ -68,6 +68,10 @@ struct RenderingSystem {
 	ComPtr<ID3D12PipelineState> SsaoPSO_ = nullptr;
 	ComPtr<ID3DBlob> SsaoPS_ = nullptr;
 
+	ComPtr<ID3D12RootSignature> SsaoBlurRS_ = nullptr;
+	ComPtr<ID3D12PipelineState> SsaoBlurPSO_ = nullptr;
+	ComPtr<ID3DBlob> SsaoBlurPS_ = nullptr;
+
 	ComPtr<ID3D12RootSignature> billboardRS_ = nullptr;
 	ComPtr<ID3D12PipelineState> billboardPSO_ = nullptr;
 	ComPtr<ID3DBlob> billboardVS_ = nullptr;
@@ -129,6 +133,9 @@ struct RenderingSystem {
 	void CreateSSAORS(ComPtr<ID3D12Device> device);
 	void CreateSSAOPSO(ComPtr<ID3D12Device> device);
 
+	void CreateSSAOBlurRS(ComPtr<ID3D12Device> device);
+	void CreateSSAOBlurPSO(ComPtr<ID3D12Device> device);
+
 	void CreateBillboardRS(ComPtr<ID3D12Device> device);
 	void CreateBillboardPSO(ComPtr<ID3D12Device> device);
 
@@ -171,12 +178,15 @@ struct RenderingSystem {
 		CreateSSAORS(device);
 		CreateSSAOPSO(device);
 
+		CreateSSAOBlurRS(device);
+		CreateSSAOBlurPSO(device);
+
 		CreateBillboardRS(device);
 		CreateBillboardPSO(device);
 
 		g_buffer = std::make_unique<GBuffer>(width, height, device);
 		post_process = std::make_unique<PostProcess>(width, height, device);
-		ssao = std::make_unique<SSAO>(device, width, height, g_buffer->DepthTex.Resource.Get(), g_buffer->NormalTex.Resource.Get(), noiseTexture);
+		ssao = std::make_unique<SSAO>(device, width / 2, height / 2, g_buffer->DepthTex.Resource.Get(), g_buffer->NormalTex.Resource.Get(), noiseTexture);
 
 		LightConstants sun = {};
 		sun.lightType = 0; // Directional

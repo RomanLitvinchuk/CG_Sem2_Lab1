@@ -22,8 +22,8 @@ public:
 		const std::string& entrypoint,
 		const std::string& target);
 	static DXGI_FORMAT MakeSRGB(DXGI_FORMAT format);
-	static void Barrier(ComPtr<ID3D12GraphicsCommandList> commandList, PPTexture* texture, D3D12_RESOURCE_STATES newState);
-
+	static void Barrier(ComPtr<ID3D12GraphicsCommandList> commandList, MyTexture* texture, D3D12_RESOURCE_STATES newState);
+	static void SwapTextures(ComPtr<ID3D12GraphicsCommandList> commandList, MyTexture*& writeTexture, MyTexture*& readTexture);
 private:
 };
 

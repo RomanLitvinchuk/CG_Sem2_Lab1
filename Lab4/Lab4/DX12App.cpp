@@ -289,7 +289,7 @@ void DX12App::OnResize() {
 	if (iter != mTextures.end()) {
 		noiseTexResource = iter->second->Resource.Get();
 	}
-	renderSystem->ssao->OnResize(m_device_, m_client_width_, m_client_height_,
+	renderSystem->ssao->OnResize(m_device_, m_client_width_ / 2, m_client_height_ / 2,
 		renderSystem->g_buffer->DepthTex.Resource.Get(),
 		renderSystem->g_buffer->NormalTex.Resource.Get(),
 		noiseTexResource);

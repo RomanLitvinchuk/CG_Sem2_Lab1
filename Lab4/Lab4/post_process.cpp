@@ -106,13 +106,6 @@ void PostProcess::BarriersToDefault(ComPtr<ID3D12GraphicsCommandList> commandLis
 	d3dUtil::Barrier(commandList, &LDR_Texture_B, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
-void PostProcess::SwapTextures(ComPtr<ID3D12GraphicsCommandList> commandList, PPTexture*& writeTexture, PPTexture*& readTexture)
-{
-	std::swap(writeTexture, readTexture);
-	d3dUtil::Barrier(commandList, writeTexture, D3D12_RESOURCE_STATE_RENDER_TARGET);
-	d3dUtil::Barrier(commandList, readTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
-}
-
 void PostProcess::OnResize(int width, int height, ComPtr<ID3D12Device> device)
 {
 	HDR_Texture_A.Resource.Reset();

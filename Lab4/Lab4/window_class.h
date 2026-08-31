@@ -13,7 +13,7 @@ private:
 public:
 	WindowClass(HINSTANCE hInstance, HINSTANCE hPrevInstance) : hInstance_(hInstance), hPrevInstance_(hPrevInstance) {}
 	void initWindow(WNDPROC WndProc);
-	void CreateWnd();
+	void CreateWnd(int windowWidth, int windowHeight);
 	void ShowWnd();
 	void UpdateWnd();
 	bool CheckRegister();

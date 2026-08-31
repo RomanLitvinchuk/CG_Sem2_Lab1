@@ -91,6 +91,7 @@ void RenderingSystem::CompileShaders() {
 	shadowVS_ = d3dUtil::CompileShader(L"shaders/shadowVS.hlsl", nullptr, "VS", "vs_5_0");
 
 	SsaoPS_ = d3dUtil::CompileShader(L"shaders/ssao.hlsl", nullptr, "PS", "ps_5_0");
+	SsaoBlurPS_ = d3dUtil::CompileShader(L"shaders/ssaoBlur.hlsl", nullptr, "PS", "ps_5_0");
 
 	billboardVS_ = d3dUtil::CompileShader(L"shaders/billboard.hlsl", nullptr, "VS", "vs_5_0");
 	billboardPS_ = d3dUtil::CompileShader(L"shaders/billboard.hlsl", nullptr, "PS", "ps_5_0");
@@ -614,7 +615,7 @@ void RenderingSystem::CreateSSAORS(ComPtr<ID3D12Device> device)
 	texTable[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	texTable[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
 	texTable[2].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 2);
-	rootParameter[0].InitAsDescriptorTable(3, texTable);
+	rootParameter[0].InitAsDescriptorTable(3, texTable, D3D12_SHADER_VISIBILITY_PIXEL);
 	CD3DX12_DESCRIPTOR_RANGE sampleTable[2];
 	sampleTable[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
 	sampleTable[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 1);
@@ -665,6 +666,64 @@ void RenderingSystem::CreateSSAOPSO(ComPtr<ID3D12Device> device)
 	psoDesc.SampleDesc.Quality = 0;
 	psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&SsaoPSO_)));
+}
+
+void RenderingSystem::CreateSSAOBlurRS(ComPtr<ID3D12Device> device)
+{
+	CD3DX12_ROOT_PARAMETER rootParameter[4];
+	CD3DX12_DESCRIPTOR_RANGE ssaoTable;
+	ssaoTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
+	rootParameter[0].InitAsDescriptorTable(1, &ssaoTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	CD3DX12_DESCRIPTOR_RANGE normalTable;
+	normalTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
+	rootParameter[1].InitAsDescriptorTable(1, &normalTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	CD3DX12_DESCRIPTOR_RANGE sampleTable;
+	sampleTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER, 1, 0);
+	rootParameter[2].InitAsDescriptorTable(1, &sampleTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	rootParameter[3].InitAsConstantBufferView(0);
+
+	CD3DX12_ROOT_SIGNATURE_DESC rootDesc(_countof(rootParameter), rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+
+	ComPtr<ID3DBlob> errorBlob;
+	ComPtr<ID3DBlob> serializedRootDesc;
+
+	ThrowIfFailed(D3D12SerializeRootSignature(&rootDesc, D3D_ROOT_SIGNATURE_VERSION_1, serializedRootDesc.GetAddressOf(), errorBlob.GetAddressOf()));
+
+	if (errorBlob != nullptr) {
+		OutputDebugStringA((char*)errorBlob->GetBufferPointer());
+	}
+
+	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&SsaoBlurRS_)));
+}
+
+void RenderingSystem::CreateSSAOBlurPSO(ComPtr<ID3D12Device> device)
+{
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
+	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
+	psoDesc.InputLayout = { nullptr, 0 };
+	psoDesc.pRootSignature = SsaoBlurRS_.Get();
+	psoDesc.VS = { reinterpret_cast<BYTE*>(fullscreenTriangleVS_->GetBufferPointer()), fullscreenTriangleVS_->GetBufferSize() };
+	psoDesc.PS = { reinterpret_cast<BYTE*>(SsaoBlurPS_->GetBufferPointer()), SsaoBlurPS_->GetBufferSize() };
+	CD3DX12_RASTERIZER_DESC rastDesc(D3D12_DEFAULT);
+	rastDesc.FrontCounterClockwise = false;
+	psoDesc.RasterizerState = rastDesc;
+	psoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
+
+	CD3DX12_DEPTH_STENCIL_DESC dsDesc(D3D12_DEFAULT);
+	dsDesc.DepthEnable = false;
+	dsDesc.StencilEnable = false;
+	dsDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+	dsDesc.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;
+
+	psoDesc.DepthStencilState = dsDesc;
+	psoDesc.SampleMask = UINT_MAX;
+	psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+	psoDesc.NumRenderTargets = 1;
+	psoDesc.RTVFormats[0] = DXGI_FORMAT_R32_FLOAT;
+	psoDesc.SampleDesc.Count = 1;
+	psoDesc.SampleDesc.Quality = 0;
+	psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&SsaoBlurPSO_)));
 }
 
 void RenderingSystem::CreateBillboardRS(ComPtr<ID3D12Device> device)

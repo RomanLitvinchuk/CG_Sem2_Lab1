@@ -1,6 +1,6 @@
 #include "DX12App.h"
 
-void DX12App::DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readHDR) {
+void DX12App::DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readHDR) {
 	m_command_list_->SetPipelineState(renderSystem->pp_tonemappingPSO_.Get());
 	m_command_list_->SetGraphicsRootSignature(renderSystem->pp_defaultRS_.Get());
 
@@ -18,7 +18,7 @@ void DX12App::DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_, P
 	m_command_list_->DrawInstanced(3, 1, 0, 0);
 }
 
-void DX12App::DrawPPVignette(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readLDR, PPTexture* writeLDR)
+void DX12App::DrawPPVignette(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readLDR, MyTexture* writeLDR)
 {
 	m_command_list_->SetPipelineState(renderSystem->pp_vignettePSO_.Get());
 	m_command_list_->SetGraphicsRootSignature(renderSystem->pp_defaultRS_.Get());
@@ -36,7 +36,7 @@ void DX12App::DrawPPVignette(ComPtr<ID3D12GraphicsCommandList> m_command_list_, 
 	m_command_list_->DrawInstanced(3, 1, 0, 0);
 }
 
-void DX12App::DrawPPOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readLDR)
+void DX12App::DrawPPOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readLDR)
 {
 	m_command_list_->SetPipelineState(renderSystem->pp_outputPSO_.Get());
 	m_command_list_->SetGraphicsRootSignature(renderSystem->pp_defaultRS_.Get());

@@ -27,8 +27,8 @@ void DX12App::InitUploadBuffers() {
 void DX12App::FillUploadBuffers()
 {
 	SsaoConstants ssaoConst;
-	ssaoConst.screenWidth = m_client_width_;
-	ssaoConst.screenHeight = m_client_height_;
+	ssaoConst.screenWidth = m_client_width_ / 2.0f;
+	ssaoConst.screenHeight = m_client_height_ / 2.0f;
 	ssaoConst.randomTextureSize = 64;
 	ssaoConst.sampleRadius = 1.0f;
 	ssaoConst.ssaoScale = 1.0f;

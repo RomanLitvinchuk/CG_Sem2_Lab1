@@ -71,9 +71,9 @@ public:
 	void EmitParticles();
 	void InitEmitter();
 
-	void DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readHDR);
-	void DrawPPVignette(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readLDR, PPTexture* writeLDR);
-	void DrawPPOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_, PPTexture* readLDR);
+	void DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readHDR);
+	void DrawPPVignette(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readLDR, MyTexture* writeLDR);
+	void DrawPPOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readLDR);
 
 	void FlushCommandQueue();
 
@@ -125,13 +125,16 @@ public:
 
 	bool m_key_states[256] = { false };
 
+	int GetClientWidth() { return m_client_width_; }
+	int GetClientHeight() { return m_client_height_; }
+
 private:
 	void EnableDebug();
 	GameTimer gt;
 	DXGI_FORMAT m_back_buffer_format_ = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT m_depth_stencil_format_ = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	int m_client_width_ = 800;
-	int m_client_height_ = 600;
+	int m_client_width_ = 1424;
+	int m_client_height_ = 750;
 	ComPtr<IDXGIFactory4> m_dxgi_factory_ = nullptr;
 	ComPtr<ID3D12Device> m_device_ = nullptr;
 	ComPtr<ID3D12Fence> m_fence_;

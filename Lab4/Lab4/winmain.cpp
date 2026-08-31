@@ -158,7 +158,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, PWSTR pCmdLine
 	WindowClass wnd(hInstance, hPrevInstance);
 	wnd.initWindow(WndProc);
 	wnd.CheckRegister();
-	wnd.CreateWnd();
+	wnd.CreateWnd(MyFramework.GetClientWidth(), MyFramework.GetClientHeight());
 	if (!wnd.CheckCreation()) {
 		return 0;
 	}

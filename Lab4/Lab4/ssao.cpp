@@ -9,19 +9,29 @@ void SSAO::CreateTexture(ComPtr<ID3D12Device> device, int width, int height) {
 	clearValue.Color[1] = 0.0f;
 	clearValue.Color[2] = 0.0f;
 	clearValue.Color[3] = 1.0f;
-	device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue, IID_PPV_ARGS(&SSAOTexture_.Resource));
-	SSAOTexture_.Resource->SetName(L"SSAO Texture");
+	device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue, IID_PPV_ARGS(&SSAOTexture_A.Resource));
+	SSAOTexture_A.Resource->SetName(L"SSAO Texture");
+	SSAOTexture_A.currentState = D3D12_RESOURCE_STATE_RENDER_TARGET;
+	
+	device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&SSAOTexture_B.Resource));
+	SSAOTexture_B.Resource->SetName(L"SSAO Blur Texture");
+	SSAOTexture_B.currentState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 }
 
 void SSAO::CreateRTV(ComPtr<ID3D12Device> device) {
+	CD3DX12_CPU_DESCRIPTOR_HANDLE handle(rtvHeap_->GetCPUDescriptorHandleForHeapStart());
+	auto rtvSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	rtvDesc.Format = DXGI_FORMAT_R32_FLOAT;
 	rtvDesc.Texture2D.MipSlice = 0;
 	rtvDesc.Texture2D.PlaneSlice = 0;
-	D3D12_CPU_DESCRIPTOR_HANDLE handle = CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvHeap_->GetCPUDescriptorHandleForHeapStart());
-	SSAOTexture_.rtvHandle = handle;
-	device->CreateRenderTargetView(SSAOTexture_.Resource.Get(), &rtvDesc, handle);
+	SSAOTexture_A.rtvHandle = handle;
+	device->CreateRenderTargetView(SSAOTexture_A.Resource.Get(), &rtvDesc, handle);
+
+	handle.Offset(1, rtvSize);
+	SSAOTexture_B.rtvHandle = handle;
+	device->CreateRenderTargetView(SSAOTexture_B.Resource.Get(), &rtvDesc, handle);
 }
 
 void SSAO::CreateSRV(ComPtr<ID3D12Device> device, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture) {
@@ -32,10 +42,16 @@ void SSAO::CreateSRV(ComPtr<ID3D12Device> device, ID3D12Resource* depthTexture, 
 	srvDesc.Format = DXGI_FORMAT_R32_FLOAT;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Texture2D.MipLevels = 1;
-	SSAOTexture_.srvHandle = handle;
-	device->CreateShaderResourceView(SSAOTexture_.Resource.Get(), &srvDesc, handle);
-	D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(srvHeap_->GetGPUDescriptorHandleForHeapStart());
-	SSAOTexture_.srvGpuHandle = gpuHandle;
+	SSAOTexture_A.srvHandle = handle;
+	device->CreateShaderResourceView(SSAOTexture_A.Resource.Get(), &srvDesc, handle);
+	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(srvHeap_->GetGPUDescriptorHandleForHeapStart());
+	SSAOTexture_A.srvGpuHandle = gpuHandle;
+
+	handle.Offset(1, size);
+	gpuHandle.Offset(1, size);
+	SSAOTexture_B.srvHandle = handle;
+	SSAOTexture_B.srvGpuHandle = gpuHandle;
+	device->CreateShaderResourceView(SSAOTexture_B.Resource.Get(), &srvDesc, handle);
 
 	handle.Offset(1, size);
 	srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
@@ -76,7 +92,7 @@ void SSAO::CreateSamplers(ComPtr<ID3D12Device> device)
 
 void SSAO::OnResize(ComPtr<ID3D12Device> device, int width, int height, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture)
 {
-	SSAOTexture_.Resource.Reset();
+	SSAOTexture_A.Resource.Reset();
 	CreateTexture(device, width, height);
 	CreateRTV(device);
 	CreateSRV(device, depthTexture, normalTexture, noiseTexture);
@@ -84,13 +100,32 @@ void SSAO::OnResize(ComPtr<ID3D12Device> device, int width, int height, ID3D12Re
 
 void SSAO::ClearSSAO(ComPtr<ID3D12GraphicsCommandList> commandList)
 {
-	commandList->ClearRenderTargetView(SSAOTexture_.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+	commandList->ClearRenderTargetView(SSAOTexture_A.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+}
+
+void SSAO::SwapStates(ComPtr<ID3D12Device> device)
+{
+
 }
 
 void DX12App::DrawSSAO() {
 	m_command_list_->SetPipelineState(renderSystem->SsaoPSO_.Get());
 	m_command_list_->SetGraphicsRootSignature(renderSystem->SsaoRS_.Get());
-	auto handle = renderSystem->ssao->SSAOTexture_.rtvHandle;
+
+	D3D12_VIEWPORT ssaoViewport = {};
+	ssaoViewport.TopLeftX = 0.0f;
+	ssaoViewport.TopLeftY = 0.0f;
+	ssaoViewport.Width = static_cast<float>(m_client_width_ / 2);
+	ssaoViewport.Height = static_cast<float>(m_client_height_ / 2);
+	ssaoViewport.MinDepth = 0.0f;
+	ssaoViewport.MaxDepth = 1.0f;
+
+	D3D12_RECT ssaoScissorRect = { 0, 0, m_client_width_ / 2, m_client_height_ / 2 };
+
+	m_command_list_->RSSetViewports(1, &ssaoViewport);
+	m_command_list_->RSSetScissorRects(1, &ssaoScissorRect);
+
+	auto handle = renderSystem->ssao->SSAOTexture_A.rtvHandle;
 	m_command_list_->OMSetRenderTargets(1, &handle, true, nullptr);
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->ssao->srvHeap_.Get(), renderSystem->ssao->samplerHeap_.Get()};
@@ -98,7 +133,7 @@ void DX12App::DrawSSAO() {
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(renderSystem->ssao->srvHeap_->GetGPUDescriptorHandleForHeapStart());
 	auto srvSize = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	srvHandle.Offset(1, srvSize);
+	srvHandle.Offset(2, srvSize);
 	m_command_list_->SetGraphicsRootDescriptorTable(0, srvHandle);
 
 	m_command_list_->SetGraphicsRootDescriptorTable(1, renderSystem->ssao->samplerHeap_->GetGPUDescriptorHandleForHeapStart());
@@ -108,4 +143,7 @@ void DX12App::DrawSSAO() {
 	m_command_list_->SetGraphicsRootConstantBufferView(4, MatricesBuffer->Resource()->GetGPUVirtualAddress());
 
 	m_command_list_->DrawInstanced(3, 1, 0, 0);
+
+	m_command_list_->RSSetViewports(1, &vp_);
+	m_command_list_->RSSetScissorRects(1, &m_scissor_rect_);
 }

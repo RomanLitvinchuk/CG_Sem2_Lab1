@@ -77,12 +77,19 @@ DXGI_FORMAT d3dUtil::MakeSRGB(DXGI_FORMAT format)
 	}
 }
 
-void d3dUtil::Barrier(ComPtr<ID3D12GraphicsCommandList> commandList, PPTexture* texture, D3D12_RESOURCE_STATES newState)
+void d3dUtil::Barrier(ComPtr<ID3D12GraphicsCommandList> commandList, MyTexture* texture, D3D12_RESOURCE_STATES newState)
 {
 	if (texture->currentState == newState) return;
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(texture->Resource.Get(), texture->currentState, newState);
 	texture->currentState = newState;
 	commandList->ResourceBarrier(1, &barrier);
+}
+
+void d3dUtil::SwapTextures(ComPtr<ID3D12GraphicsCommandList> commandList, MyTexture*& writeTexture, MyTexture*& readTexture)
+{
+	std::swap(writeTexture, readTexture);
+	d3dUtil::Barrier(commandList, writeTexture, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	d3dUtil::Barrier(commandList, readTexture, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 

@@ -150,8 +150,10 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
         shadowColor = float4(0.15f, 0.15f, 0.15f, 1.0f);
     }
     
+    
+    float3 ambient = diffuse * float3(0.1f, 0.12f, 0.15f);
     float3 viewVec = normalize(g_CameraPos - worldPos);
-    float3 finalLight = float3(0.0f, 0.0f, 0.0f);
+    float3 finalLight = ambient;
     for (uint i = 0; i < lightCount; i++)
     {
         LightData light = Lights[i];
@@ -160,7 +162,7 @@ float4 PS_DeferredLighting(PS_INPUT input) : SV_Target
         {
             float3 lightDir = normalize(-light.g_LightDirection);
             float NdotL = max(dot(normal, lightDir), 0.0f);
-            finalLight += diffuse * light.g_LightColor * NdotL * lerp(shadowColor.rgb * 2.0f, float3(1.0f, 1.0f, 1.0f), shadowFactor);
+            finalLight += diffuse * light.g_LightColor * NdotL * shadowFactor;
         }
         else if (light.g_LightType == 1) // Point
         {

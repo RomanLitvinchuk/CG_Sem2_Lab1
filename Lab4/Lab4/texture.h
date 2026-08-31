@@ -16,4 +16,12 @@ struct Texture
 	bool isSRGB = false;
 };
 
+struct MyTexture {
+	ComPtr<ID3D12Resource> Resource = nullptr;
+	D3D12_RESOURCE_STATES currentState;
+	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle;
+	D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
+};
+
 #endif TEXTURE_H_

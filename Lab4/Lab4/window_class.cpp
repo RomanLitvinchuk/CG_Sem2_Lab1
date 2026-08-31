@@ -16,8 +16,8 @@ void WindowClass::initWindow(WNDPROC WndProc) {
 	wc_.hIconSm = wc_.hIcon;
 }
 
-void WindowClass::CreateWnd() {
-	hWnd_ = CreateWindowExW(0, L"WindowClass", L"WindowName", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL, hInstance_, nullptr);
+void WindowClass::CreateWnd(int windowWidth, int windowHeight) {
+	hWnd_ = CreateWindowExW(0, L"WindowClass", L"WindowName", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, windowWidth, windowHeight, NULL, NULL, hInstance_, nullptr);
 }
 
 void WindowClass::ShowWnd() {

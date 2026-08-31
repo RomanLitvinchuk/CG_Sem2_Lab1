@@ -5,24 +5,17 @@
 #include <wrl.h>
 #include <SimpleMath.h>
 #include "throw_if_failed.h"
+#include "texture.h"
 
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
 
-struct PPTexture {
-	ComPtr<ID3D12Resource> Resource = nullptr;
-	D3D12_RESOURCE_STATES currentState;
-	D3D12_CPU_DESCRIPTOR_HANDLE srvHandle;
-	D3D12_GPU_DESCRIPTOR_HANDLE srvGpuHandle;
-	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandle;
-};
-
 struct PostProcess {
-	PPTexture HDR_Texture_A;
-	PPTexture HDR_Texture_B;
-	PPTexture LDR_Texture_A;
-	PPTexture LDR_Texture_B;
+	MyTexture HDR_Texture_A;
+	MyTexture HDR_Texture_B;
+	MyTexture LDR_Texture_A;
+	MyTexture LDR_Texture_B;
 	ComPtr<ID3D12DescriptorHeap> srvHeap_;
 	ComPtr<ID3D12DescriptorHeap> rtvHeap_;
 
@@ -32,7 +25,6 @@ struct PostProcess {
 
 	void ClearPostProcess(ComPtr<ID3D12GraphicsCommandList> commandList);
 	void BarriersToDefault(ComPtr<ID3D12GraphicsCommandList> commandList);
-	void SwapTextures(ComPtr<ID3D12GraphicsCommandList> commandList, PPTexture*& writeTexture, PPTexture*& readTexture);
 	void OnResize(int width, int height, ComPtr<ID3D12Device> device);
 
 	PostProcess(int width, int height, ComPtr<ID3D12Device> device) {
