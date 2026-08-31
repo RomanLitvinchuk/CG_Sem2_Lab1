@@ -105,6 +105,7 @@ void DX12App::DrawSSAO() {
 
 	m_command_list_->SetGraphicsRootConstantBufferView(2, SsaoBuffer->Resource()->GetGPUVirtualAddress());
 	m_command_list_->SetGraphicsRootConstantBufferView(3, CameraCB->Resource()->GetGPUVirtualAddress());
+	m_command_list_->SetGraphicsRootConstantBufferView(4, MatricesBuffer->Resource()->GetGPUVirtualAddress());
 
 	m_command_list_->DrawInstanced(3, 1, 0, 0);
 }

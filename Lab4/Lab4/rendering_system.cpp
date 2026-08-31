@@ -609,7 +609,7 @@ void RenderingSystem::CreateShadowPSO(ComPtr<ID3D12Device> device, std::vector<D
 
 void RenderingSystem::CreateSSAORS(ComPtr<ID3D12Device> device)
 {
-	CD3DX12_ROOT_PARAMETER rootParameter[4];
+	CD3DX12_ROOT_PARAMETER rootParameter[5];
 	CD3DX12_DESCRIPTOR_RANGE texTable[3];
 	texTable[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 	texTable[1].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 1);
@@ -621,6 +621,7 @@ void RenderingSystem::CreateSSAORS(ComPtr<ID3D12Device> device)
 	rootParameter[1].InitAsDescriptorTable(2, sampleTable);
 	rootParameter[2].InitAsConstantBufferView(0);
 	rootParameter[3].InitAsConstantBufferView(1);
+	rootParameter[4].InitAsConstantBufferView(2);
 
 	CD3DX12_ROOT_SIGNATURE_DESC rootDesc(_countof(rootParameter), rootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 

@@ -21,6 +21,9 @@ void DX12App::Update() {
 	Matrix invView = camera.mView_.Transpose();
 	invView = invView.Invert();
 	matricesData.invView = invView;
+	Matrix invProj = camera.mProj_.Transpose();
+	invProj = invProj.Invert();
+	matricesData.invProj = invProj;
 	MatricesBuffer->CopyData(0, matricesData);
 	Matrix ViewProj = camera.mView_ * camera.mProj_;
 

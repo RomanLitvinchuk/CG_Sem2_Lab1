@@ -18,6 +18,7 @@ struct Matrices {
 	Matrix View;
 	Matrix Proj;
 	Matrix invView;
+	Matrix invProj;
 };
 
 #endif //OBJECT_CONSTANTS_

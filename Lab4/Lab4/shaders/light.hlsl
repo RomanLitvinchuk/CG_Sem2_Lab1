@@ -28,6 +28,7 @@ cbuffer Matrices : register(b3)
     float4x4 View;
     float4x4 Proj;
     float4x4 invView;
+    float4x4 invProj;
 }
 
 Texture2D t_Diffuse : register(t0);

@@ -136,6 +136,7 @@
     <ClCompile Include="bulb.cpp" />
     <ClCompile Include="camera.cpp" />
     <ClCompile Include="cascades.cpp" />
+    <ClCompile Include="CBV_SRV_UAV.cpp" />
     <ClCompile Include="d3dUtil.cpp" />
     <ClCompile Include="DDSTextureLoader.cpp" />
     <ClCompile Include="deffered_rendering.cpp" />
@@ -153,6 +154,7 @@
     <ClCompile Include="ssao.cpp" />
     <ClCompile Include="stream_output.cpp" />
     <ClCompile Include="update.cpp" />
+    <ClCompile Include="upload_buffers.cpp" />
     <ClCompile Include="window_class.cpp" />
     <ClCompile Include="winmain.cpp" />
     <ClCompile Include="wireframe.cpp" />

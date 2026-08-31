@@ -87,6 +87,7 @@ public:
 	void Update();
 
 	void InitUploadBuffers();
+	void FillUploadBuffers();
 	void InitUAVBuffers();
 	void CreateConstantBufferView();
 	void CreateStructuredBuffersSRV();
