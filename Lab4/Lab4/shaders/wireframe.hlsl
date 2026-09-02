@@ -1,7 +1,8 @@
 
 cbuffer cbViewProj : register(b0)
 {
-    float4x4 ViewProj;
+    float4x4 View;
+    float4x4 Proj;
     float gTime;
     float pad[3];
 };
@@ -33,7 +34,9 @@ VertexOut VS(VertexIn vin, uint instanceID : SV_InstanceID)
     
     float3 worldPos = (vin.PosL * instance.extents * 2.0f) + instance.center;
     
-    vout.posH = mul(float4(worldPos, 1.0f), ViewProj);
+    float4 posH = mul(float4(worldPos, 1.0f), View);
+    posH = mul(posH, Proj);
+    vout.posH = posH;
     
     vout.Color = instance.color;
     return vout;

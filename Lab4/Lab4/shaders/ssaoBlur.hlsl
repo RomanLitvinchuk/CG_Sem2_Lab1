@@ -45,7 +45,7 @@ float PS(PS_INPUT input) : SV_Target
     weightSum = weightArray[radius];
     colorSum = weightSum * t_SSAO.Sample(SampleTypePoint, input.TexCoord, 0).r;
     centerNormal = t_Normal.Sample(SampleTypePoint, input.TexCoord, 0);
-    for (int i = radius; i <= radius; i++)
+    for (int i = -radius; i <= radius; i++)
     {
         if (i == 0)
             continue;

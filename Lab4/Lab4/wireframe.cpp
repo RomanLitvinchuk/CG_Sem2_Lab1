@@ -11,6 +11,10 @@ void DX12App::DrawWireframe(ComPtr<ID3D12GraphicsCommandList> m_command_list_)
 
 	m_command_list_->SetGraphicsRootConstantBufferView(0, CBUploadBuffer->Resource()->GetGPUVirtualAddress());
 
+	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->HDR_Texture_A.rtvHandle;
+	auto dsv = renderSystem->g_buffer->DepthTex.dsvHandle;
+	m_command_list_->OMSetRenderTargets(1, &rtv, true, &dsv);
+
 	std::vector<BVHNode*> allNodes;
 	octree.GetAllNodes(allNodes);
 

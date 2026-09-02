@@ -272,8 +272,7 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->HDR_Texture_A.rtvHandle;
-	D3D12_CPU_DESCRIPTOR_HANDLE dsv = renderSystem->g_buffer->DepthTex.dsvHandle;
-	m_command_list_->OMSetRenderTargets(1, &rtv, true, &dsv);
+	m_command_list_->OMSetRenderTargets(1, &rtv, true, nullptr);
 	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->g_buffer->SRVDescriptorHeap.Get(), renderSystem->samplerHeap.Get() };
 	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
@@ -296,6 +295,10 @@ void DX12App::DrawNYBalls()
 {
 	m_command_list_->SetPipelineState(renderSystem->bulbPSO_.Get());
 	m_command_list_->SetGraphicsRootSignature(renderSystem->bulbRS_.Get());
+
+	auto dsv = renderSystem->g_buffer->DepthTex.dsvHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->HDR_Texture_A.rtvHandle;
+	m_command_list_->OMSetRenderTargets(1, &rtv, true, &dsv);
 
 	m_command_list_->SetGraphicsRootConstantBufferView(0, CBUploadBuffer->Resource()->GetGPUVirtualAddress());
 
@@ -338,6 +341,7 @@ void DX12App::Draw()
 	}
 	DrawToGBuffer(m_command_list_);
 	DrawSSAO();
+	BlurSSAO();
 	renderSystem->g_buffer->TransitToLightsRenderingState(m_command_list_);
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);

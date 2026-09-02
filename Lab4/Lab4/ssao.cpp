@@ -10,11 +10,11 @@ void SSAO::CreateTexture(ComPtr<ID3D12Device> device, int width, int height) {
 	clearValue.Color[2] = 0.0f;
 	clearValue.Color[3] = 1.0f;
 	device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, &clearValue, IID_PPV_ARGS(&SSAOTexture_A.Resource));
-	SSAOTexture_A.Resource->SetName(L"SSAO Texture");
+	SSAOTexture_A.Resource->SetName(L"SSAO Texture A");
 	SSAOTexture_A.currentState = D3D12_RESOURCE_STATE_RENDER_TARGET;
 	
 	device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, &clearValue, IID_PPV_ARGS(&SSAOTexture_B.Resource));
-	SSAOTexture_B.Resource->SetName(L"SSAO Blur Texture");
+	SSAOTexture_B.Resource->SetName(L"SSAO Texture B");
 	SSAOTexture_B.currentState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 }
 
@@ -72,7 +72,7 @@ void SSAO::CreateSamplers(ComPtr<ID3D12Device> device)
 	CD3DX12_CPU_DESCRIPTOR_HANDLE sampHandle(samplerHeap_->GetCPUDescriptorHandleForHeapStart());
 	auto sampSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	D3D12_SAMPLER_DESC sampDesc = {};
-	sampDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
+	sampDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
 	sampDesc.AddressU = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	sampDesc.AddressV = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
 	sampDesc.AddressW = D3D12_TEXTURE_ADDRESS_MODE_CLAMP;
@@ -100,12 +100,17 @@ void SSAO::OnResize(ComPtr<ID3D12Device> device, int width, int height, ID3D12Re
 
 void SSAO::ClearSSAO(ComPtr<ID3D12GraphicsCommandList> commandList)
 {
+	d3dUtil::Barrier(commandList, &SSAOTexture_A, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	d3dUtil::Barrier(commandList, &SSAOTexture_B, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	commandList->ClearRenderTargetView(SSAOTexture_A.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+	commandList->ClearRenderTargetView(SSAOTexture_B.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+	BarriersToDefault(commandList);
 }
 
-void SSAO::SwapStates(ComPtr<ID3D12Device> device)
+void SSAO::BarriersToDefault(ComPtr<ID3D12GraphicsCommandList> commandList)
 {
-
+	d3dUtil::Barrier(commandList, &SSAOTexture_A, D3D12_RESOURCE_STATE_RENDER_TARGET);
+	d3dUtil::Barrier(commandList, &SSAOTexture_B, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
 void DX12App::DrawSSAO() {
@@ -141,6 +146,54 @@ void DX12App::DrawSSAO() {
 	m_command_list_->SetGraphicsRootConstantBufferView(2, SsaoBuffer->Resource()->GetGPUVirtualAddress());
 	m_command_list_->SetGraphicsRootConstantBufferView(3, CameraCB->Resource()->GetGPUVirtualAddress());
 	m_command_list_->SetGraphicsRootConstantBufferView(4, MatricesBuffer->Resource()->GetGPUVirtualAddress());
+
+	m_command_list_->DrawInstanced(3, 1, 0, 0);
+
+	//m_command_list_->RSSetViewports(1, &vp_);
+	//m_command_list_->RSSetScissorRects(1, &m_scissor_rect_);
+}
+
+void DX12App::BlurSSAO()
+{
+	MyTexture* ssaoWriteTexture = &renderSystem->ssao->SSAOTexture_A;
+	MyTexture* ssaoReadTexture = &renderSystem->ssao->SSAOTexture_B;
+
+	d3dUtil::SwapTextures(m_command_list_, ssaoWriteTexture, ssaoReadTexture);
+
+	m_command_list_->SetPipelineState(renderSystem->SsaoBlurPSO_.Get());
+	m_command_list_->SetGraphicsRootSignature(renderSystem->SsaoBlurRS_.Get());
+
+	auto rtv = ssaoWriteTexture->rtvHandle;
+	m_command_list_->OMSetRenderTargets(1, &rtv, true, nullptr);
+
+	m_command_list_->SetGraphicsRootDescriptorTable(0, ssaoReadTexture->srvGpuHandle);
+
+	CD3DX12_GPU_DESCRIPTOR_HANDLE normalHandle(renderSystem->ssao->srvHeap_->GetGPUDescriptorHandleForHeapStart());
+	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	normalHandle.Offset(3, size);
+	m_command_list_->SetGraphicsRootDescriptorTable(1, normalHandle);
+
+	m_command_list_->SetGraphicsRootDescriptorTable(2, renderSystem->ssao->samplerHeap_->GetGPUDescriptorHandleForHeapStart());
+
+	BlurConstants blurConst;
+	blurConst.screenWidth = m_client_width_ / 2;
+	blurConst.screenHeight = m_client_height_ / 2;
+	blurConst.blurType = 0.0f;
+	blurConst.padding = 0.0f;
+	SsaoBlurBuffer->CopyData(0, blurConst);
+
+	m_command_list_->SetGraphicsRootConstantBufferView(3, SsaoBlurBuffer->Resource()->GetGPUVirtualAddress());
+
+	m_command_list_->DrawInstanced(3, 1, 0, 0);
+
+	d3dUtil::SwapTextures(m_command_list_, ssaoWriteTexture, ssaoReadTexture);
+	rtv = ssaoWriteTexture->rtvHandle;
+	m_command_list_->OMSetRenderTargets(1, &rtv, true, nullptr);
+	m_command_list_->SetGraphicsRootDescriptorTable(0, ssaoReadTexture->srvGpuHandle);
+
+	blurConst.blurType = 1.0f;
+	SsaoBlurBuffer->CopyData(0, blurConst);
+	m_command_list_->SetGraphicsRootConstantBufferView(3, SsaoBlurBuffer->Resource()->GetGPUVirtualAddress());
 
 	m_command_list_->DrawInstanced(3, 1, 0, 0);
 

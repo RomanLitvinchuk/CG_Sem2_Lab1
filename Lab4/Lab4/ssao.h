@@ -19,7 +19,7 @@ struct SSAO {
 	void CreateSamplers(ComPtr<ID3D12Device> device);
 	void OnResize(ComPtr<ID3D12Device> device, int width, int height, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture);
 	void ClearSSAO(ComPtr<ID3D12GraphicsCommandList> commandList);
-	void SwapStates(ComPtr<ID3D12Device> device);
+	void BarriersToDefault(ComPtr<ID3D12GraphicsCommandList> commandList);
 
 	SSAO(ComPtr<ID3D12Device> device, int width, int height, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture) {
 		D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};

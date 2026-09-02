@@ -16,6 +16,7 @@ void DX12App::InitUploadBuffers() {
 	WireframeInstanceBuffer = std::make_unique<UploadBuffer<WireframeInstanceData>>(m_device_.Get(), 1000, false);
 	ShadowCB = std::make_unique<UploadBuffer<ShadowConstants>>(m_device_.Get(), 3, true);
 	SsaoBuffer = std::make_unique<UploadBuffer<SsaoConstants>>(m_device_.Get(), 1, true);
+	SsaoBlurBuffer = std::make_unique<UploadBuffer<BlurConstants>>(m_device_.Get(), 1, true);
 
 	DeadListUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), PARTICLE_COUNT, false);
 	deadCounterUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), 1, false);

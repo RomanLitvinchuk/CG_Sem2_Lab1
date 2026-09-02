@@ -61,6 +61,7 @@ public:
 	void Draw();
 	void DrawShadows(ComPtr <ID3D12GraphicsCommandList> m_command_list_);
 	void DrawSSAO();
+	void BlurSSAO();
 	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
 	void DrawNYBalls();
@@ -182,6 +183,7 @@ private:
 	std::unique_ptr<UploadBuffer<WireframeInstanceData>> WireframeInstanceBuffer = nullptr;
 	std::unique_ptr<UploadBuffer<ShadowConstants>> ShadowCB = nullptr;
 	std::unique_ptr<UploadBuffer<SsaoConstants>> SsaoBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<BlurConstants>> SsaoBlurBuffer = nullptr;
 
 	std::unique_ptr<UploadBuffer<uint32_t>> DeadListUpload_ = nullptr;
 	std::unique_ptr<UploadBuffer<uint32_t>> deadCounterUpload_ = nullptr;
