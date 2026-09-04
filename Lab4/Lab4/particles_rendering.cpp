@@ -1,64 +1,64 @@
 #include "DX12App.h"
 
 void DX12App::EmitParticles() {
-	m_command_list_->SetPipelineState(renderSystem->particlesEmitPSO_.Get());
-	m_command_list_->SetComputeRootSignature(renderSystem->particlesEmitRS_.Get());
-	ID3D12DescriptorHeap* heaps[] = { UAVHeap_.Get() };
-	m_command_list_->SetDescriptorHeaps(_countof(heaps), heaps);
-	CD3DX12_RESOURCE_BARRIER toUAV = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	commandList->SetPipelineState(renderSystem->particlesEmitPSO_.Get());
+	commandList->SetComputeRootSignature(renderSystem->particlesEmitRS_.Get());
+	ID3D12DescriptorHeap* heaps[] = { uavHeap.Get() };
+	commandList->SetDescriptorHeaps(_countof(heaps), heaps);
+	CD3DX12_RESOURCE_BARRIER toUAV = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer.Get(), D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 	D3D12_RESOURCE_BARRIER resourceBarrier = { toUAV };
-	m_command_list_->ResourceBarrier(1, &resourceBarrier);
-	m_command_list_->SetComputeRootUnorderedAccessView(0, RWParticleBuffer_->GetGPUVirtualAddress());
+	commandList->ResourceBarrier(1, &resourceBarrier);
+	commandList->SetComputeRootUnorderedAccessView(0, RWParticleBuffer->GetGPUVirtualAddress());
 	CD3DX12_GPU_DESCRIPTOR_HANDLE uavHandle(
-		UAVHeap_->GetGPUDescriptorHandleForHeapStart(),
+		uavHeap->GetGPUDescriptorHandleForHeapStart(),
 		0,
-		m_CbvSrvUav_descriptor_size_);
-	m_command_list_->SetComputeRootDescriptorTable(1, uavHandle);
-	m_command_list_->Dispatch(4, 1, 1);
-	CD3DX12_RESOURCE_BARRIER uavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(RWParticleBuffer_.Get());
-	m_command_list_->ResourceBarrier(1, &uavBarrier);
+		cbvDescriptorSize);
+	commandList->SetComputeRootDescriptorTable(1, uavHandle);
+	commandList->Dispatch(4, 1, 1);
+	CD3DX12_RESOURCE_BARRIER uavBarrier = CD3DX12_RESOURCE_BARRIER::UAV(RWParticleBuffer.Get());
+	commandList->ResourceBarrier(1, &uavBarrier);
 }
 
 void DX12App::ComputeParticles() {
-	m_command_list_->SetPipelineState(renderSystem->particlesUpdatePSO_.Get());
-	m_command_list_->SetComputeRootSignature(renderSystem->particlesUpdateRS_.Get());
-	m_command_list_->SetComputeRootConstantBufferView(0, ParticleConstantsBuffer->Resource()->GetGPUVirtualAddress());
-	m_command_list_->SetComputeRootUnorderedAccessView(1, RWParticleBuffer_->GetGPUVirtualAddress());
+	commandList->SetPipelineState(renderSystem->particlesUpdatePSO_.Get());
+	commandList->SetComputeRootSignature(renderSystem->particlesUpdateRS_.Get());
+	commandList->SetComputeRootConstantBufferView(0, particleConstantsBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetComputeRootUnorderedAccessView(1, RWParticleBuffer->GetGPUVirtualAddress());
 	CD3DX12_GPU_DESCRIPTOR_HANDLE uavHandle(
-		UAVHeap_->GetGPUDescriptorHandleForHeapStart(),
+		uavHeap->GetGPUDescriptorHandleForHeapStart(),
 		0,
-		m_CbvSrvUav_descriptor_size_);
-	m_command_list_->SetComputeRootDescriptorTable(2, uavHandle);
+		cbvDescriptorSize);
+	commandList->SetComputeRootDescriptorTable(2, uavHandle);
 
-	CD3DX12_RESOURCE_BARRIER sortCounterBarrier = CD3DX12_RESOURCE_BARRIER::Transition(sortCounterBuffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_DEST);
+	CD3DX12_RESOURCE_BARRIER sortCounterBarrier = CD3DX12_RESOURCE_BARRIER::Transition(sortParticlesCounterBuffer.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_COPY_DEST);
 	D3D12_RESOURCE_BARRIER barriers[] = { sortCounterBarrier };
-	m_command_list_->ResourceBarrier(_countof(barriers), barriers);
-	m_command_list_->CopyResource(sortCounterBuffer_.Get(), sortCounterUpload_->Resource());
-	CD3DX12_RESOURCE_BARRIER sortToUAV = CD3DX12_RESOURCE_BARRIER::Transition(sortCounterBuffer_.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
+	commandList->ResourceBarrier(_countof(barriers), barriers);
+	commandList->CopyResource(sortParticlesCounterBuffer.Get(), sortParticlesCounterUpload->Resource());
+	CD3DX12_RESOURCE_BARRIER sortToUAV = CD3DX12_RESOURCE_BARRIER::Transition(sortParticlesCounterBuffer.Get(), D3D12_RESOURCE_STATE_COPY_DEST, D3D12_RESOURCE_STATE_UNORDERED_ACCESS);
 
-	m_command_list_->Dispatch(ceil(PARTICLE_COUNT / 256.0f), 1, 1);
-	CD3DX12_RESOURCE_BARRIER toCopy = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer_.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
+	commandList->Dispatch(ceil(PARTICLE_COUNT / 256.0f), 1, 1);
+	CD3DX12_RESOURCE_BARRIER toCopy = CD3DX12_RESOURCE_BARRIER::Transition(RWParticleBuffer.Get(), D3D12_RESOURCE_STATE_UNORDERED_ACCESS, D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE);
 	D3D12_RESOURCE_BARRIER resourceBarrier = { toCopy };
-	m_command_list_->ResourceBarrier(1, &resourceBarrier);
+	commandList->ResourceBarrier(1, &resourceBarrier);
 }
 
 void DX12App::DrawParticles(ComPtr<ID3D12GraphicsCommandList> m_command_list) {
-	m_command_list_->SetPipelineState(renderSystem->particlePSO_.Get());
-	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
+	commandList->SetPipelineState(renderSystem->particlePSO_.Get());
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->HDR_Texture_A.rtvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv = renderSystem->g_buffer->DepthTex.dsvHandle;
-	m_command_list_->OMSetRenderTargets(1, &rtv, true, &dsv);
+	commandList->OMSetRenderTargets(1, &rtv, true, &dsv);
 
-	m_command_list_->SetGraphicsRootSignature(renderSystem->particleRS_.Get());
+	commandList->SetGraphicsRootSignature(renderSystem->particleRS_.Get());
 	
-	m_command_list_->SetGraphicsRootConstantBufferView(0, MatricesBuffer->Resource()->GetGPUVirtualAddress());
-	m_command_list_->SetGraphicsRootShaderResourceView(1, RWParticleBuffer_->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(0, matricesBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootShaderResourceView(1, RWParticleBuffer->GetGPUVirtualAddress());
 
-	m_command_list_->IASetVertexBuffers(0, 0, nullptr);
-	m_command_list_->IASetIndexBuffer(nullptr);
+	commandList->IASetVertexBuffers(0, 0, nullptr);
+	commandList->IASetIndexBuffer(nullptr);
 
-	m_command_list_->DrawInstanced(1, PARTICLE_COUNT, 0, 0);
+	commandList->DrawInstanced(1, PARTICLE_COUNT, 0, 0);
 }
 
 void DX12App::InitEmitter() {

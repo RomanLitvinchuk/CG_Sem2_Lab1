@@ -20,7 +20,7 @@ std::vector<Vector3> DX12App::GetFrustumCornersWorldSpace(Matrix invViewProj) {
 
 void DX12App::UpdateCascades()
 {
-	int numCascades = shadowMap_->GetNumCascades();
+	int numCascades = shadowMap->GetNumCascades();
 
 	float nearZ = 1.0f;
 	float farZ = 1000.0f;
@@ -33,17 +33,17 @@ void DX12App::UpdateCascades()
 	lightDir.Normalize();
 	Vector3 up = (fabsf(lightDir.y) > 0.99f) ? Vector3::Right : Vector3::Up;
 
-	cascades_.distances[0] = 300.0f;
-	cascades_.distances[1] = 1000.0f;
-	cascades_.distances[2] = 10000.0f;
+	cascades.distances[0] = 300.0f;
+	cascades.distances[1] = 1000.0f;
+	cascades.distances[2] = 10000.0f;
 
-	float cascadeNears[] = { nearZ, cascades_.distances[0], cascades_.distances[1] };
-	float cascadeFars[] = { cascades_.distances[0], cascades_.distances[1], cascades_.distances[2] };
+	float cascadeNears[] = { nearZ, cascades.distances[0], cascades.distances[1] };
+	float cascadeFars[] = { cascades.distances[0], cascades.distances[1], cascades.distances[2] };
 
 	for (int i = 0; i < numCascades; ++i) {
 		float cascadeNear = cascadeNears[i];
 		float cascadeFar = cascadeFars[i];
-		float aspectRatio = static_cast<float>(m_client_width_) / m_client_height_;
+		float aspectRatio = static_cast<float>(clientWidth) / clientHeight;
 		Matrix subProj = Matrix::CreatePerspectiveFieldOfView(XMConvertToRadians(60.0f), aspectRatio, cascadeNear, cascadeFar);
 		Matrix subViewProj = camera.mView_ * subProj;
 		Matrix invSubViewProj = subViewProj.Invert();
@@ -81,7 +81,7 @@ void DX12App::UpdateCascades()
 
 
 		Matrix lightProj = Matrix::CreateOrthographicOffCenter(minX, maxX, minY, maxY, minZ, maxZ);
-		cascades_.viewProjMats[i] = lightView * lightProj;
+		cascades.viewProjMats[i] = lightView * lightProj;
 
 		Matrix T(
 			0.5f, 0.0f, 0.0f, 0.0f,
@@ -91,7 +91,7 @@ void DX12App::UpdateCascades()
 
 
 		Matrix shadowTransform = lightView * lightProj * T;
-		cascades_.shadowTransform[i] = shadowTransform;
+		cascades.shadowTransform[i] = shadowTransform;
 
 	}
 }

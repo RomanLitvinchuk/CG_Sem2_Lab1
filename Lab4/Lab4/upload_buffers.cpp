@@ -1,26 +1,22 @@
 #include "DX12App.h"
 
 void DX12App::InitUploadBuffers() {
-	CBUploadBuffer = std::make_unique<UploadBuffer<ObjectConstants>>(
-		m_device_.Get(),
-		1,
-		true
-	);
-	MatricesBuffer = std::make_unique<UploadBuffer<Matrices>>(m_device_.Get(), 1, true);
-	ParticleConstantsBuffer = std::make_unique<UploadBuffer<ParticleConstants>>(m_device_.Get(), 1, true);
-	MaterialCB = std::make_unique<UploadBuffer<MaterialConstants>>(m_device_.Get(), 300, true);
-	CameraCB = std::make_unique<UploadBuffer<CameraConstants>>(m_device_.Get(), 1, true);
-	LightBuffer = std::make_unique<UploadBuffer<LightConstants>>(m_device_.Get(), 1000, false);
-	InstanceBuffer = std::make_unique<UploadBuffer<MeshInstanceData>>(m_device_.Get(), 1000, false);
-	HullCB = std::make_unique<UploadBuffer<HullBuffer>>(m_device_.Get(), 1, true);
-	WireframeInstanceBuffer = std::make_unique<UploadBuffer<WireframeInstanceData>>(m_device_.Get(), 1000, false);
-	ShadowCB = std::make_unique<UploadBuffer<ShadowConstants>>(m_device_.Get(), 3, true);
-	SsaoBuffer = std::make_unique<UploadBuffer<SsaoConstants>>(m_device_.Get(), 1, true);
-	SsaoBlurBuffer = std::make_unique<UploadBuffer<BlurConstants>>(m_device_.Get(), 1, true);
+	objectsUploadBuffer = std::make_unique<UploadBuffer<ObjectConstants>>(device.Get(), 1, true);
+	matricesBuffer = std::make_unique<UploadBuffer<Matrices>>(device.Get(), 1, true);
+	particleConstantsBuffer = std::make_unique<UploadBuffer<ParticleConstants>>(device.Get(), 1, true);
+	materialBuffer = std::make_unique<UploadBuffer<MaterialConstants>>(device.Get(), 300, true);
+	cameraBuffer = std::make_unique<UploadBuffer<CameraConstants>>(device.Get(), 1, true);
+	lightBuffer = std::make_unique<UploadBuffer<LightConstants>>(device.Get(), 1000, false);
+	instanceBuffer = std::make_unique<UploadBuffer<MeshInstanceData>>(device.Get(), 1000, false);
+	hullBuffer = std::make_unique<UploadBuffer<HullBuffer>>(device.Get(), 1, true);
+	wireframeInstanceBuffer = std::make_unique<UploadBuffer<WireframeInstanceData>>(device.Get(), 1000, false);
+	shadowBuffer = std::make_unique<UploadBuffer<ShadowConstants>>(device.Get(), 3, true);
+	ssaoBuffer = std::make_unique<UploadBuffer<SsaoConstants>>(device.Get(), 1, true);
+	ssaoBlurBuffer = std::make_unique<UploadBuffer<BlurConstants>>(device.Get(), 1, true);
 
-	DeadListUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), PARTICLE_COUNT, false);
-	deadCounterUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), 1, false);
-	sortCounterUpload_ = std::make_unique<UploadBuffer<uint32_t>>(m_device_.Get(), 1, false);
+	deadParticlesListUpload = std::make_unique<UploadBuffer<uint32_t>>(device.Get(), PARTICLE_COUNT, false);
+	deadParticlesCounterUpload = std::make_unique<UploadBuffer<uint32_t>>(device.Get(), 1, false);
+	sortParticlesCounterUpload = std::make_unique<UploadBuffer<uint32_t>>(device.Get(), 1, false);
 
 	FillUploadBuffers();
 }
@@ -28,19 +24,19 @@ void DX12App::InitUploadBuffers() {
 void DX12App::FillUploadBuffers()
 {
 	SsaoConstants ssaoConst;
-	ssaoConst.screenWidth = m_client_width_ / 2.0f;
-	ssaoConst.screenHeight = m_client_height_ / 2.0f;
+	ssaoConst.screenWidth = clientWidth / 2.0f;
+	ssaoConst.screenHeight = clientHeight / 2.0f;
 	ssaoConst.randomTextureSize = 64;
 	ssaoConst.sampleRadius = 1.0f;
 	ssaoConst.ssaoScale = 1.0f;
 	ssaoConst.ssaoBias = 0.1f;
 	ssaoConst.ssaoIntensity = 2.0f;
 	ssaoConst.padding = 0.0f;
-	SsaoBuffer->CopyData(0, ssaoConst);
+	ssaoBuffer->CopyData(0, ssaoConst);
 
 	for (int i = 0; i < PARTICLE_COUNT; i++) {
-		DeadListUpload_->CopyData(i, i);
+		deadParticlesListUpload->CopyData(i, i);
 	}
-	deadCounterUpload_->CopyData(0, PARTICLE_COUNT);
-	sortCounterUpload_->CopyData(0, 0);
+	deadParticlesCounterUpload->CopyData(0, PARTICLE_COUNT);
+	sortParticlesCounterUpload->CopyData(0, 0);
 }

@@ -135,18 +135,18 @@ UINT ShadowMap::Height() const {
 }
 
 void DX12App::InitShadowMap() {
-    shadowMap_ = std::make_unique<ShadowMap>(m_device_.Get(), SMAP_SIZE, SMAP_SIZE);
+    shadowMap = std::make_unique<ShadowMap>(device.Get(), SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
 
     auto handle = renderSystem->g_buffer->SRVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
-    auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    auto size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     CD3DX12_CPU_DESCRIPTOR_HANDLE smHandle(handle, 4, size);
 
     auto gpuHandle = renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
     CD3DX12_GPU_DESCRIPTOR_HANDLE smGpuHandle(gpuHandle, 4, size);
 
-    auto dsvHandle = m_DSV_heap_->GetCPUDescriptorHandleForHeapStart();
-    size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+    auto dsvHandle = dsvHeap->GetCPUDescriptorHandleForHeapStart();
+    size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
     CD3DX12_CPU_DESCRIPTOR_HANDLE smDsvHandle(dsvHandle, 1, size);
 
-    shadowMap_->BuildDescriptors(smHandle, smGpuHandle, smDsvHandle);
+    shadowMap->BuildDescriptors(smHandle, smGpuHandle, smDsvHandle);
 }

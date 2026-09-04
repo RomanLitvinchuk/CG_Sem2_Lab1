@@ -55,29 +55,29 @@ void DX12App::BuildBulbGeometry() {
     std::vector<BulbVertex> vertices;
     std::vector<uint16_t> indices;
 
-    ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
-    ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
+    ThrowIfFailed(commandAllocator->Reset());
+    ThrowIfFailed(commandList->Reset(commandAllocator.Get(), nullptr));
 
     CreateSphereGeometry(10.0f, 16, 16, vertices, indices);
-    mSphereIndexCount = (UINT)indices.size();
+    sphereIndexCount = (UINT)indices.size();
 
     const UINT vbByteSize = (UINT)vertices.size() * sizeof(BulbVertex);
     const UINT ibByteSize = (UINT)indices.size() * sizeof(uint16_t);
 
-    mSphereVB = d3dUtil::CreateDefaultBuffer(m_device_.Get(), m_command_list_.Get(),
-        vertices.data(), vbByteSize, VertexBufferUploader_);
-    mSphereIB = d3dUtil::CreateDefaultBuffer(m_device_.Get(), m_command_list_.Get(),
-        indices.data(), ibByteSize, IndexBufferUploader_);
-    ThrowIfFailed(m_command_list_->Close());
-    ID3D12CommandList* cmdsLists[] = { m_command_list_.Get() };
-    m_command_queue_->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+    sphereVertexBuffer = d3dUtil::CreateDefaultBuffer(device.Get(), commandList.Get(),
+        vertices.data(), vbByteSize, vertexBufferUploader);
+    sphereIndexBuffer = d3dUtil::CreateDefaultBuffer(device.Get(), commandList.Get(),
+        indices.data(), ibByteSize, indexBufferUploader);
+    ThrowIfFailed(commandList->Close());
+    ID3D12CommandList* cmdsLists[] = { commandList.Get() };
+    commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
     FlushCommandQueue();
 
-    mSphereVbv.BufferLocation = mSphereVB->GetGPUVirtualAddress();
-    mSphereVbv.StrideInBytes = sizeof(BulbVertex);
-    mSphereVbv.SizeInBytes = vbByteSize;
+    sphereVertexBufferView.BufferLocation = sphereVertexBuffer->GetGPUVirtualAddress();
+    sphereVertexBufferView.StrideInBytes = sizeof(BulbVertex);
+    sphereVertexBufferView.SizeInBytes = vbByteSize;
 
-    mSphereIbv.BufferLocation = mSphereIB->GetGPUVirtualAddress();
-    mSphereIbv.Format = DXGI_FORMAT_R16_UINT;
-    mSphereIbv.SizeInBytes = ibByteSize;
+    sphereIndexBufferView.BufferLocation = sphereIndexBuffer->GetGPUVirtualAddress();
+    sphereIndexBufferView.Format = DXGI_FORMAT_R16_UINT;
+    sphereIndexBufferView.SizeInBytes = ibByteSize;
 }

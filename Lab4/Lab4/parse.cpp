@@ -6,7 +6,7 @@
 
 void DX12App::LoadTextures()
 {
-	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
+	ThrowIfFailed(commandList->Reset(commandAllocator.Get(), nullptr));
 	UINT index = RESERVED_TEXTURES + 1;
 
 	for (auto& entry : std::filesystem::directory_iterator(L"textures"))
@@ -27,20 +27,20 @@ void DX12App::LoadTextures()
 		else tex->srvHeapIndex = index++;
 
 		ThrowIfFailed(CreateDDSTextureFromFile12(
-			m_device_.Get(),
-			m_command_list_.Get(),
+			device.Get(),
+			commandList.Get(),
 			tex->filepath.c_str(),
 			tex->Resource,
 			tex->UploadHeap));
 
 		std::wcout << L"Loaded texture: [" << name << L"] to index: " << tex->srvHeapIndex << std::endl;
 
-		mTextures[name] = std::move(tex);
+		textures[name] = std::move(tex);
 	}
 
-	ThrowIfFailed(m_command_list_->Close());
-	ID3D12CommandList* lists[] = { m_command_list_.Get() };
-	m_command_queue_->ExecuteCommandLists(1, lists);
+	ThrowIfFailed(commandList->Close());
+	ID3D12CommandList* lists[] = { commandList.Get() };
+	commandQueue->ExecuteCommandLists(1, lists);
 	FlushCommandQueue();
 }
 
@@ -59,8 +59,8 @@ void DX12App::Parsing() {
 	Transform = Matrix::CreateScale(30.0f) * Matrix::CreateTranslation(700.0f, 0.0f, 0.0f);
 	ParseFile("models/Minecraft Tree.obj", Transform, 1);
 
-	visibleIndices.reserve(mSubmeshes.size());
-	octree.Build(mSubmeshes);
+	visibleIndices.reserve(submeshes.size());
+	octree.Build(submeshes);
 }
 
 
@@ -142,7 +142,7 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 		}
 	}
 
-	MeshIndexCounts.push_back(mesh->mNumFaces * 3);
+	meshIndexCounts.push_back(mesh->mNumFaces * 3);
 	Submesh submesh;
 	submesh.name_ = filename;
 	submesh.indexCount = mesh->mNumFaces * 3;
@@ -210,7 +210,7 @@ void DX12App::ParseMesh(const std::string& filename, const aiScene* scene, aiMes
 
 		submesh.instances.push_back(instance);
 	}
-	mSubmeshes.push_back(submesh);
+	submeshes.push_back(submesh);
 }
 
 void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMaterialIndex, aiMaterial* material) {
@@ -248,9 +248,9 @@ void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMateria
 			MatConst.isTree = 1;
 		}
 
-		if (mTextures.count(wName)) {
-			MatConst.diffuseTextureIndex = mTextures[wName]->srvHeapIndex;
-			mTextures[wName]->isSRGB = true;
+		if (textures.count(wName)) {
+			MatConst.diffuseTextureIndex = textures[wName]->srvHeapIndex;
+			textures[wName]->isSRGB = true;
 		}
 		else {
 			std::cout << "DO NOT FIND DIFFUSE TEXTURE" << std::endl;
@@ -269,13 +269,13 @@ void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMateria
 		std::string sName(wName.begin(), wName.end());
 		std::cout << "   Looking for: " << sName << std::endl;
 
-		if (mTextures.count(wName)) {
+		if (textures.count(wName)) {
 			if (filename.find("sponza") != std::string::npos) {
-				MatConst.normalTextureIndex = mTextures[wName]->srvHeapIndex;
+				MatConst.normalTextureIndex = textures[wName]->srvHeapIndex;
 				MatConst.hasNormalTexture = 1;
 			}
 			else {
-				MatConst.displacementTextureIndex = mTextures[wName]->srvHeapIndex;
+				MatConst.displacementTextureIndex = textures[wName]->srvHeapIndex;
 				MatConst.hasDisplacementTexture = 1;
 				
 			}
@@ -296,8 +296,8 @@ void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMateria
 		std::string sName(wName.begin(), wName.end());
 		std::cout << "   Looking for: " << sName << std::endl;
 
-		if (mTextures.count(wName)) {
-			MatConst.normalTextureIndex = mTextures[wName]->srvHeapIndex;
+		if (textures.count(wName)) {
+			MatConst.normalTextureIndex = textures[wName]->srvHeapIndex;
 			MatConst.hasNormalTexture = 1;
 		}
 		else {
@@ -308,38 +308,38 @@ void DX12App::ExtractMaterialData(const std::string& filename, int GlobalMateria
 	if (filename.find("Sketchfab") != std::string::npos) {
 		std::wstring wName = L"Stone_Pathway_Normal";
 		std::transform(wName.begin(), wName.end(), wName.begin(), ::towlower);
-		if (mTextures.count(wName)) {
-			MatConst.normalTextureIndex = mTextures[wName]->srvHeapIndex;
+		if (textures.count(wName)) {
+			MatConst.normalTextureIndex = textures[wName]->srvHeapIndex;
 			MatConst.hasNormalTexture = 1;
 		}
 		wName = L"Stone_Pathway_Height";
 		std::transform(wName.begin(), wName.end(), wName.begin(), ::towlower);
-		if (mTextures.count(wName)) {
-			MatConst.displacementTextureIndex = mTextures[wName]->srvHeapIndex;
+		if (textures.count(wName)) {
+			MatConst.displacementTextureIndex = textures[wName]->srvHeapIndex;
 			MatConst.hasDisplacementTexture = 1;
 		}
 	}
 
 	if (filename.find("HydraMoonSimpleCube") != std::string::npos) {
 		std::wstring wName = L"white";
-		if (mTextures.count(wName)) {
-			MatConst.diffuseTextureIndex = mTextures[wName]->srvHeapIndex;
-			mTextures[wName]->isSRGB = true;
+		if (textures.count(wName)) {
+			MatConst.diffuseTextureIndex = textures[wName]->srvHeapIndex;
+			textures[wName]->isSRGB = true;
 		}
 		wName = L"rainbow";
-		if (mTextures.count(wName)) {
-			MatConst.shadowTextureIndex = mTextures[wName]->srvHeapIndex;
+		if (textures.count(wName)) {
+			MatConst.shadowTextureIndex = textures[wName]->srvHeapIndex;
 			MatConst.hasShadowTexture = 1;
-			mTextures[wName]->isSRGB = true;
+			textures[wName]->isSRGB = true;
 		}
 	}
 
 	if (filename.find("Minecraft Tree") != std::string::npos) {
 		std::wstring wName = L"tree_billboard";
-		if (mTextures.count(wName)) {
+		if (textures.count(wName)) {
 			MatConst.hasBillboardTexture = 1;
-			MatConst.billboardTextureIndex = mTextures[wName]->srvHeapIndex;
-			mTextures[wName]->isSRGB = true;
+			MatConst.billboardTextureIndex = textures[wName]->srvHeapIndex;
+			textures[wName]->isSRGB = true;
 		}
 	}
 

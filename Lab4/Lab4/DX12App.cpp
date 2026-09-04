@@ -26,27 +26,27 @@ void DX12App::EnableDebug() {
 
 void DX12App::InitializeDevice() {
 	EnableDebug();
-	ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&m_dxgi_factory_)));
+	ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&DXGIFactory)));
 
-	ThrowIfFailed(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_device_)));
+	ThrowIfFailed(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)));
 	std::cout << "DEVICE CREATED: " << std::endl;
 
-	ThrowIfFailed(m_device_->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_fence_)));
+	ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
 	std::cout << "FENCE CREATED" << std::endl;
 
-	m_RTV_descriptor_size_ = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	m_DSV_descriptor_size_ = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-	m_CbvSrvUav_descriptor_size_ = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	std::cout << "RTV size: " << std::to_string(m_RTV_descriptor_size_) << "\n"
-		<< "DSV size: " << std::to_string(m_DSV_descriptor_size_) << "\n"
-		<< "CbvSrvUav size:" << std::to_string(m_CbvSrvUav_descriptor_size_) << std::endl;
+	rtvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+	dsvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+	cbvDescriptorSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	std::cout << "RTV size: " << std::to_string(rtvDescriptorSize) << "\n"
+		<< "DSV size: " << std::to_string(dsvDescriptorSize) << "\n"
+		<< "CbvSrvUav size:" << std::to_string(cbvDescriptorSize) << std::endl;
 
-	msQualityLevels_.Format = m_back_buffer_format_;
+	msQualityLevels_.Format = backBufferFormat;
 	msQualityLevels_.SampleCount = 4;
 	msQualityLevels_.Flags = D3D12_MULTISAMPLE_QUALITY_LEVELS_FLAG_NONE;
 	msQualityLevels_.NumQualityLevels = 0;
 
-	ThrowIfFailed(m_device_->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &msQualityLevels_, sizeof(msQualityLevels_)));
+	ThrowIfFailed(device->CheckFeatureSupport(D3D12_FEATURE_MULTISAMPLE_QUALITY_LEVELS, &msQualityLevels_, sizeof(msQualityLevels_)));
 	if (msQualityLevels_.NumQualityLevels > 0) { std::cout << "MSAA 4x is supported" << std::endl;} 
 	else { std::cout << "WARNING! MSAA 4x is NOT supported" << std::endl; }
 }
@@ -55,22 +55,22 @@ void DX12App::InitializeCommandObjects() {
 	D3D12_COMMAND_QUEUE_DESC queueDesc = {};
 	queueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	queueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	ThrowIfFailed(m_device_->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_command_queue_)));
+	ThrowIfFailed(device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&commandQueue)));
 	std::cout << "Command queue is created" << std::endl;
-	ThrowIfFailed(m_device_->CreateCommandAllocator(queueDesc.Type, IID_PPV_ARGS(&m_direct_cmd_list_alloc_)));
+	ThrowIfFailed(device->CreateCommandAllocator(queueDesc.Type, IID_PPV_ARGS(&commandAllocator)));
 	std::cout << "Command allocator is created" << std::endl;
-	ThrowIfFailed(m_device_->CreateCommandList(0, queueDesc.Type, m_direct_cmd_list_alloc_.Get(), nullptr, IID_PPV_ARGS(&m_command_list_)));
+	ThrowIfFailed(device->CreateCommandList(0, queueDesc.Type, commandAllocator.Get(), nullptr, IID_PPV_ARGS(&commandList)));
 	std::cout << "Command list is created" << std::endl;
-	ThrowIfFailed(m_command_list_->Close());
+	ThrowIfFailed(commandList->Close());
 }
 
 void DX12App::CreateSwapChain(HWND hWnd) {
 	DXGI_SWAP_CHAIN_DESC swDesc = {};
-	swDesc.BufferDesc.Width = m_client_width_;
-	swDesc.BufferDesc.Height = m_client_height_;
+	swDesc.BufferDesc.Width = clientWidth;
+	swDesc.BufferDesc.Height = clientHeight;
 	swDesc.BufferDesc.RefreshRate.Numerator = 60;
 	swDesc.BufferDesc.RefreshRate.Denominator = 1;
-	swDesc.BufferDesc.Format = m_back_buffer_format_;
+	swDesc.BufferDesc.Format = backBufferFormat;
 	swDesc.BufferDesc.ScanlineOrdering = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
 	swDesc.BufferDesc.Scaling = DXGI_MODE_SCALING_UNSPECIFIED;
 	swDesc.SampleDesc.Count = 1;
@@ -81,7 +81,7 @@ void DX12App::CreateSwapChain(HWND hWnd) {
 	swDesc.Windowed = true;
 	swDesc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
 	swDesc.Flags = DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH;
-	ThrowIfFailed(m_dxgi_factory_->CreateSwapChain(m_command_queue_.Get(), &swDesc, &m_swap_chain_));
+	ThrowIfFailed(DXGIFactory->CreateSwapChain(commandQueue.Get(), &swDesc, &swapChain));
 	std::cout << "Swap chain is created" << std::endl;
 	
 }
@@ -92,7 +92,7 @@ void DX12App::CreateRTVAndDSVDescriptorHeaps() {
 	RTVHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	RTVHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	RTVHeapDesc.NodeMask = 0;
-	ThrowIfFailed(m_device_->CreateDescriptorHeap(&RTVHeapDesc, IID_PPV_ARGS(&m_RTV_heap_)));
+	ThrowIfFailed(device->CreateDescriptorHeap(&RTVHeapDesc, IID_PPV_ARGS(&rtvHeap)));
 	std::cout << "RTV heap is created" << std::endl;
 
 	D3D12_DESCRIPTOR_HEAP_DESC DSVHeapDesc;
@@ -100,35 +100,35 @@ void DX12App::CreateRTVAndDSVDescriptorHeaps() {
 	DSVHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
 	DSVHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	DSVHeapDesc.NodeMask = 0;
-	ThrowIfFailed(m_device_->CreateDescriptorHeap(&DSVHeapDesc, IID_PPV_ARGS(&m_DSV_heap_)));
+	ThrowIfFailed(device->CreateDescriptorHeap(&DSVHeapDesc, IID_PPV_ARGS(&dsvHeap)));
 	std::cout << "DSV heap is created" << std::endl;
 }
 
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12App::GetBackBuffer() const {
-	return CD3DX12_CPU_DESCRIPTOR_HANDLE(m_RTV_heap_->GetCPUDescriptorHandleForHeapStart(), m_current_back_buffer_, m_RTV_descriptor_size_);
+	return CD3DX12_CPU_DESCRIPTOR_HANDLE(rtvHeap->GetCPUDescriptorHandleForHeapStart(), currentBackBuffer, rtvDescriptorSize);
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE DX12App::GetDSV() const {
-	return m_DSV_heap_->GetCPUDescriptorHandleForHeapStart();
+	return dsvHeap->GetCPUDescriptorHandleForHeapStart();
 }
 
 ID3D12Resource* DX12App::CurrentBackBuffer() const {
-	return m_swap_chain_buffer_[m_current_back_buffer_].Get();
+	return swapChainBuffer[currentBackBuffer].Get();
 }
 
 
 void DX12App::CreateRTV() {
-	CD3DX12_CPU_DESCRIPTOR_HANDLE RTV_heap_handle_(m_RTV_heap_->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE RTV_heap_handle_(rtvHeap->GetCPUDescriptorHandleForHeapStart());
 
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
 	rtvDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
 	for (UINT i = 0; i < 2; i++) {
-		ThrowIfFailed(m_swap_chain_->GetBuffer(i, IID_PPV_ARGS(&m_swap_chain_buffer_[i])));
-		m_device_->CreateRenderTargetView(m_swap_chain_buffer_[i].Get(), &rtvDesc, RTV_heap_handle_);
-		RTV_heap_handle_.Offset(1, m_RTV_descriptor_size_);
+		ThrowIfFailed(swapChain->GetBuffer(i, IID_PPV_ARGS(&swapChainBuffer[i])));
+		device->CreateRenderTargetView(swapChainBuffer[i].Get(), &rtvDesc, RTV_heap_handle_);
+		RTV_heap_handle_.Offset(1, rtvDescriptorSize);
 	}
 	std::cout << "RTV is created" << std::endl;
 }
@@ -137,24 +137,24 @@ void DX12App::CreateDSV() {
 	D3D12_RESOURCE_DESC dsDesc;
 	dsDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
 	dsDesc.Alignment = 0;
-	dsDesc.Width = m_client_width_;
-	dsDesc.Height = m_client_height_;
+	dsDesc.Width = clientWidth;
+	dsDesc.Height = clientHeight;
 	dsDesc.DepthOrArraySize = 1;
 	dsDesc.MipLevels = 1;
-	dsDesc.Format = m_depth_stencil_format_;
+	dsDesc.Format = depthStencilFormat;
 	dsDesc.SampleDesc.Count = 1;
 	dsDesc.SampleDesc.Quality = 0;
 	dsDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 	dsDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
 	D3D12_CLEAR_VALUE clrValue;
-	clrValue.Format = m_depth_stencil_format_;
+	clrValue.Format = depthStencilFormat;
 	clrValue.DepthStencil.Depth = 1.0f;
 	clrValue.DepthStencil.Stencil = 0;
 	CD3DX12_HEAP_PROPERTIES heapProperties(D3D12_HEAP_TYPE_DEFAULT);
-	ThrowIfFailed(m_device_->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &dsDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clrValue, IID_PPV_ARGS(&m_DSV_buffer)));
+	ThrowIfFailed(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &dsDesc, D3D12_RESOURCE_STATE_DEPTH_WRITE, &clrValue, IID_PPV_ARGS(&dsvBuffer)));
 	std::cout << "DSV is created" << std::endl;
-	m_device_->CreateDepthStencilView(m_DSV_buffer.Get(), nullptr, GetDSV());
+	device->CreateDepthStencilView(dsvBuffer.Get(), nullptr, GetDSV());
 }
 
 
@@ -164,7 +164,7 @@ void DX12App::CreateSamplerHeap() {
 	sampHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	sampHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
 	sampHeapDesc.NumDescriptors = 2;
-	ThrowIfFailed(m_device_->CreateDescriptorHeap(&sampHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&m_sampler_heap));
+	ThrowIfFailed(device->CreateDescriptorHeap(&sampHeapDesc, __uuidof(ID3D12DescriptorHeap), (void**)&samplerHeap));
 
 	D3D12_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_LINEAR;
@@ -176,20 +176,20 @@ void DX12App::CreateSamplerHeap() {
 	sampDesc.MipLODBias = 0.0f;
 	sampDesc.MaxAnisotropy = 1;
 	sampDesc.ComparisonFunc = D3D12_COMPARISON_FUNC_ALWAYS;
-	m_device_->CreateSampler(&sampDesc, m_sampler_heap->GetCPUDescriptorHandleForHeapStart());
+	device->CreateSampler(&sampDesc, samplerHeap->GetCPUDescriptorHandleForHeapStart());
 }
 
 void DX12App::SetViewport() {
-	vp_.TopLeftX = 0.0f;
-	vp_.TopLeftY = 0.0f;
-	vp_.Width = static_cast<float>(m_client_width_);
-	vp_.Height = static_cast<float>(m_client_height_);
-	vp_.MinDepth = 0.0f;
-	vp_.MaxDepth = 1.0f;
+	viewport.TopLeftX = 0.0f;
+	viewport.TopLeftY = 0.0f;
+	viewport.Width = static_cast<float>(clientWidth);
+	viewport.Height = static_cast<float>(clientHeight);
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
 }
 
 void DX12App::SetScissor() {
-	m_scissor_rect_ = { 0, 0, m_client_width_, m_client_height_ };
+	scissorRect = { 0, 0, clientWidth, clientHeight };
 }
 
 void DX12App::CalculateGameStats(HWND hWnd) {
@@ -211,15 +211,15 @@ void DX12App::CalculateGameStats(HWND hWnd) {
 
 void DX12App::FlushCommandQueue()
 {
-	m_current_fence_++;
+	currentFence++;
 
-	ThrowIfFailed(m_command_queue_->Signal(m_fence_.Get(), m_current_fence_));
+	ThrowIfFailed(commandQueue->Signal(fence.Get(), currentFence));
 
-	if (m_fence_->GetCompletedValue() < m_current_fence_)
+	if (fence->GetCompletedValue() < currentFence)
 	{
 		HANDLE eventHandle = CreateEventEx(nullptr, nullptr, false, EVENT_ALL_ACCESS);
 
-		ThrowIfFailed(m_fence_->SetEventOnCompletion(m_current_fence_, eventHandle));
+		ThrowIfFailed(fence->SetEventOnCompletion(currentFence, eventHandle));
 
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
@@ -228,7 +228,7 @@ void DX12App::FlushCommandQueue()
 
 
 void DX12App::InitProjectionMatrix() {
-	float aspectRatio = static_cast<float>(m_client_width_) / m_client_height_;
+	float aspectRatio = static_cast<float>(clientWidth) / clientHeight;
 
 	camera.mProj_ = Matrix::CreatePerspectiveFieldOfView(
 		XMConvertToRadians(60.0f),  
@@ -241,63 +241,63 @@ void DX12App::InitProjectionMatrix() {
 
 void DX12App::CreateVertexBuffer() {
 	UINT vbByteSize = (UINT)(vertices.size() * sizeof(Vertex));
-	ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
-	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
-	VertexBufferGPU_ = d3dUtil::CreateDefaultBuffer(m_device_.Get(), m_command_list_.Get(), vertices.data(), vbByteSize, VertexBufferUploader_);
-	ThrowIfFailed(m_command_list_->Close());
-	ID3D12CommandList* cmdsLists[] = { m_command_list_.Get() };
-	m_command_queue_->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	ThrowIfFailed(commandAllocator->Reset());
+	ThrowIfFailed(commandList->Reset(commandAllocator.Get(), nullptr));
+	vertexBufferGPU = d3dUtil::CreateDefaultBuffer(device.Get(), commandList.Get(), vertices.data(), vbByteSize, vertexBufferUploader);
+	ThrowIfFailed(commandList->Close());
+	ID3D12CommandList* cmdsLists[] = { commandList.Get() };
+	commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 	FlushCommandQueue();
 	D3D12_VERTEX_BUFFER_VIEW vbv;
-	vbv.BufferLocation = VertexBufferGPU_->GetGPUVirtualAddress();
+	vbv.BufferLocation = vertexBufferGPU->GetGPUVirtualAddress();
 	vbv.SizeInBytes = vbByteSize;
 	vbv.StrideInBytes = sizeof(Vertex);
-	VertexBuffers[0] = { vbv };
+	vertexBuffers[0] = { vbv };
 }
 
 
 void DX12App::CreateIndexBuffer() {
 	UINT ibByteSize = (UINT)(indices.size() * sizeof(std::uint32_t));
-	ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
-	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
-	IndexBufferGPU_ = d3dUtil::CreateDefaultBuffer(m_device_.Get(), m_command_list_.Get(), indices.data(), ibByteSize, IndexBufferUploader_);
-	ThrowIfFailed(m_command_list_->Close());
-	ID3D12CommandList* cmdsLists[] = { m_command_list_.Get() };
-	m_command_queue_->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	ThrowIfFailed(commandAllocator->Reset());
+	ThrowIfFailed(commandList->Reset(commandAllocator.Get(), nullptr));
+	indexBufferGPU = d3dUtil::CreateDefaultBuffer(device.Get(), commandList.Get(), indices.data(), ibByteSize, indexBufferUploader);
+	ThrowIfFailed(commandList->Close());
+	ID3D12CommandList* cmdsLists[] = { commandList.Get() };
+	commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 	FlushCommandQueue();
-	ibv.BufferLocation = IndexBufferGPU_->GetGPUVirtualAddress();
-	ibv.SizeInBytes = ibByteSize;
-	ibv.Format = DXGI_FORMAT_R32_UINT;
+	indexBufferView.BufferLocation = indexBufferGPU->GetGPUVirtualAddress();
+	indexBufferView.SizeInBytes = ibByteSize;
+	indexBufferView.Format = DXGI_FORMAT_R32_UINT;
 }
 
 void DX12App::OnResize() {
 	FlushCommandQueue();
-	ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
-	m_swap_chain_buffer_[0].Reset();
-	m_swap_chain_buffer_[1].Reset();
+	ThrowIfFailed(commandList->Reset(commandAllocator.Get(), nullptr));
+	swapChainBuffer[0].Reset();
+	swapChainBuffer[1].Reset();
 
-	ThrowIfFailed(m_swap_chain_->ResizeBuffers(2, m_client_width_, m_client_height_, m_back_buffer_format_, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
+	ThrowIfFailed(swapChain->ResizeBuffers(2, clientWidth, clientHeight, backBufferFormat, DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
 	InitProjectionMatrix();
-	m_current_back_buffer_ = 0;
+	currentBackBuffer = 0;
 	CreateRTV();
 	CreateDSV();
-	renderSystem->g_buffer->OnResize(m_client_width_, m_client_height_, m_device_);
-	renderSystem->post_process->OnResize(m_client_width_, m_client_height_, m_device_);
+	renderSystem->g_buffer->OnResize(clientWidth, clientHeight, device);
+	renderSystem->post_process->OnResize(clientWidth, clientHeight, device);
 	ID3D12Resource* noiseTexResource = nullptr;
-	auto iter = mTextures.find(L"noise");
-	if (iter != mTextures.end()) {
+	auto iter = textures.find(L"noise");
+	if (iter != textures.end()) {
 		noiseTexResource = iter->second->Resource.Get();
 	}
-	renderSystem->ssao->OnResize(m_device_, m_client_width_ / 2, m_client_height_ / 2,
+	renderSystem->ssao->OnResize(device, clientWidth / 2, clientHeight / 2,
 		renderSystem->g_buffer->DepthTex.Resource.Get(),
 		renderSystem->g_buffer->NormalTex.Resource.Get(),
 		noiseTexResource);
 	SetViewport();
 	SetScissor();
-	ThrowIfFailed(m_command_list_->Close());
-	ID3D12CommandList* cmdsLists[] = { m_command_list_.Get() };
-	m_command_queue_->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
+	ThrowIfFailed(commandList->Close());
+	ID3D12CommandList* cmdsLists[] = { commandList.Get() };
+	commandQueue->ExecuteCommandLists(_countof(cmdsLists), cmdsLists);
 	FlushCommandQueue();
 }
  

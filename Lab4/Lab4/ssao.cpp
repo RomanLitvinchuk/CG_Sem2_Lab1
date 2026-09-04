@@ -114,40 +114,40 @@ void SSAO::BarriersToDefault(ComPtr<ID3D12GraphicsCommandList> commandList)
 }
 
 void DX12App::DrawSSAO() {
-	m_command_list_->SetPipelineState(renderSystem->SsaoPSO_.Get());
-	m_command_list_->SetGraphicsRootSignature(renderSystem->SsaoRS_.Get());
+	commandList->SetPipelineState(renderSystem->SsaoPSO_.Get());
+	commandList->SetGraphicsRootSignature(renderSystem->SsaoRS_.Get());
 
 	D3D12_VIEWPORT ssaoViewport = {};
 	ssaoViewport.TopLeftX = 0.0f;
 	ssaoViewport.TopLeftY = 0.0f;
-	ssaoViewport.Width = static_cast<float>(m_client_width_ / 2);
-	ssaoViewport.Height = static_cast<float>(m_client_height_ / 2);
+	ssaoViewport.Width = static_cast<float>(clientWidth / 2);
+	ssaoViewport.Height = static_cast<float>(clientHeight / 2);
 	ssaoViewport.MinDepth = 0.0f;
 	ssaoViewport.MaxDepth = 1.0f;
 
-	D3D12_RECT ssaoScissorRect = { 0, 0, m_client_width_ / 2, m_client_height_ / 2 };
+	D3D12_RECT ssaoScissorRect = { 0, 0, clientWidth / 2, clientHeight / 2 };
 
-	m_command_list_->RSSetViewports(1, &ssaoViewport);
-	m_command_list_->RSSetScissorRects(1, &ssaoScissorRect);
+	commandList->RSSetViewports(1, &ssaoViewport);
+	commandList->RSSetScissorRects(1, &ssaoScissorRect);
 
 	auto handle = renderSystem->ssao->SSAOTexture_A.rtvHandle;
-	m_command_list_->OMSetRenderTargets(1, &handle, true, nullptr);
+	commandList->OMSetRenderTargets(1, &handle, true, nullptr);
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->ssao->srvHeap_.Get(), renderSystem->ssao->samplerHeap_.Get()};
-	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(renderSystem->ssao->srvHeap_->GetGPUDescriptorHandleForHeapStart());
-	auto srvSize = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	auto srvSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	srvHandle.Offset(2, srvSize);
-	m_command_list_->SetGraphicsRootDescriptorTable(0, srvHandle);
+	commandList->SetGraphicsRootDescriptorTable(0, srvHandle);
 
-	m_command_list_->SetGraphicsRootDescriptorTable(1, renderSystem->ssao->samplerHeap_->GetGPUDescriptorHandleForHeapStart());
+	commandList->SetGraphicsRootDescriptorTable(1, renderSystem->ssao->samplerHeap_->GetGPUDescriptorHandleForHeapStart());
 
-	m_command_list_->SetGraphicsRootConstantBufferView(2, SsaoBuffer->Resource()->GetGPUVirtualAddress());
-	m_command_list_->SetGraphicsRootConstantBufferView(3, CameraCB->Resource()->GetGPUVirtualAddress());
-	m_command_list_->SetGraphicsRootConstantBufferView(4, MatricesBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(2, ssaoBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(3, cameraBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(4, matricesBuffer->Resource()->GetGPUVirtualAddress());
 
-	m_command_list_->DrawInstanced(3, 1, 0, 0);
+	commandList->DrawInstanced(3, 1, 0, 0);
 
 	//m_command_list_->RSSetViewports(1, &vp_);
 	//m_command_list_->RSSetScissorRects(1, &m_scissor_rect_);
@@ -158,45 +158,45 @@ void DX12App::BlurSSAO()
 	MyTexture* ssaoWriteTexture = &renderSystem->ssao->SSAOTexture_A;
 	MyTexture* ssaoReadTexture = &renderSystem->ssao->SSAOTexture_B;
 
-	d3dUtil::SwapTextures(m_command_list_, ssaoWriteTexture, ssaoReadTexture);
+	d3dUtil::SwapTextures(commandList, ssaoWriteTexture, ssaoReadTexture);
 
-	m_command_list_->SetPipelineState(renderSystem->SsaoBlurPSO_.Get());
-	m_command_list_->SetGraphicsRootSignature(renderSystem->SsaoBlurRS_.Get());
+	commandList->SetPipelineState(renderSystem->SsaoBlurPSO_.Get());
+	commandList->SetGraphicsRootSignature(renderSystem->SsaoBlurRS_.Get());
 
 	auto rtv = ssaoWriteTexture->rtvHandle;
-	m_command_list_->OMSetRenderTargets(1, &rtv, true, nullptr);
+	commandList->OMSetRenderTargets(1, &rtv, true, nullptr);
 
-	m_command_list_->SetGraphicsRootDescriptorTable(0, ssaoReadTexture->srvGpuHandle);
+	commandList->SetGraphicsRootDescriptorTable(0, ssaoReadTexture->srvGpuHandle);
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE normalHandle(renderSystem->ssao->srvHeap_->GetGPUDescriptorHandleForHeapStart());
-	auto size = m_device_->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+	auto size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	normalHandle.Offset(3, size);
-	m_command_list_->SetGraphicsRootDescriptorTable(1, normalHandle);
+	commandList->SetGraphicsRootDescriptorTable(1, normalHandle);
 
-	m_command_list_->SetGraphicsRootDescriptorTable(2, renderSystem->ssao->samplerHeap_->GetGPUDescriptorHandleForHeapStart());
+	commandList->SetGraphicsRootDescriptorTable(2, renderSystem->ssao->samplerHeap_->GetGPUDescriptorHandleForHeapStart());
 
 	BlurConstants blurConst;
-	blurConst.screenWidth = m_client_width_ / 2;
-	blurConst.screenHeight = m_client_height_ / 2;
+	blurConst.screenWidth = clientWidth / 2;
+	blurConst.screenHeight = clientHeight / 2;
 	blurConst.blurType = 0.0f;
 	blurConst.padding = 0.0f;
-	SsaoBlurBuffer->CopyData(0, blurConst);
+	ssaoBlurBuffer->CopyData(0, blurConst);
 
-	m_command_list_->SetGraphicsRootConstantBufferView(3, SsaoBlurBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(3, ssaoBlurBuffer->Resource()->GetGPUVirtualAddress());
 
-	m_command_list_->DrawInstanced(3, 1, 0, 0);
+	commandList->DrawInstanced(3, 1, 0, 0);
 
-	d3dUtil::SwapTextures(m_command_list_, ssaoWriteTexture, ssaoReadTexture);
+	d3dUtil::SwapTextures(commandList, ssaoWriteTexture, ssaoReadTexture);
 	rtv = ssaoWriteTexture->rtvHandle;
-	m_command_list_->OMSetRenderTargets(1, &rtv, true, nullptr);
-	m_command_list_->SetGraphicsRootDescriptorTable(0, ssaoReadTexture->srvGpuHandle);
+	commandList->OMSetRenderTargets(1, &rtv, true, nullptr);
+	commandList->SetGraphicsRootDescriptorTable(0, ssaoReadTexture->srvGpuHandle);
 
 	blurConst.blurType = 1.0f;
-	SsaoBlurBuffer->CopyData(0, blurConst);
-	m_command_list_->SetGraphicsRootConstantBufferView(3, SsaoBlurBuffer->Resource()->GetGPUVirtualAddress());
+	ssaoBlurBuffer->CopyData(0, blurConst);
+	commandList->SetGraphicsRootConstantBufferView(3, ssaoBlurBuffer->Resource()->GetGPUVirtualAddress());
 
-	m_command_list_->DrawInstanced(3, 1, 0, 0);
+	commandList->DrawInstanced(3, 1, 0, 0);
 
-	m_command_list_->RSSetViewports(1, &vp_);
-	m_command_list_->RSSetScissorRects(1, &m_scissor_rect_);
+	commandList->RSSetViewports(1, &viewport);
+	commandList->RSSetScissorRects(1, &scissorRect);
 }

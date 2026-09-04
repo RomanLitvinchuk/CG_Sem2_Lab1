@@ -24,14 +24,14 @@ void DX12App::Update() {
 	Matrix invProj = camera.mProj_.Transpose();
 	invProj = invProj.Invert();
 	matricesData.invProj = invProj;
-	MatricesBuffer->CopyData(0, matricesData);
+	matricesBuffer->CopyData(0, matricesData);
 	Matrix ViewProj = camera.mView_ * camera.mProj_;
 
 	ParticleConstants particleData;
 	particleData.deltaTime = gt.DeltaTime();
 	particleData.CameraPos = camera.mCameraPos;
 	particleData.particlesCount = PARTICLE_COUNT;
-	ParticleConstantsBuffer->CopyData(0, particleData);
+	particleConstantsBuffer->CopyData(0, particleData);
 
 	if (camera.isFrustumCullingEnabled) {
 		XMMATRIX M = ViewProj;
@@ -57,24 +57,24 @@ void DX12App::Update() {
 	obj.View = camera.mView_.Transpose();
 	obj.Proj = camera.mProj_.Transpose();
 	obj.gTime = gt.TotalTime();
-	CBUploadBuffer->CopyData(0, obj);
+	objectsUploadBuffer->CopyData(0, obj);
 
 	for (int i = 0; i < materialData.size(); ++i) {
-		MaterialCB->CopyData(i, materialData[i]);
+		materialBuffer->CopyData(i, materialData[i]);
 	}
 
 	CameraConstants camConst;
 	camConst.invViewProj = InvViewProj;
 	camConst.cameraPos = camera.mCameraPos;
-	CameraCB->CopyData(0, camConst);
+	cameraBuffer->CopyData(0, camConst);
 
-	HullBuffer HullConst;
-	HullConst.CameraPos = camera.mCameraPos;
-	HullConst.gMinTess = 1;
-	HullConst.gMaxTess = 5;
-	HullConst.gMinDist = 10.0f;
-	HullConst.gMaxDist = 200.0f;
-	HullCB->CopyData(0, HullConst);
+	HullBuffer hullConst;
+	hullConst.CameraPos = camera.mCameraPos;
+	hullConst.gMinTess = 1;
+	hullConst.gMaxTess = 5;
+	hullConst.gMinDist = 10.0f;
+	hullConst.gMaxDist = 200.0f;
+	hullBuffer->CopyData(0, hullConst);
 
 	for (int i = 0; i < materialData.size(); ++i) {
 		//materialData[i].MatTransform = Matrix::Identity;
@@ -91,7 +91,7 @@ void DX12App::Update() {
 			materialData[i].MatTransform(1, 0) = tu;
 			materialData[i].MatTransform(1, 1) = tv;
 		}
-		MaterialCB->CopyData(i, materialData[i]);
+		materialBuffer->CopyData(i, materialData[i]);
 	}
 
 	static float timeAccumulator = 0.0f;
@@ -106,17 +106,17 @@ void DX12App::Update() {
 				renderSystem->sceneLights_[i].lightColor.y = static_cast<float>(rand()) / RAND_MAX;
 				renderSystem->sceneLights_[i].lightColor.z = static_cast<float>(rand()) / RAND_MAX;
 			}
-			LightBuffer->CopyData(i, renderSystem->sceneLights_[i]);
+			lightBuffer->CopyData(i, renderSystem->sceneLights_[i]);
 		}
 	}
 
 	UpdateCascades();
-	int numCascades = shadowMap_->GetNumCascades();
+	int numCascades = shadowMap->GetNumCascades();
 	for (int i = 0; i < numCascades; ++i) {
 		ShadowConstants shadowData = {};
-		shadowData.lightViewProj = cascades_.viewProjMats[i];
-		shadowData.shadowTransform_ = cascades_.shadowTransform[i];
-		shadowData.cascadeDistances = Vector4(cascades_.distances[0], cascades_.distances[1], cascades_.distances[2], 0.0f);
-		ShadowCB->CopyData(i, shadowData);
+		shadowData.lightViewProj = cascades.viewProjMats[i];
+		shadowData.shadowTransform_ = cascades.shadowTransform[i];
+		shadowData.cascadeDistances = Vector4(cascades.distances[0], cascades.distances[1], cascades.distances[2], 0.0f);
+		shadowBuffer->CopyData(i, shadowData);
 	}
 }

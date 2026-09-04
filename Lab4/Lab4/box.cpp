@@ -22,25 +22,25 @@ void DX12App::BuildBoxGeometry() {
         0, 4, 1, 5, 2, 6, 3, 7
     };
 
-    ThrowIfFailed(m_direct_cmd_list_alloc_->Reset());
-    ThrowIfFailed(m_command_list_->Reset(m_direct_cmd_list_alloc_.Get(), nullptr));
+    ThrowIfFailed(commandAllocator->Reset());
+    ThrowIfFailed(commandList->Reset(commandAllocator.Get(), nullptr));
 
     const UINT vbByteSize = sizeof(vertices);
     const UINT ibByteSize = sizeof(indices);
 
-    wireframeVB = d3dUtil::CreateDefaultBuffer(m_device_.Get(), m_command_list_.Get(), vertices, vbByteSize, VertexBufferUploader_);
-    wireframeIB = d3dUtil::CreateDefaultBuffer(m_device_.Get(), m_command_list_.Get(), indices, ibByteSize, VertexBufferUploader_);
+    wireframeVertexBuffer = d3dUtil::CreateDefaultBuffer(device.Get(), commandList.Get(), vertices, vbByteSize, vertexBufferUploader);
+    wireframeIndexBuffer = d3dUtil::CreateDefaultBuffer(device.Get(), commandList.Get(), indices, ibByteSize, vertexBufferUploader);
 
-    ThrowIfFailed(m_command_list_->Close());
-    ID3D12CommandList* cmdLists[] = { m_command_list_.Get() };
-    m_command_queue_->ExecuteCommandLists(_countof(cmdLists), cmdLists);
+    ThrowIfFailed(commandList->Close());
+    ID3D12CommandList* cmdLists[] = { commandList.Get() };
+    commandQueue->ExecuteCommandLists(_countof(cmdLists), cmdLists);
     FlushCommandQueue();
 
-    wireframeVBV.BufferLocation = wireframeVB->GetGPUVirtualAddress();
-    wireframeVBV.StrideInBytes = sizeof(BoxVertex);
-    wireframeVBV.SizeInBytes = vbByteSize;
+    wireframeVertexBufferView.BufferLocation = wireframeVertexBuffer->GetGPUVirtualAddress();
+    wireframeVertexBufferView.StrideInBytes = sizeof(BoxVertex);
+    wireframeVertexBufferView.SizeInBytes = vbByteSize;
 
-    wireframeIBV.BufferLocation = wireframeIB->GetGPUVirtualAddress();
-    wireframeIBV.SizeInBytes = ibByteSize;
-    wireframeIBV.Format = DXGI_FORMAT_R16_UINT;
+    wireframeIndexBufferView.BufferLocation = wireframeIndexBuffer->GetGPUVirtualAddress();
+    wireframeIndexBufferView.SizeInBytes = ibByteSize;
+    wireframeIndexBufferView.Format = DXGI_FORMAT_R16_UINT;
 }

@@ -113,139 +113,139 @@ public:
 		std::vector<Vertex>& vertices, std::vector<std::uint32_t>& indices, UINT instanceCount);
 	void ExtractMaterialData(const std::string& filename, int MaterialIndex, aiMaterial* material);
 
-	ComPtr<ID3D12Device> GetDevice() const { return m_device_; }
+	ComPtr<ID3D12Device> GetDevice() const { return device; }
 	Camera& GetCamera() { return camera; }
 	GameTimer& GetTimer() { return gt; }
-	bool IsDeviceCreated() { return m_device_ != nullptr; }
-	ComPtr<ID3D12GraphicsCommandList> GetCommandList() const { return m_command_list_; }
+	bool IsDeviceCreated() { return device != nullptr; }
+	ComPtr<ID3D12GraphicsCommandList> GetCommandList() const { return commandList; }
 
-	void SetClientWH(int width, int height) {
-		m_client_width_ = width;
-		m_client_height_ = height;
+	void SetClientWH(int newWidth, int newHeight) {
+		clientWidth = newWidth;
+		clientHeight = newHeight;
 	}
 
 	bool m_key_states[256] = { false };
 
-	int GetClientWidth() { return m_client_width_; }
-	int GetClientHeight() { return m_client_height_; }
+	int GetClientWidth() { return clientWidth; }
+	int GetClientHeight() { return clientHeight; }
 
 private:
 	void EnableDebug();
 	GameTimer gt;
-	DXGI_FORMAT m_back_buffer_format_ = DXGI_FORMAT_R8G8B8A8_UNORM;
-	DXGI_FORMAT m_depth_stencil_format_ = DXGI_FORMAT_D24_UNORM_S8_UINT;
-	int m_client_width_ = 1424;
-	int m_client_height_ = 750;
-	ComPtr<IDXGIFactory4> m_dxgi_factory_ = nullptr;
-	ComPtr<ID3D12Device> m_device_ = nullptr;
-	ComPtr<ID3D12Fence> m_fence_;
-	UINT64 m_current_fence_ = 0;
-	UINT m_RTV_descriptor_size_ = 0;
-	UINT m_DSV_descriptor_size_ = 0;
-	UINT m_CbvSrvUav_descriptor_size_ = 0;
+	DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
+	DXGI_FORMAT depthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
+	int clientWidth = 1424;
+	int clientHeight = 750;
+	ComPtr<IDXGIFactory4> DXGIFactory = nullptr;
+	ComPtr<ID3D12Device> device = nullptr;
+	ComPtr<ID3D12Fence> fence;
+	UINT64 currentFence = 0;
+	UINT rtvDescriptorSize = 0;
+	UINT dsvDescriptorSize = 0;
+	UINT cbvDescriptorSize = 0;
 	D3D12_FEATURE_DATA_MULTISAMPLE_QUALITY_LEVELS msQualityLevels_;
 	
-	ComPtr<ID3D12CommandQueue> m_command_queue_ = nullptr;
-	ComPtr<ID3D12CommandAllocator> m_direct_cmd_list_alloc_ = nullptr;
-	ComPtr<ID3D12GraphicsCommandList> m_command_list_ = nullptr;
+	ComPtr<ID3D12CommandQueue> commandQueue = nullptr;
+	ComPtr<ID3D12CommandAllocator> commandAllocator = nullptr;
+	ComPtr<ID3D12GraphicsCommandList> commandList = nullptr;
 	
-	ComPtr<IDXGISwapChain> m_swap_chain_ = nullptr;
+	ComPtr<IDXGISwapChain> swapChain = nullptr;
 
-	ComPtr<ID3D12DescriptorHeap> m_RTV_heap_ = nullptr;
-	ComPtr<ID3D12DescriptorHeap> m_DSV_heap_ = nullptr;
-	ComPtr<ID3D12DescriptorHeap> m_CBV_SRV_heap_ = nullptr;
-	ComPtr<ID3D12DescriptorHeap> UAVHeap_ = nullptr;
-	ComPtr<ID3D12DescriptorHeap> m_sampler_heap = nullptr;
-	int m_current_back_buffer_ = 0;
+	ComPtr<ID3D12DescriptorHeap> rtvHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> dsvHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> cbvSrvHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> uavHeap = nullptr;
+	ComPtr<ID3D12DescriptorHeap> samplerHeap = nullptr;
+	int currentBackBuffer = 0;
 
-	ComPtr<ID3D12Resource> m_swap_chain_buffer_[2];
-	ComPtr<ID3D12Resource> m_DSV_buffer = nullptr;
+	ComPtr<ID3D12Resource> swapChainBuffer[2];
+	ComPtr<ID3D12Resource> dsvBuffer = nullptr;
 
-	D3D12_VIEWPORT vp_;
-	D3D12_RECT m_scissor_rect_;
+	D3D12_VIEWPORT viewport;
+	D3D12_RECT scissorRect;
 
-	ComPtr<ID3D12Resource> VertexBufferGPU_ = nullptr;
-	ComPtr<ID3D12Resource> VertexBufferUploader_ = nullptr;
-	D3D12_VERTEX_BUFFER_VIEW VertexBuffers[1];
+	ComPtr<ID3D12Resource> vertexBufferGPU = nullptr;
+	ComPtr<ID3D12Resource> vertexBufferUploader = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW vertexBuffers[1];
 
-	ComPtr<ID3D12Resource> IndexBufferGPU_ = nullptr;
-	ComPtr<ID3D12Resource> IndexBufferUploader_ = nullptr;
-	D3D12_INDEX_BUFFER_VIEW ibv;
+	ComPtr<ID3D12Resource> indexBufferGPU = nullptr;
+	ComPtr<ID3D12Resource> indexBufferUploader = nullptr;
+	D3D12_INDEX_BUFFER_VIEW indexBufferView;
 
-	std::unique_ptr<UploadBuffer<ObjectConstants>> CBUploadBuffer = nullptr;
-	std::unique_ptr<UploadBuffer<Matrices>> MatricesBuffer = nullptr;
-	std::unique_ptr<UploadBuffer<ParticleConstants>> ParticleConstantsBuffer = nullptr;
-	std::unique_ptr<UploadBuffer<MaterialConstants>> MaterialCB = nullptr;
-	std::unique_ptr<UploadBuffer<LightConstants>> LightBuffer = nullptr;
-	std::unique_ptr<UploadBuffer<CameraConstants>> CameraCB = nullptr;
-	std::unique_ptr<UploadBuffer<HullBuffer>> HullCB = nullptr;
-	std::unique_ptr<UploadBuffer<MeshInstanceData>> InstanceBuffer = nullptr;
-	std::unique_ptr<UploadBuffer<WireframeInstanceData>> WireframeInstanceBuffer = nullptr;
-	std::unique_ptr<UploadBuffer<ShadowConstants>> ShadowCB = nullptr;
-	std::unique_ptr<UploadBuffer<SsaoConstants>> SsaoBuffer = nullptr;
-	std::unique_ptr<UploadBuffer<BlurConstants>> SsaoBlurBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<ObjectConstants>> objectsUploadBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<Matrices>> matricesBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<ParticleConstants>> particleConstantsBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<MaterialConstants>> materialBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<LightConstants>> lightBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<CameraConstants>> cameraBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<HullBuffer>> hullBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<MeshInstanceData>> instanceBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<WireframeInstanceData>> wireframeInstanceBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<ShadowConstants>> shadowBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<SsaoConstants>> ssaoBuffer = nullptr;
+	std::unique_ptr<UploadBuffer<BlurConstants>> ssaoBlurBuffer = nullptr;
 
-	std::unique_ptr<UploadBuffer<uint32_t>> DeadListUpload_ = nullptr;
-	std::unique_ptr<UploadBuffer<uint32_t>> deadCounterUpload_ = nullptr;
-	std::unique_ptr<UploadBuffer<uint32_t>> sortCounterUpload_ = nullptr;
-	ComPtr<ID3D12Resource> RWParticleBuffer_ = nullptr;
-	ComPtr<ID3D12Resource> ParticleDeadList_ = nullptr;
-	ComPtr<ID3D12Resource> ParticleSortList_ = nullptr;
-	ComPtr<ID3D12Resource> deadCounterBuffer_ = nullptr;
-	ComPtr<ID3D12Resource> sortCounterBuffer_ = nullptr;
-	UINT PARTICLE_COUNT = 16384;
+	std::unique_ptr<UploadBuffer<uint32_t>> deadParticlesListUpload = nullptr;
+	std::unique_ptr<UploadBuffer<uint32_t>> deadParticlesCounterUpload = nullptr;
+	std::unique_ptr<UploadBuffer<uint32_t>> sortParticlesCounterUpload = nullptr;
+	ComPtr<ID3D12Resource> RWParticleBuffer = nullptr;
+	ComPtr<ID3D12Resource> ParticleDeadList = nullptr;
+	ComPtr<ID3D12Resource> ParticleSortList = nullptr;
+	ComPtr<ID3D12Resource> deadParticlesCounterBuffer = nullptr;
+	ComPtr<ID3D12Resource> sortParticlesCounterBuffer = nullptr;
+	const UINT PARTICLE_COUNT = 16384;
 	std::vector<Particle> particles;
 	Emitter emitter;
 
 
 	std::vector<MeshInstanceData> instances;
 
-	POINT m_mouse_last_pos_;
+	POINT mouseLastPos;
 	Camera camera;
 	BVH octree;
 
 	std::vector<UINT> visibleIndices;
 	bool treeIsVisible;
 
-	const aiScene* sponza;
+	const aiScene* scene;
 	std::vector<Vertex> vertices;
 	std::vector<std::uint32_t> indices;
-	std::vector<UINT> MeshIndexCounts;
-	std::unordered_map<std::wstring, std::unique_ptr<Texture>> mTextures;
-	std::vector<aiMaterial*> mMaterials_;
-	std::vector<int> mMeshesMaterialIndex;
+	std::vector<UINT> meshIndexCounts;
+	std::unordered_map<std::wstring, std::unique_ptr<Texture>> textures;
+	std::vector<aiMaterial*> materials;
+	std::vector<int> meshesMaterialIndex;
 	std::vector<MaterialConstants> materialData;
 
-	std::vector<Submesh> mSubmeshes;
+	std::vector<Submesh> submeshes;
 	const float LOD_DISTANCE = 600.0f * 600.0f;
 	const float BILLBOARD_DISTANCE = 900.0f * 900.0f;
 
-	Submesh SOMesh;
-	ComPtr<ID3D12Resource> mDefaultTexture;
+	Submesh streamOutputMesh;
+	ComPtr<ID3D12Resource> defaultTexture;
 	std::vector<std::string> materialNames;
 
 	RenderingSystem* renderSystem = nullptr;
 
-	ComPtr<ID3D12Resource> mSphereVB = nullptr;
-	ComPtr<ID3D12Resource> mSphereIB = nullptr;
-	D3D12_VERTEX_BUFFER_VIEW mSphereVbv;
-	D3D12_INDEX_BUFFER_VIEW mSphereIbv;
-	UINT mSphereIndexCount = 0;
+	ComPtr<ID3D12Resource> sphereVertexBuffer = nullptr;
+	ComPtr<ID3D12Resource> sphereIndexBuffer = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW sphereVertexBufferView;
+	D3D12_INDEX_BUFFER_VIEW sphereIndexBufferView;
+	UINT sphereIndexCount = 0;
 
-	ComPtr<ID3D12Resource> wireframeVB = nullptr;
-	ComPtr<ID3D12Resource> wireframeIB = nullptr;
-	D3D12_VERTEX_BUFFER_VIEW wireframeVBV;
-	D3D12_INDEX_BUFFER_VIEW wireframeIBV;
+	ComPtr<ID3D12Resource> wireframeVertexBuffer = nullptr;
+	ComPtr<ID3D12Resource> wireframeIndexBuffer = nullptr;
+	D3D12_VERTEX_BUFFER_VIEW wireframeVertexBufferView;
+	D3D12_INDEX_BUFFER_VIEW wireframeIndexBufferView;
 
-	ComPtr<ID3D12Resource> SOBuffer_ = nullptr;
-	ComPtr<ID3D12Resource> filledSizeBuffer_ = nullptr;
-	ComPtr<ID3D12Resource> readbackBuffer_ = nullptr;
-	D3D12_STREAM_OUTPUT_BUFFER_VIEW SOView_ = {};
+	ComPtr<ID3D12Resource> streamOutputBuffer = nullptr;
+	ComPtr<ID3D12Resource> filledSizeBuffer = nullptr;
+	ComPtr<ID3D12Resource> readbackBuffer = nullptr;
+	D3D12_STREAM_OUTPUT_BUFFER_VIEW streamOutputBufferView = {};
 	bool isFirstFrame = true;
 
-	std::unique_ptr<ShadowMap> shadowMap_;
-	float SMAP_SIZE = 8192.0f;
-	CascadeData cascades_;
+	std::unique_ptr<ShadowMap> shadowMap;
+	float SHADOW_MAP_SIZE = 8192.0f;
+	CascadeData cascades;
 };
 
 #endif //DX12APP_
