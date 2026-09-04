@@ -137,11 +137,11 @@ UINT ShadowMap::Height() const {
 void DX12App::InitShadowMap() {
     shadowMap = std::make_unique<ShadowMap>(device.Get(), SHADOW_MAP_SIZE, SHADOW_MAP_SIZE);
 
-    auto handle = renderSystem->g_buffer->SRVDescriptorHeap->GetCPUDescriptorHandleForHeapStart();
+    auto handle = renderSystem->g_buffer->GetSrvHeap()->GetCPUDescriptorHandleForHeapStart();
     auto size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
     CD3DX12_CPU_DESCRIPTOR_HANDLE smHandle(handle, 4, size);
 
-    auto gpuHandle = renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+    auto gpuHandle = renderSystem->g_buffer->GetSrvHeap()->GetGPUDescriptorHandleForHeapStart();
     CD3DX12_GPU_DESCRIPTOR_HANDLE smGpuHandle(gpuHandle, 4, size);
 
     auto dsvHandle = dsvHeap->GetCPUDescriptorHandleForHeapStart();

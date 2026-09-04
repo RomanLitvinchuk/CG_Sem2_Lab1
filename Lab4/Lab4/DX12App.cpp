@@ -290,8 +290,8 @@ void DX12App::OnResize() {
 		noiseTexResource = iter->second->Resource.Get();
 	}
 	renderSystem->ssao->OnResize(device, clientWidth / 2, clientHeight / 2,
-		renderSystem->g_buffer->DepthTex.Resource.Get(),
-		renderSystem->g_buffer->NormalTex.Resource.Get(),
+		renderSystem->g_buffer->GetDepthTex().Resource.Get(),
+		renderSystem->g_buffer->GetNormalTex().Resource.Get(),
 		noiseTexResource);
 	SetViewport();
 	SetScissor();

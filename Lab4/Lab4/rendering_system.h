@@ -186,7 +186,7 @@ struct RenderingSystem {
 
 		g_buffer = std::make_unique<GBuffer>(width, height, device);
 		post_process = std::make_unique<PostProcess>(width, height, device);
-		ssao = std::make_unique<SSAO>(device, width / 2, height / 2, g_buffer->DepthTex.Resource.Get(), g_buffer->NormalTex.Resource.Get(), noiseTexture);
+		ssao = std::make_unique<SSAO>(device, width / 2, height / 2, g_buffer->GetDepthTex().Resource.Get(), g_buffer->GetNormalTex().Resource.Get(), noiseTexture);
 
 		LightConstants sun = {};
 		sun.lightType = 0; // Directional

@@ -47,7 +47,7 @@ void DX12App::DrawParticles(ComPtr<ID3D12GraphicsCommandList> m_command_list) {
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->HDR_Texture_A.rtvHandle;
-	D3D12_CPU_DESCRIPTOR_HANDLE dsv = renderSystem->g_buffer->DepthTex.dsvHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv = renderSystem->g_buffer->GetDepthTex().dsvHandle;
 	commandList->OMSetRenderTargets(1, &rtv, true, &dsv);
 
 	commandList->SetGraphicsRootSignature(renderSystem->particleRS_.Get());

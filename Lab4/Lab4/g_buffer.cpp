@@ -11,14 +11,14 @@ void GBuffer::CreateTextures(int width, int height, ComPtr<ID3D12Device> device)
 	clearValue.Color[2] = 0.0f;
 	clearValue.Color[3] = 1.0f;
 	ThrowIfFailed(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
-		&clearValue, IID_PPV_ARGS(&DiffuseTex.Resource)));
-	DiffuseTex.Resource->SetName(L"Diffuse texture");
+		&clearValue, IID_PPV_ARGS(&diffuseTex.Resource)));
+	diffuseTex.Resource->SetName(L"Diffuse texture");
 
 	clearValue.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	resDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	ThrowIfFailed(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
-		&clearValue, IID_PPV_ARGS(&NormalTex.Resource)));
-	NormalTex.Resource->SetName(L"Normal texture");
+		&clearValue, IID_PPV_ARGS(&normalTex.Resource)));
+	normalTex.Resource->SetName(L"Normal texture");
 
 	clearValue.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	clearValue.DepthStencil.Depth = 1.0f;
@@ -26,8 +26,8 @@ void GBuffer::CreateTextures(int width, int height, ComPtr<ID3D12Device> device)
 	resDesc.Format = DXGI_FORMAT_R24G8_TYPELESS;
 	resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 	ThrowIfFailed(device->CreateCommittedResource(&heapProperties, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_DEPTH_READ,
-		&clearValue, IID_PPV_ARGS(&DepthTex.Resource)));
-	DepthTex.Resource->SetName(L"Depth texture");
+		&clearValue, IID_PPV_ARGS(&depthTex.Resource)));
+	depthTex.Resource->SetName(L"Depth texture");
 }
 
 void GBuffer::CreateRTVandDSV(ComPtr<ID3D12Device> device) {
@@ -37,22 +37,22 @@ void GBuffer::CreateRTVandDSV(ComPtr<ID3D12Device> device) {
 	rtvTexDesc.Texture2D.MipSlice = 0;
 	rtvTexDesc.Texture2D.PlaneSlice = 0;
 	auto RtvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(RTVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-	DiffuseTex.rtvHandle = rtvHandle;
-	device->CreateRenderTargetView(DiffuseTex.Resource.Get(), &rtvTexDesc, DiffuseTex.rtvHandle);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(rtvDescpritorHeap->GetCPUDescriptorHandleForHeapStart());
+	diffuseTex.rtvHandle = rtvHandle;
+	device->CreateRenderTargetView(diffuseTex.Resource.Get(), &rtvTexDesc, diffuseTex.rtvHandle);
 	rtvTexDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	rtvHandle.Offset(1, RtvIncSize);
-	NormalTex.rtvHandle = rtvHandle;
-	device->CreateRenderTargetView(NormalTex.Resource.Get(), &rtvTexDesc, NormalTex.rtvHandle);
+	normalTex.rtvHandle = rtvHandle;
+	device->CreateRenderTargetView(normalTex.Resource.Get(), &rtvTexDesc, normalTex.rtvHandle);
 
 	D3D12_DEPTH_STENCIL_VIEW_DESC dsvTexDesc = {};
 	dsvTexDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
 	dsvTexDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
 	dsvTexDesc.Texture2D.MipSlice = 0;
 	auto DsvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
-	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(DSVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-	DepthTex.dsvHandle = dsvHandle;
-	device->CreateDepthStencilView(DepthTex.Resource.Get(), &dsvTexDesc, DepthTex.dsvHandle);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle(dsvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+	depthTex.dsvHandle = dsvHandle;
+	device->CreateDepthStencilView(depthTex.Resource.Get(), &dsvTexDesc, depthTex.dsvHandle);
 }
 
 void GBuffer::CreateSRV(ComPtr<ID3D12Device> device) {
@@ -62,27 +62,27 @@ void GBuffer::CreateSRV(ComPtr<ID3D12Device> device) {
 	srvTexDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvTexDesc.Texture2D.MipLevels = 1;
 	auto SrvIncSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle(SRVDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
-	DiffuseTex.srvHandle = srvHandle;
-	device->CreateShaderResourceView(DiffuseTex.Resource.Get(), &srvTexDesc, DiffuseTex.srvHandle);
+	CD3DX12_CPU_DESCRIPTOR_HANDLE srvHandle(srvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+	diffuseTex.srvHandle = srvHandle;
+	device->CreateShaderResourceView(diffuseTex.Resource.Get(), &srvTexDesc, diffuseTex.srvHandle);
 
 	srvTexDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	srvHandle.Offset(1, SrvIncSize);
-	NormalTex.srvHandle = srvHandle;
-	device->CreateShaderResourceView(NormalTex.Resource.Get(), &srvTexDesc, NormalTex.srvHandle);
+	normalTex.srvHandle = srvHandle;
+	device->CreateShaderResourceView(normalTex.Resource.Get(), &srvTexDesc, normalTex.srvHandle);
 
 	srvTexDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
 	srvHandle.Offset(1, SrvIncSize);
-	DepthTex.srvHandle = srvHandle;
-	device->CreateShaderResourceView(DepthTex.Resource.Get(), &srvTexDesc, DepthTex.srvHandle);
+	depthTex.srvHandle = srvHandle;
+	device->CreateShaderResourceView(depthTex.Resource.Get(), &srvTexDesc, depthTex.srvHandle);
 }
 
 void GBuffer::TransitToOpaqueRenderingState(ComPtr<ID3D12GraphicsCommandList> commandList) {
-	CD3DX12_RESOURCE_BARRIER diffuseBarrier = CD3DX12_RESOURCE_BARRIER::Transition(DiffuseTex.Resource.Get(), D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
+	CD3DX12_RESOURCE_BARRIER diffuseBarrier = CD3DX12_RESOURCE_BARRIER::Transition(diffuseTex.Resource.Get(), D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
 		D3D12_RESOURCE_STATE_RENDER_TARGET);
-	CD3DX12_RESOURCE_BARRIER normalBarrier = CD3DX12_RESOURCE_BARRIER::Transition(NormalTex.Resource.Get(), D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
+	CD3DX12_RESOURCE_BARRIER normalBarrier = CD3DX12_RESOURCE_BARRIER::Transition(normalTex.Resource.Get(), D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE,
 		D3D12_RESOURCE_STATE_RENDER_TARGET);
-	CD3DX12_RESOURCE_BARRIER depthBarrier = CD3DX12_RESOURCE_BARRIER::Transition(DepthTex.Resource.Get(), 
+	CD3DX12_RESOURCE_BARRIER depthBarrier = CD3DX12_RESOURCE_BARRIER::Transition(depthTex.Resource.Get(), 
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_DEPTH_READ,
 		D3D12_RESOURCE_STATE_DEPTH_WRITE);
 	D3D12_RESOURCE_BARRIER barriers[] = { diffuseBarrier, normalBarrier, depthBarrier };
@@ -90,20 +90,20 @@ void GBuffer::TransitToOpaqueRenderingState(ComPtr<ID3D12GraphicsCommandList> co
 }
 
 void GBuffer::TransitToLightsRenderingState(ComPtr<ID3D12GraphicsCommandList> commandList) {
-	CD3DX12_RESOURCE_BARRIER diffuseBarrier = CD3DX12_RESOURCE_BARRIER::Transition(DiffuseTex.Resource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+	CD3DX12_RESOURCE_BARRIER diffuseBarrier = CD3DX12_RESOURCE_BARRIER::Transition(diffuseTex.Resource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 		D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
-	CD3DX12_RESOURCE_BARRIER normalBarrier = CD3DX12_RESOURCE_BARRIER::Transition(NormalTex.Resource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
+	CD3DX12_RESOURCE_BARRIER normalBarrier = CD3DX12_RESOURCE_BARRIER::Transition(normalTex.Resource.Get(), D3D12_RESOURCE_STATE_RENDER_TARGET,
 		D3D12_RESOURCE_STATE_ALL_SHADER_RESOURCE);
-	CD3DX12_RESOURCE_BARRIER depthBarrier = CD3DX12_RESOURCE_BARRIER::Transition(DepthTex.Resource.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE,
+	CD3DX12_RESOURCE_BARRIER depthBarrier = CD3DX12_RESOURCE_BARRIER::Transition(depthTex.Resource.Get(), D3D12_RESOURCE_STATE_DEPTH_WRITE,
 		D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_DEPTH_READ);
 	D3D12_RESOURCE_BARRIER barriers[] = { diffuseBarrier, normalBarrier, depthBarrier };
 	commandList->ResourceBarrier(3, barriers);
 }
 
 void GBuffer::OnResize(int width, int height, ComPtr<ID3D12Device> device) {
-	DiffuseTex.Resource.Reset();
-	NormalTex.Resource.Reset();
-	DepthTex.Resource.Reset();
+	diffuseTex.Resource.Reset();
+	normalTex.Resource.Reset();
+	depthTex.Resource.Reset();
 
 	CreateTextures(width, height, device);
 	CreateRTVandDSV(device);
@@ -112,7 +112,7 @@ void GBuffer::OnResize(int width, int height, ComPtr<ID3D12Device> device) {
 
 void GBuffer::ClearGBuffer(ComPtr<ID3D12GraphicsCommandList> commandList)
 {
-	commandList->ClearRenderTargetView(DiffuseTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
-	commandList->ClearRenderTargetView(NormalTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
-	commandList->ClearDepthStencilView(DepthTex.dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+	commandList->ClearRenderTargetView(diffuseTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+	commandList->ClearRenderTargetView(normalTex.rtvHandle, Color(0.0f, 0.0f, 0.0f, 1.0f), 0, nullptr);
+	commandList->ClearDepthStencilView(depthTex.dsvHandle, D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 }

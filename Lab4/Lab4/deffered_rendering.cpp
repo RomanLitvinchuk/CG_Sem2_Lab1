@@ -126,9 +126,9 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	m_command_list_->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvs[] = {
-		renderSystem->g_buffer->DiffuseTex.rtvHandle, renderSystem->g_buffer->NormalTex.rtvHandle
+		renderSystem->g_buffer->GetDiffuseTex().rtvHandle, renderSystem->g_buffer->GetNormalTex().rtvHandle
 	};
-	D3D12_CPU_DESCRIPTOR_HANDLE dsv = renderSystem->g_buffer->DepthTex.dsvHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE dsv = renderSystem->g_buffer->GetDepthTex().dsvHandle;
 	m_command_list_->OMSetRenderTargets(2, rtvs, true, &dsv);
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { cbvSrvHeap.Get(), samplerHeap.Get() };
@@ -273,13 +273,13 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->HDR_Texture_A.rtvHandle;
 	m_command_list_->OMSetRenderTargets(1, &rtv, true, nullptr);
-	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->g_buffer->SRVDescriptorHeap.Get(), renderSystem->samplerHeap.Get() };
+	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->g_buffer->GetSrvHeap().Get(), renderSystem->samplerHeap.Get()};
 	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	m_command_list_->SetGraphicsRootConstantBufferView(0, cameraBuffer->Resource()->GetGPUVirtualAddress());
 	UINT count = (UINT)renderSystem->sceneLights_.size();
 	m_command_list_->SetGraphicsRoot32BitConstant(1, count, 0);
-	m_command_list_->SetGraphicsRootDescriptorTable(2, renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+	m_command_list_->SetGraphicsRootDescriptorTable(2, renderSystem->g_buffer->GetSrvHeap()->GetGPUDescriptorHandleForHeapStart());
 	m_command_list_->SetGraphicsRootDescriptorTable(3, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
 	m_command_list_->SetGraphicsRootDescriptorTable(4, shadowMap->Srv());
 	m_command_list_->SetGraphicsRootConstantBufferView(5, shadowBuffer->Resource()->GetGPUVirtualAddress());
@@ -296,13 +296,13 @@ void DX12App::DrawNYBalls()
 	commandList->SetPipelineState(renderSystem->bulbPSO_.Get());
 	commandList->SetGraphicsRootSignature(renderSystem->bulbRS_.Get());
 
-	auto dsv = renderSystem->g_buffer->DepthTex.dsvHandle;
+	auto dsv = renderSystem->g_buffer->GetDepthTex().dsvHandle;
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->HDR_Texture_A.rtvHandle;
 	commandList->OMSetRenderTargets(1, &rtv, true, &dsv);
 
 	commandList->SetGraphicsRootConstantBufferView(0, objectsUploadBuffer->Resource()->GetGPUVirtualAddress());
 
-	auto handle = renderSystem->g_buffer->SRVDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
+	auto handle = renderSystem->g_buffer->GetSrvHeap()->GetGPUDescriptorHandleForHeapStart();
 	auto size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	CD3DX12_GPU_DESCRIPTOR_HANDLE lightSrvHandle(handle, 3, size);
 	commandList->SetGraphicsRootDescriptorTable(1, lightSrvHandle);
