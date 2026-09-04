@@ -271,7 +271,7 @@ void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		lightBuffer->CopyData(i, renderSystem->sceneLights_[i]);
 	}
 
-	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->HDR_Texture_A.rtvHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->GetHdrTextureA().rtvHandle;
 	m_command_list_->OMSetRenderTargets(1, &rtv, true, nullptr);
 	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->g_buffer->GetSrvHeap().Get(), renderSystem->samplerHeap.Get()};
 	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
@@ -297,7 +297,7 @@ void DX12App::DrawNYBalls()
 	commandList->SetGraphicsRootSignature(renderSystem->bulbRS_.Get());
 
 	auto dsv = renderSystem->g_buffer->GetDepthTex().dsvHandle;
-	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->HDR_Texture_A.rtvHandle;
+	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->GetHdrTextureA().rtvHandle;
 	commandList->OMSetRenderTargets(1, &rtv, true, &dsv);
 
 	commandList->SetGraphicsRootConstantBufferView(0, objectsUploadBuffer->Resource()->GetGPUVirtualAddress());
@@ -329,8 +329,9 @@ void DX12App::Draw()
 	renderSystem->post_process->ClearPostProcess(commandList);
 	renderSystem->ssao->ClearSSAO(commandList);
 
-	MyTexture* ppWriteTexture = &renderSystem->post_process->HDR_Texture_A;
-	MyTexture* ppReadTexture = &renderSystem->post_process->HDR_Texture_B;
+
+	MyTexture* ppWriteTexture = &renderSystem->post_process->GetHdrTextureA();
+	MyTexture* ppReadTexture = &renderSystem->post_process->GetHdrTextureB();
 
 	treeIsVisible = false;
 
@@ -369,8 +370,8 @@ void DX12App::Draw()
 
 	d3dUtil::SwapTextures(commandList, ppWriteTexture, ppReadTexture);
 	DrawPPTonemap(commandList, ppReadTexture);
-	ppReadTexture = &renderSystem->post_process->LDR_Texture_B;
-	ppWriteTexture = &renderSystem->post_process->LDR_Texture_A;
+	ppReadTexture = &renderSystem->post_process->GetLdrTextureB();
+	ppWriteTexture = &renderSystem->post_process->GetLdrTextureA();
 	d3dUtil::SwapTextures(commandList, ppWriteTexture, ppReadTexture);
 
 	DrawPPVignette(commandList, ppReadTexture, ppWriteTexture);

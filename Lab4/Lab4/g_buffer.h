@@ -68,9 +68,9 @@ public:
 	void OnResize(int width, int height, ComPtr<ID3D12Device> device);
 	void ClearGBuffer(ComPtr<ID3D12GraphicsCommandList> commandList);
 
-	GBufferTexture GetDiffuseTex() { return diffuseTex; }
-	GBufferTexture GetNormalTex() { return normalTex; }
-	GBufferTexture GetDepthTex() { return depthTex; }
+	GBufferTexture& GetDiffuseTex() { return diffuseTex; }
+	GBufferTexture& GetNormalTex() { return normalTex; }
+	GBufferTexture& GetDepthTex() { return depthTex; }
 	ComPtr<ID3D12DescriptorHeap> GetSrvHeap() { return srvDescriptorHeap; }
 	ComPtr<ID3D12DescriptorHeap> GetRtvHeap() { return rtvDescpritorHeap; }
 	ComPtr<ID3D12DescriptorHeap> GetDsvHeap() { return dsvDescriptorHeap; }
