@@ -31,6 +31,7 @@ private:
 	ComPtr<ID3D12DescriptorHeap> srvDescriptorHeap;
 	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap;
 
+	void CreateHeaps(ComPtr<ID3D12Device> device);
 	void CreateTextures(int width, int height, ComPtr<ID3D12Device> device);
 	void CreateSRV(ComPtr<ID3D12Device> device);
 	void CreateRTVandDSV(ComPtr<ID3D12Device> device);
@@ -38,28 +39,10 @@ private:
 public:
 
 	GBuffer(int width, int height, ComPtr<ID3D12Device> device) {
-		D3D12_DESCRIPTOR_HEAP_DESC rtvDesc = {};
-		rtvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		rtvDesc.NumDescriptors = 5;
-		rtvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
-		ThrowIfFailed(device->CreateDescriptorHeap(&rtvDesc, IID_PPV_ARGS(&rtvDescpritorHeap)));
-
-		D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
-		srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
-		srvDesc.NumDescriptors = 6;
-		srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
-		ThrowIfFailed(device->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&srvDescriptorHeap)));
-
-		D3D12_DESCRIPTOR_HEAP_DESC dsvDesc = {};
-		dsvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
-		dsvDesc.NumDescriptors = 1;
-		dsvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
-		ThrowIfFailed(device->CreateDescriptorHeap(&dsvDesc, IID_PPV_ARGS(&dsvDescriptorHeap)));
-
+		CreateHeaps(device);
 		CreateTextures(width, height, device);
 		CreateSRV(device);
 		CreateRTVandDSV(device);
-
 	};
 
 	void TransitToOpaqueRenderingState(ComPtr<ID3D12GraphicsCommandList> commandList);
@@ -68,12 +51,29 @@ public:
 	void OnResize(int width, int height, ComPtr<ID3D12Device> device);
 	void ClearGBuffer(ComPtr<ID3D12GraphicsCommandList> commandList);
 
-	GBufferTexture& GetDiffuseTex() { return diffuseTex; }
-	GBufferTexture& GetNormalTex() { return normalTex; }
-	GBufferTexture& GetDepthTex() { return depthTex; }
-	ComPtr<ID3D12DescriptorHeap> GetSrvHeap() { return srvDescriptorHeap; }
-	ComPtr<ID3D12DescriptorHeap> GetRtvHeap() { return rtvDescpritorHeap; }
-	ComPtr<ID3D12DescriptorHeap> GetDsvHeap() { return dsvDescriptorHeap; }
+	GBufferTexture& GetDiffuseTex() { 
+		return diffuseTex; 
+	}
+
+	GBufferTexture& GetNormalTex() {
+		return normalTex; 
+	}
+
+	GBufferTexture& GetDepthTex() { 
+		return depthTex; 
+	}
+
+	ComPtr<ID3D12DescriptorHeap> GetSrvHeap() { 
+		return srvDescriptorHeap; 
+	}
+
+	ComPtr<ID3D12DescriptorHeap> GetRtvHeap() { 
+		return rtvDescpritorHeap; 
+	}
+
+	ComPtr<ID3D12DescriptorHeap> GetDsvHeap() { 
+		return dsvDescriptorHeap; 
+	}
 };
 
 

@@ -1,6 +1,27 @@
 #include "g_buffer.h"
 #include "DX12App.h"
 
+void GBuffer::CreateHeaps(ComPtr<ID3D12Device> device)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC rtvDesc = {};
+	rtvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	rtvDesc.NumDescriptors = 5;
+	rtvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	ThrowIfFailed(device->CreateDescriptorHeap(&rtvDesc, IID_PPV_ARGS(&rtvDescpritorHeap)));
+
+	D3D12_DESCRIPTOR_HEAP_DESC srvDesc = {};
+	srvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	srvDesc.NumDescriptors = 6;
+	srvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	ThrowIfFailed(device->CreateDescriptorHeap(&srvDesc, IID_PPV_ARGS(&srvDescriptorHeap)));
+
+	D3D12_DESCRIPTOR_HEAP_DESC dsvDesc = {};
+	dsvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	dsvDesc.NumDescriptors = 1;
+	dsvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	ThrowIfFailed(device->CreateDescriptorHeap(&dsvDesc, IID_PPV_ARGS(&dsvDescriptorHeap)));
+}
+
 void GBuffer::CreateTextures(int width, int height, ComPtr<ID3D12Device> device) {
 	auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	auto resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);

@@ -1,5 +1,28 @@
 #include "DX12App.h"
 
+void SSAO::CreateHeaps(ComPtr<ID3D12Device> device) {
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.NumDescriptors = 5;
+	srvHeapDesc.NodeMask = 0;
+	ThrowIfFailed(device->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&srvHeap)));
+
+	D3D12_DESCRIPTOR_HEAP_DESC rtvHeapDesc = {};
+	rtvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	rtvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	rtvHeapDesc.NumDescriptors = 2;
+	rtvHeapDesc.NodeMask = 0;
+	ThrowIfFailed(device->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&rtvHeap)));
+
+	D3D12_DESCRIPTOR_HEAP_DESC samplerDesc;
+	samplerDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	samplerDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER;
+	samplerDesc.NumDescriptors = 2;
+	samplerDesc.NodeMask = 0;
+	ThrowIfFailed(device->CreateDescriptorHeap(&samplerDesc, IID_PPV_ARGS(&samplerHeap)));
+}
+
 void SSAO::CreateTexture(ComPtr<ID3D12Device> device, int width, int height) {
 	auto resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_FLOAT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 	auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
@@ -19,7 +42,7 @@ void SSAO::CreateTexture(ComPtr<ID3D12Device> device, int width, int height) {
 }
 
 void SSAO::CreateRTV(ComPtr<ID3D12Device> device) {
-	CD3DX12_CPU_DESCRIPTOR_HANDLE handle(rtvHeap_->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE handle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
 	auto rtvSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -35,7 +58,7 @@ void SSAO::CreateRTV(ComPtr<ID3D12Device> device) {
 }
 
 void SSAO::CreateSRV(ComPtr<ID3D12Device> device, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture) {
-	CD3DX12_CPU_DESCRIPTOR_HANDLE handle(srvHeap_->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE handle(srvHeap->GetCPUDescriptorHandleForHeapStart());
 	auto size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
@@ -44,7 +67,7 @@ void SSAO::CreateSRV(ComPtr<ID3D12Device> device, ID3D12Resource* depthTexture, 
 	srvDesc.Texture2D.MipLevels = 1;
 	SSAOTexture_A.srvHandle = handle;
 	device->CreateShaderResourceView(SSAOTexture_A.Resource.Get(), &srvDesc, handle);
-	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(srvHeap_->GetGPUDescriptorHandleForHeapStart());
+	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle(srvHeap->GetGPUDescriptorHandleForHeapStart());
 	SSAOTexture_A.srvGpuHandle = gpuHandle;
 
 	handle.Offset(1, size);
@@ -69,7 +92,7 @@ void SSAO::CreateSRV(ComPtr<ID3D12Device> device, ID3D12Resource* depthTexture, 
 
 void SSAO::CreateSamplers(ComPtr<ID3D12Device> device)
 {
-	CD3DX12_CPU_DESCRIPTOR_HANDLE sampHandle(samplerHeap_->GetCPUDescriptorHandleForHeapStart());
+	CD3DX12_CPU_DESCRIPTOR_HANDLE sampHandle(samplerHeap->GetCPUDescriptorHandleForHeapStart());
 	auto sampSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 	D3D12_SAMPLER_DESC sampDesc = {};
 	sampDesc.Filter = D3D12_FILTER_MIN_MAG_MIP_POINT;
@@ -130,33 +153,30 @@ void DX12App::DrawSSAO() {
 	commandList->RSSetViewports(1, &ssaoViewport);
 	commandList->RSSetScissorRects(1, &ssaoScissorRect);
 
-	auto handle = renderSystem->ssao->SSAOTexture_A.rtvHandle;
+	auto handle = renderSystem->ssao->GetTextureA().rtvHandle;
 	commandList->OMSetRenderTargets(1, &handle, true, nullptr);
 
-	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->ssao->srvHeap_.Get(), renderSystem->ssao->samplerHeap_.Get()};
+	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->ssao->GetSrvHeap().Get(), renderSystem->ssao->GetSamplerHeap().Get()};
 	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(renderSystem->ssao->srvHeap_->GetGPUDescriptorHandleForHeapStart());
+	CD3DX12_GPU_DESCRIPTOR_HANDLE srvHandle(renderSystem->ssao->GetSrvHeap()->GetGPUDescriptorHandleForHeapStart());
 	auto srvSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	srvHandle.Offset(2, srvSize);
 	commandList->SetGraphicsRootDescriptorTable(0, srvHandle);
 
-	commandList->SetGraphicsRootDescriptorTable(1, renderSystem->ssao->samplerHeap_->GetGPUDescriptorHandleForHeapStart());
+	commandList->SetGraphicsRootDescriptorTable(1, renderSystem->ssao->GetSamplerHeap()->GetGPUDescriptorHandleForHeapStart());
 
 	commandList->SetGraphicsRootConstantBufferView(2, ssaoBuffer->Resource()->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootConstantBufferView(3, cameraBuffer->Resource()->GetGPUVirtualAddress());
 	commandList->SetGraphicsRootConstantBufferView(4, matricesBuffer->Resource()->GetGPUVirtualAddress());
 
 	commandList->DrawInstanced(3, 1, 0, 0);
-
-	//m_command_list_->RSSetViewports(1, &vp_);
-	//m_command_list_->RSSetScissorRects(1, &m_scissor_rect_);
 }
 
 void DX12App::BlurSSAO()
 {
-	MyTexture* ssaoWriteTexture = &renderSystem->ssao->SSAOTexture_A;
-	MyTexture* ssaoReadTexture = &renderSystem->ssao->SSAOTexture_B;
+	MyTexture* ssaoWriteTexture = &renderSystem->ssao->GetTextureA();
+	MyTexture* ssaoReadTexture = &renderSystem->ssao->GetTextureB();
 
 	d3dUtil::SwapTextures(commandList, ssaoWriteTexture, ssaoReadTexture);
 
@@ -168,12 +188,12 @@ void DX12App::BlurSSAO()
 
 	commandList->SetGraphicsRootDescriptorTable(0, ssaoReadTexture->srvGpuHandle);
 
-	CD3DX12_GPU_DESCRIPTOR_HANDLE normalHandle(renderSystem->ssao->srvHeap_->GetGPUDescriptorHandleForHeapStart());
+	CD3DX12_GPU_DESCRIPTOR_HANDLE normalHandle(renderSystem->ssao->GetSrvHeap()->GetGPUDescriptorHandleForHeapStart());
 	auto size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	normalHandle.Offset(3, size);
 	commandList->SetGraphicsRootDescriptorTable(1, normalHandle);
 
-	commandList->SetGraphicsRootDescriptorTable(2, renderSystem->ssao->samplerHeap_->GetGPUDescriptorHandleForHeapStart());
+	commandList->SetGraphicsRootDescriptorTable(2, renderSystem->ssao->GetSamplerHeap()->GetGPUDescriptorHandleForHeapStart());
 
 	BlurConstants blurConst;
 	blurConst.screenWidth = clientWidth / 2;

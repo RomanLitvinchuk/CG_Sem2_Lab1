@@ -1,6 +1,18 @@
 #include "post_process.h"
 #include "d3dUtil.h"
 
+void PostProcess::CreateHeaps(ComPtr<ID3D12Device> device) {
+	D3D12_DESCRIPTOR_HEAP_DESC descHeap = {};
+	descHeap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	descHeap.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	descHeap.NumDescriptors = 4;
+	ThrowIfFailed(device->CreateDescriptorHeap(&descHeap, IID_PPV_ARGS(&srvHeap)));
+
+	descHeap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	descHeap.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
+	ThrowIfFailed(device->CreateDescriptorHeap(&descHeap, IID_PPV_ARGS(&rtvHeap)));
+}
+
 void PostProcess::CreateTexture(int width, int height, ComPtr<ID3D12Device> device) {
 	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 	D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
