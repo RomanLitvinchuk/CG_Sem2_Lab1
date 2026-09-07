@@ -22,13 +22,13 @@ void BVH::Build(const std::vector<Submesh>& submeshes)
 }
 
 void BVH::GetVisibleObjects(
-    const XMVECTOR planes[6],
+    const BoundingFrustum frustum,
     const std::vector<Submesh>& submeshes,
     std::vector<UINT>& outVisibleIndices) const
 {
     outVisibleIndices.clear();
     if (root == nullptr) return;
-    GetVisibleObjectsRecursive(root.get(), planes, submeshes, outVisibleIndices);
+    GetVisibleObjectsRecursive(root.get(), frustum, submeshes, outVisibleIndices);
 }
 
 void BVH::GetAllNodes(std::vector<BVHNode*>& outNodes)
@@ -94,34 +94,32 @@ void BVH::BuildRecursive(BVHNode* node, const std::vector<Submesh>& submeshes, s
 
 void BVH::GetVisibleObjectsRecursive(
     const BVHNode* node,
-    const XMVECTOR planes[6],
+    const BoundingFrustum frustum,
     const std::vector<Submesh>& submeshes,
     std::vector<UINT>& outVisibleIndices) const
 {
-    bool fullyInside = true;
+    ContainmentType nodeContainment = frustum.Contains(node->bounds);
 
-    for (int i = 0; i < 6; ++i) {
-        PlaneIntersectionType type = node->bounds.Intersects(planes[i]);
-        if (type == PlaneIntersectionType::BACK) {
-            return;
-        }
-        if (type == PlaneIntersectionType::INTERSECTING) {
-            fullyInside = false;
-        }
+    if (nodeContainment == ContainmentType::DISJOINT) {
+        return;
     }
 
-    if (fullyInside) {
-        auto CollectAll = [&](auto& self, const BVHNode* n) -> void {
-            if (n->isLeaf) {
-                for (UINT idx : n->submeshIndices) {
+    if (nodeContainment == ContainmentType::CONTAINS) {
+        auto CollectAll = [&](auto& self, const BVHNode* node) -> void {
+            if (node->isLeaf) {
+                for (UINT idx : node->submeshIndices) {
                     outVisibleIndices.push_back(idx);
                 }
             }
             else {
-                if (n->left) self(self, n->left.get());
-                if (n->right) self(self, n->right.get());
+                if (node->left) {
+                    self(self, node->left.get());
+                }
+                if (node->right) {
+                    self(self, node->right.get());
+                }
             }
-            };
+        };
         CollectAll(CollectAll, node);
         return;
     }
@@ -129,24 +127,15 @@ void BVH::GetVisibleObjectsRecursive(
     if (node->isLeaf) {
         for (UINT idx : node->submeshIndices) {
             const BoundingBox& objBox = submeshes[idx].box;
-            bool objVisible = true;
-
-            for (int i = 0; i < 6; ++i) {
-                if (objBox.Intersects(planes[i]) == PlaneIntersectionType::BACK) {
-                    objVisible = false;
-                    break;
-                }
-            }
-
-            if (objVisible) {
+            
+            if (frustum.Contains(objBox) != ContainmentType::DISJOINT) {
                 outVisibleIndices.push_back(idx);
             }
         }
     }
-
     else {
-        if (node->left) GetVisibleObjectsRecursive(node->left.get(), planes, submeshes, outVisibleIndices);
-        if (node->right) GetVisibleObjectsRecursive(node->right.get(), planes, submeshes, outVisibleIndices);
+        if (node->left) GetVisibleObjectsRecursive(node->left.get(), frustum, submeshes, outVisibleIndices);
+        if (node->right) GetVisibleObjectsRecursive(node->right.get(), frustum, submeshes, outVisibleIndices);
     }
 }
 

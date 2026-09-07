@@ -46,20 +46,19 @@ void DX12App::UpdateParticleData() {
 }
 
 void DX12App::UpdateFrustumData() {
-	Matrix ViewProj = camera.mView_ * camera.mProj_;
 	if (camera.isFrustumCullingEnabled) {
-		XMMATRIX M = ViewProj;
-		XMFLOAT4X4 m;
-		XMStoreFloat4x4(&m, M);
+		XMVECTOR pos = XMLoadFloat3(&camera.mCameraPos);
+		XMVECTOR target = pos + XMLoadFloat3(&camera.mCameraTarget);
+		XMVECTOR up = XMLoadFloat3(&camera.mCameraUp);
+		XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
 
-		camera.planes[0] = XMVectorSet(m._14 + m._11, m._24 + m._21, m._34 + m._31, m._44 + m._41);
-		camera.planes[1] = XMVectorSet(m._14 - m._11, m._24 - m._21, m._34 - m._31, m._44 - m._41);
-		camera.planes[2] = XMVectorSet(m._14 + m._12, m._24 + m._22, m._34 + m._32, m._44 + m._42);
-		camera.planes[3] = XMVectorSet(m._14 - m._12, m._24 - m._22, m._34 - m._32, m._44 - m._42);
-		camera.planes[4] = XMVectorSet(m._13, m._23, m._33, m._43);
-		camera.planes[5] = XMVectorSet(m._14 - m._13, m._24 - m._23, m._34 - m._33, m._44 - m._43);
+		BoundingFrustum viewFrustum;
+		BoundingFrustum::CreateFromMatrix(viewFrustum, camera.xmProj);
 
-		for (int i = 0; i < 6; ++i) camera.planes[i] = XMPlaneNormalize(camera.planes[i]);
+		XMVECTOR determinant;
+		XMMATRIX invView = XMMatrixInverse(&determinant, view);
+
+		viewFrustum.Transform(camera.frustum, invView);
 	}
 }
 

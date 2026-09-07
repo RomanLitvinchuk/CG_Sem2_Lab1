@@ -235,6 +235,8 @@ void DX12App::InitProjectionMatrix() {
 		1.0f,                       
 		100000.0f                    
 	);
+	float fovAngleY = 0.33f * XM_PI;
+	camera.xmProj = XMMatrixPerspectiveFovLH(fovAngleY, aspectRatio, 1.0f, 100000.0f);
 }
 
 

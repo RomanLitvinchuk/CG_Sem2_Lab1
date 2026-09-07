@@ -188,7 +188,7 @@ void DX12App::GetVisibleObjects() {
 	visibleIndices.clear();
 	if (camera.isFrustumCullingEnabled)
 	{
-		octree.GetVisibleObjects(camera.planes, submeshes, visibleIndices);
+		octree.GetVisibleObjects(camera.frustum, submeshes, visibleIndices);
 	}
 	else
 	{
@@ -367,11 +367,10 @@ void DX12App::Draw()
 	if (treeIsVisible) DrawNYBalls();
 
 	bool isEmitterInside = true;
-	for (int i = 0; i < 6; ++i) {
-		PlaneIntersectionType type = emitter.bounds.Intersects(camera.planes[i]);
-		if (type == PlaneIntersectionType::BACK) {
+	if (camera.isFrustumCullingEnabled) {
+		ContainmentType type = camera.frustum.Contains(emitter.bounds);
+		if (type == ContainmentType::DISJOINT) {
 			isEmitterInside = false;
-			break;
 		}
 	}
 	DrawWireframe();

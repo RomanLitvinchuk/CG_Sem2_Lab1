@@ -18,7 +18,7 @@ struct BVHNode {
 class BVH {
 public:
     void Build(const std::vector<Submesh>& submeshes);
-    void GetVisibleObjects(const XMVECTOR planes[6],
+    void GetVisibleObjects(const BoundingFrustum frustum,
         const std::vector<Submesh>& submeshes,
         std::vector<UINT>& outVisibleIndices) const;
     void GetAllNodes(std::vector<BVHNode*>& outNodes);
@@ -28,7 +28,7 @@ private:
     UINT MAX_OBJECTS_PER_NODE = 16;
     void BuildRecursive(BVHNode* node, const std::vector<Submesh>& submeshes, std::vector<UINT>& indices);
     void GetVisibleObjectsRecursive(const BVHNode* node,
-        const XMVECTOR planes[6],
+        const BoundingFrustum frustum,
         const std::vector<Submesh>& submeshes,
         std::vector<UINT>& outVisibleIndices) const;
     void CollectAllNodesRecursive(BVHNode* node, std::vector<BVHNode*>& outNodes);

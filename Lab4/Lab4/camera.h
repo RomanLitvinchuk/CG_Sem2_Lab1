@@ -3,6 +3,7 @@
 
 #include <Windows.h>
 #include <SimpleMath.h>
+#include <DirectXCollision.h>
 #include "game_timer.h"
 
 
@@ -38,8 +39,9 @@ struct Camera {
 	Matrix mWorld_ = Matrix::Identity;
 	Matrix mView_ = Matrix::Identity;
 	Matrix mProj_ = Matrix::Identity;
+	XMMATRIX xmProj = XMMatrixIdentity();
 
-	XMVECTOR planes[6];
+	BoundingFrustum frustum;
 	bool isFrustumCullingEnabled = true;
 };
 
