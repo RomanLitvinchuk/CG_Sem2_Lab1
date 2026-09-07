@@ -1,7 +1,7 @@
 #include "post_process.h"
 #include "d3dUtil.h"
 
-void PostProcess::CreateHeaps(ComPtr<ID3D12Device> device) {
+void PostProcess::CreateHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC descHeap = {};
 	descHeap.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	descHeap.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
@@ -13,7 +13,7 @@ void PostProcess::CreateHeaps(ComPtr<ID3D12Device> device) {
 	ThrowIfFailed(device->CreateDescriptorHeap(&descHeap, IID_PPV_ARGS(&rtvHeap)));
 }
 
-void PostProcess::CreateTexture(int width, int height, ComPtr<ID3D12Device> device) {
+void PostProcess::CreateTextures(int width, int height) {
 	D3D12_RESOURCE_DESC resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R16G16B16A16_FLOAT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 	D3D12_HEAP_PROPERTIES heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	D3D12_CLEAR_VALUE clearValue;
@@ -41,7 +41,7 @@ void PostProcess::CreateTexture(int width, int height, ComPtr<ID3D12Device> devi
 	ldrTextureB.currentState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 } 
 
-void PostProcess::CreateSRV(ComPtr<ID3D12Device> device) {
+void PostProcess::CreateSRV() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -72,7 +72,7 @@ void PostProcess::CreateSRV(ComPtr<ID3D12Device> device) {
 	device->CreateShaderResourceView(ldrTextureB.Resource.Get(), &srvDesc, cpuHandle);
 }
 
-void PostProcess::CreateRTV(ComPtr<ID3D12Device> device)
+void PostProcess::CreateRTV()
 {
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
 	rtvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
@@ -118,11 +118,18 @@ void PostProcess::BarriersToDefault(ComPtr<ID3D12GraphicsCommandList> commandLis
 	d3dUtil::Barrier(commandList, &ldrTextureB, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE);
 }
 
-void PostProcess::OnResize(int width, int height, ComPtr<ID3D12Device> device)
+void PostProcess::OnResize(int width, int height)
+{
+	ResetTextures();
+	CreateTextures(width, height);
+	CreateSRV();
+	CreateRTV();
+}
+
+void PostProcess::ResetTextures()
 {
 	hdrTextureA.Resource.Reset();
-
-	CreateTexture(width, height, device);
-	CreateSRV(device);
-	CreateRTV(device);
+	hdrTextureB.Resource.Reset();
+	ldrTextureA.Resource.Reset();
+	ldrTextureB.Resource.Reset();
 }

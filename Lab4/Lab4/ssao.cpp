@@ -1,6 +1,6 @@
 #include "DX12App.h"
 
-void SSAO::CreateHeaps(ComPtr<ID3D12Device> device) {
+void SSAO::CreateHeaps() {
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
@@ -23,7 +23,7 @@ void SSAO::CreateHeaps(ComPtr<ID3D12Device> device) {
 	ThrowIfFailed(device->CreateDescriptorHeap(&samplerDesc, IID_PPV_ARGS(&samplerHeap)));
 }
 
-void SSAO::CreateTexture(ComPtr<ID3D12Device> device, int width, int height) {
+void SSAO::CreateTexture(int width, int height) {
 	auto resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R32_FLOAT, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 	auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	D3D12_CLEAR_VALUE clearValue;
@@ -41,7 +41,7 @@ void SSAO::CreateTexture(ComPtr<ID3D12Device> device, int width, int height) {
 	SSAOTexture_B.currentState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
 }
 
-void SSAO::CreateRTV(ComPtr<ID3D12Device> device) {
+void SSAO::CreateRTV() {
 	CD3DX12_CPU_DESCRIPTOR_HANDLE handle(rtvHeap->GetCPUDescriptorHandleForHeapStart());
 	auto rtvSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 	D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
@@ -57,7 +57,7 @@ void SSAO::CreateRTV(ComPtr<ID3D12Device> device) {
 	device->CreateRenderTargetView(SSAOTexture_B.Resource.Get(), &rtvDesc, handle);
 }
 
-void SSAO::CreateSRV(ComPtr<ID3D12Device> device, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture) {
+void SSAO::CreateSRV(ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture) {
 	CD3DX12_CPU_DESCRIPTOR_HANDLE handle(srvHeap->GetCPUDescriptorHandleForHeapStart());
 	auto size = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -90,7 +90,7 @@ void SSAO::CreateSRV(ComPtr<ID3D12Device> device, ID3D12Resource* depthTexture, 
 	device->CreateShaderResourceView(noiseTexture, &srvDesc, handle);
 }
 
-void SSAO::CreateSamplers(ComPtr<ID3D12Device> device)
+void SSAO::CreateSamplers()
 {
 	CD3DX12_CPU_DESCRIPTOR_HANDLE sampHandle(samplerHeap->GetCPUDescriptorHandleForHeapStart());
 	auto sampSize = device->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
@@ -113,12 +113,17 @@ void SSAO::CreateSamplers(ComPtr<ID3D12Device> device)
 	device->CreateSampler(&sampDesc, sampHandle);
 }
 
-void SSAO::OnResize(ComPtr<ID3D12Device> device, int width, int height, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture)
+void SSAO::OnResize(int width, int height, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture)
 {
+	ResetTextures();
+	CreateTexture(width, height);
+	CreateRTV();
+	CreateSRV(depthTexture, normalTexture, noiseTexture);
+}
+
+void SSAO::ResetTextures() {
 	SSAOTexture_A.Resource.Reset();
-	CreateTexture(device, width, height);
-	CreateRTV(device);
-	CreateSRV(device, depthTexture, normalTexture, noiseTexture);
+	SSAOTexture_B.Resource.Reset();
 }
 
 void SSAO::ClearSSAO(ComPtr<ID3D12GraphicsCommandList> commandList)

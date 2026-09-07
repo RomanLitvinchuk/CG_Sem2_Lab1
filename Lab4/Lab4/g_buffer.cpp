@@ -1,7 +1,7 @@
 #include "g_buffer.h"
 #include "DX12App.h"
 
-void GBuffer::CreateHeaps(ComPtr<ID3D12Device> device)
+void GBuffer::CreateHeaps()
 {
 	D3D12_DESCRIPTOR_HEAP_DESC rtvDesc = {};
 	rtvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
@@ -19,10 +19,11 @@ void GBuffer::CreateHeaps(ComPtr<ID3D12Device> device)
 	dsvDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	dsvDesc.NumDescriptors = 1;
 	dsvDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+
 	ThrowIfFailed(device->CreateDescriptorHeap(&dsvDesc, IID_PPV_ARGS(&dsvDescriptorHeap)));
 }
 
-void GBuffer::CreateTextures(int width, int height, ComPtr<ID3D12Device> device) {
+void GBuffer::CreateTextures(int width, int height) {
 	auto heapProperties = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	auto resDesc = CD3DX12_RESOURCE_DESC::Tex2D(DXGI_FORMAT_R8G8B8A8_UNORM, width, height, 1, 0, 1, 0, D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET);
 	D3D12_CLEAR_VALUE clearValue;
@@ -51,7 +52,7 @@ void GBuffer::CreateTextures(int width, int height, ComPtr<ID3D12Device> device)
 	depthTex.Resource->SetName(L"Depth texture");
 }
 
-void GBuffer::CreateRTVandDSV(ComPtr<ID3D12Device> device) {
+void GBuffer::CreateRTVandDSV() {
 	D3D12_RENDER_TARGET_VIEW_DESC rtvTexDesc = {};
 	rtvTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
 	rtvTexDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -76,7 +77,7 @@ void GBuffer::CreateRTVandDSV(ComPtr<ID3D12Device> device) {
 	device->CreateDepthStencilView(depthTex.Resource.Get(), &dsvTexDesc, depthTex.dsvHandle);
 }
 
-void GBuffer::CreateSRV(ComPtr<ID3D12Device> device) {
+void GBuffer::CreateSRV() {
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvTexDesc = {};
 	srvTexDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvTexDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -121,14 +122,17 @@ void GBuffer::TransitToLightsRenderingState(ComPtr<ID3D12GraphicsCommandList> co
 	commandList->ResourceBarrier(3, barriers);
 }
 
-void GBuffer::OnResize(int width, int height, ComPtr<ID3D12Device> device) {
+void GBuffer::OnResize(int width, int height) {
+	ResetTextures();
+	CreateTextures(width, height);
+	CreateRTVandDSV();
+	CreateSRV();
+}
+
+void GBuffer::ResetTextures() {
 	diffuseTex.Resource.Reset();
 	normalTex.Resource.Reset();
 	depthTex.Resource.Reset();
-
-	CreateTextures(width, height, device);
-	CreateRTVandDSV(device);
-	CreateSRV(device);
 }
 
 void GBuffer::ClearGBuffer(ComPtr<ID3D12GraphicsCommandList> commandList)

@@ -93,6 +93,9 @@
     <ClCompile Include="CBV_SRV_UAV.cpp">
       <Filter>Исходные файлы</Filter>
     </ClCompile>
+    <ClCompile Include="singleton_device.cpp">
+      <Filter>Исходные файлы</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="window_class.h">
@@ -159,6 +162,9 @@
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
     <ClInclude Include="ssao.h">
+      <Filter>Файлы заголовков</Filter>
+    </ClInclude>
+    <ClInclude Include="singletone_device.h">
       <Filter>Файлы заголовков</Filter>
     </ClInclude>
   </ItemGroup>

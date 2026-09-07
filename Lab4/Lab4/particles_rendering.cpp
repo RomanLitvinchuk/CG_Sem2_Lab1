@@ -42,7 +42,7 @@ void DX12App::ComputeParticles() {
 	commandList->ResourceBarrier(1, &resourceBarrier);
 }
 
-void DX12App::DrawParticles(ComPtr<ID3D12GraphicsCommandList> m_command_list) {
+void DX12App::DrawParticles() {
 	commandList->SetPipelineState(renderSystem->particlePSO_.Get());
 	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_POINTLIST);
 

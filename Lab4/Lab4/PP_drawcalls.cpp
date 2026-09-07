@@ -1,55 +1,55 @@
 #include "DX12App.h"
 
-void DX12App::DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readHDR) {
-	m_command_list_->SetPipelineState(renderSystem->pp_tonemappingPSO_.Get());
-	m_command_list_->SetGraphicsRootSignature(renderSystem->pp_defaultRS_.Get());
+void DX12App::DrawPPTonemap(MyTexture* readHDR) {
+	commandList->SetPipelineState(renderSystem->pp_tonemappingPSO_.Get());
+	commandList->SetGraphicsRootSignature(renderSystem->pp_defaultRS_.Get());
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->GetLdrTextureA().rtvHandle;
-	m_command_list_->OMSetRenderTargets(1, &rtv, true, nullptr);
+	commandList->OMSetRenderTargets(1, &rtv, true, nullptr);
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->post_process->GetSrvHeap().Get(), renderSystem->samplerHeap.Get()};
-	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 	
 
-	m_command_list_->SetGraphicsRootDescriptorTable(0, readHDR->srvGpuHandle);
-	m_command_list_->SetGraphicsRootDescriptorTable(1, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
+	commandList->SetGraphicsRootDescriptorTable(0, readHDR->srvGpuHandle);
+	commandList->SetGraphicsRootDescriptorTable(1, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
-	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_command_list_->DrawInstanced(3, 1, 0, 0);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->DrawInstanced(3, 1, 0, 0);
 }
 
-void DX12App::DrawPPVignette(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readLDR, MyTexture* writeLDR)
+void DX12App::DrawPPVignette(MyTexture* readLDR, MyTexture* writeLDR)
 {
-	m_command_list_->SetPipelineState(renderSystem->pp_vignettePSO_.Get());
-	m_command_list_->SetGraphicsRootSignature(renderSystem->pp_defaultRS_.Get());
+	commandList->SetPipelineState(renderSystem->pp_vignettePSO_.Get());
+	commandList->SetGraphicsRootSignature(renderSystem->pp_defaultRS_.Get());
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv = writeLDR->rtvHandle;
-	m_command_list_->OMSetRenderTargets(1, &rtv, true, nullptr);
+	commandList->OMSetRenderTargets(1, &rtv, true, nullptr);
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->post_process->GetSrvHeap().Get(), renderSystem->samplerHeap.Get()};
-	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	m_command_list_->SetGraphicsRootDescriptorTable(0, readLDR->srvGpuHandle);
-	m_command_list_->SetGraphicsRootDescriptorTable(1, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
+	commandList->SetGraphicsRootDescriptorTable(0, readLDR->srvGpuHandle);
+	commandList->SetGraphicsRootDescriptorTable(1, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
-	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_command_list_->DrawInstanced(3, 1, 0, 0);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->DrawInstanced(3, 1, 0, 0);
 }
 
-void DX12App::DrawPPOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readLDR)
+void DX12App::DrawPPOutput(MyTexture* readLDR)
 {
-	m_command_list_->SetPipelineState(renderSystem->pp_outputPSO_.Get());
-	m_command_list_->SetGraphicsRootSignature(renderSystem->pp_defaultRS_.Get());
-	m_command_list_->ClearRenderTargetView(GetBackBuffer(), Colors::Black, 0, nullptr);
+	commandList->SetPipelineState(renderSystem->pp_outputPSO_.Get());
+	commandList->SetGraphicsRootSignature(renderSystem->pp_defaultRS_.Get());
+	commandList->ClearRenderTargetView(GetBackBuffer(), Colors::Black, 0, nullptr);
 	D3D12_CPU_DESCRIPTOR_HANDLE bb = GetBackBuffer();
-	m_command_list_->OMSetRenderTargets(1, &bb, true, nullptr);
+	commandList->OMSetRenderTargets(1, &bb, true, nullptr);
 	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->post_process->GetSrvHeap().Get(), renderSystem->samplerHeap.Get()};
-	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 
-	m_command_list_->SetGraphicsRootDescriptorTable(0, readLDR->srvGpuHandle);
-	m_command_list_->SetGraphicsRootDescriptorTable(1, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
+	commandList->SetGraphicsRootDescriptorTable(0, readLDR->srvGpuHandle);
+	commandList->SetGraphicsRootDescriptorTable(1, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
-	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_command_list_->DrawInstanced(3, 1, 0, 0);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->DrawInstanced(3, 1, 0, 0);
 }

@@ -5,6 +5,7 @@
 #include "throw_if_failed.h"
 #include "texture.h"
 #include "d3dx12.h"
+#include "singletone_device.h"
 
 class SSAO {
 private:
@@ -14,23 +15,25 @@ private:
 	ComPtr<ID3D12DescriptorHeap> samplerHeap = nullptr;
 	ComPtr<ID3D12DescriptorHeap> rtvHeap = nullptr;
 
-	void CreateHeaps(ComPtr<ID3D12Device> device);
-	void CreateTexture(ComPtr<ID3D12Device> device, int width, int height);
-	void CreateRTV(ComPtr<ID3D12Device> device);
-	void CreateSRV(ComPtr<ID3D12Device> device, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture);
-	void CreateSamplers(ComPtr<ID3D12Device> device);
+	ComPtr<ID3D12Device> device = SingletonDevice::GetDevice();
+
+	void CreateHeaps();
+	void CreateTexture(int width, int height);
+	void CreateRTV();
+	void CreateSRV(ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture);
+	void CreateSamplers();
 
 	void BarriersToDefault(ComPtr<ID3D12GraphicsCommandList> commandList);
-
+	void ResetTextures();
 public:
-	SSAO(ComPtr<ID3D12Device> device, int width, int height, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture) {
-		CreateHeaps(device);
-		CreateTexture(device, width, height);
-		CreateRTV(device);
-		CreateSRV(device, depthTexture, normalTexture, noiseTexture);
-		CreateSamplers(device);
+	SSAO(int width, int height, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture) {
+		CreateHeaps();
+		CreateTexture(width, height);
+		CreateRTV();
+		CreateSRV(depthTexture, normalTexture, noiseTexture);
+		CreateSamplers();
 	}
-	void OnResize(ComPtr<ID3D12Device> device, int width, int height, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture);
+	void OnResize(int width, int height, ID3D12Resource* depthTexture, ID3D12Resource* normalTexture, ID3D12Resource* noiseTexture);
 	void ClearSSAO(ComPtr<ID3D12GraphicsCommandList> commandList);
 
 	MyTexture& GetTextureA(){

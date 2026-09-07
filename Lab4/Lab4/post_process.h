@@ -6,6 +6,7 @@
 #include <SimpleMath.h>
 #include "throw_if_failed.h"
 #include "texture.h"
+#include "singletone_device.h"
 
 
 using namespace Microsoft::WRL;
@@ -21,20 +22,23 @@ private:
 	ComPtr<ID3D12DescriptorHeap> srvHeap;
 	ComPtr<ID3D12DescriptorHeap> rtvHeap;
 
-	void CreateHeaps(ComPtr<ID3D12Device> device);
-	void CreateTexture(int width, int height, ComPtr<ID3D12Device> device);
-	void CreateSRV(ComPtr<ID3D12Device> device);
-	void CreateRTV(ComPtr<ID3D12Device> device);
+	ComPtr<ID3D12Device> device = SingletonDevice::GetDevice();
+
+	void CreateHeaps();
+	void CreateTextures(int width, int height);
+	void CreateSRV();
+	void CreateRTV();
 	void BarriersToDefault(ComPtr<ID3D12GraphicsCommandList> commandList);
+	void ResetTextures();
 public:
 	void ClearPostProcess(ComPtr<ID3D12GraphicsCommandList> commandList);
-	void OnResize(int width, int height, ComPtr<ID3D12Device> device);
+	void OnResize(int width, int height);
 
-	PostProcess(int width, int height, ComPtr<ID3D12Device> device) {
-		CreateHeaps(device);
-		CreateTexture(width, height, device);
-		CreateSRV(device);
-		CreateRTV(device);
+	PostProcess(int width, int height) {
+		CreateHeaps();
+		CreateTextures(width, height);
+		CreateSRV();
+		CreateRTV();
 	}
 
 	MyTexture& GetHdrTextureA() { 

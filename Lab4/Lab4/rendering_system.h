@@ -8,11 +8,65 @@
 #include "post_process.h"
 #include <SimpleMath.h>
 #include "ssao.h"
+#include "singletone_device.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX::SimpleMath;
 
-struct RenderingSystem {
+class RenderingSystem {
+private:
+	ComPtr<ID3D12Device> device = SingletonDevice::GetDevice();
+
+	void BuildLayouts();
+	void CompileShaders();
+
+	void CreateOpaqueRS();
+	void CreateOpaquePSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
+
+	void CreateLightRS();
+	void CreateLightPSO();
+
+	void CreateBulbRS();
+	void CreateBulbPSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
+
+	void CreateStreamOutputRS();
+	void CreateStreamOutputPSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
+	void CreateBakedPSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
+
+	void CreateWireframeRS();
+	void CreateWireframePSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
+
+	void CreateParticleRS();
+	void CreateParticlePSO();
+
+	void CreateParticlesUpdateRS();
+	void CreateParticlesUpdatePSO();
+
+	void CreateParticlesEmitRS();
+	void CreateParticlesEmitPSO();
+
+	void CreateShadowRS();
+	void CreateShadowPSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
+
+	void CreateSSAORS();
+	void CreateSSAOPSO();
+
+	void CreateSSAOBlurRS();
+	void CreateSSAOBlurPSO();
+
+	void CreateBillboardRS();
+	void CreateBillboardPSO();
+
+	void CreatePPDefaultRS();
+	void CreatePPTonemappingPSO();
+
+	void CreatePPVignettePSO();
+
+	void CreatePPOutputPSO();
+
+	void GenerateTreeLights(std::vector<LightConstants>& lightsArray, Vector3 treeBasePosition, float treeHeight, float treeBaseRadius, int count);
+
+public:
 	ComPtr<ID3D12RootSignature> opaqueRS_ = nullptr;
 	ComPtr<ID3D12RootSignature> lightRS_ = nullptr;
 
@@ -99,94 +153,45 @@ struct RenderingSystem {
 	std::vector<D3D12_INPUT_ELEMENT_DESC> bakedLayout_;
 	std::vector<D3D12_INPUT_ELEMENT_DESC> wireframeLayout_;
 
-	void BuildLayouts();
-	void CompileShaders();
-
-	void CreateOpaqueRS(ComPtr<ID3D12Device> device);
-	void CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
-
-	void CreateLightRS(ComPtr<ID3D12Device> device);
-	void CreateLightPSO(ComPtr<ID3D12Device>);
-
-	void CreateBulbRS(ComPtr<ID3D12Device> device);
-	void CreateBulbPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
-
-	void CreateStreamOutputRS(ComPtr<ID3D12Device> device);
-	void CreateStreamOutputPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
-	void CreateBakedPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
-
-	void CreateWireframeRS(ComPtr<ID3D12Device> device);
-	void CreateWireframePSO(ComPtr <ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
-
-	void CreateParticleRS(ComPtr<ID3D12Device> device);
-	void CreateParticlePSO(ComPtr<ID3D12Device> device);
-
-	void CreateParticlesUpdateRS(ComPtr<ID3D12Device> device);
-	void CreateParticlesUpdatePSO(ComPtr<ID3D12Device> device);
-
-	void CreateParticlesEmitRS(ComPtr<ID3D12Device> device);
-	void CreateParticlesEmitPSO(ComPtr<ID3D12Device> device);
-
-	void CreateShadowRS(ComPtr<ID3D12Device> device);
-	void CreateShadowPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout);
-
-	void CreateSSAORS(ComPtr<ID3D12Device> device);
-	void CreateSSAOPSO(ComPtr<ID3D12Device> device);
-
-	void CreateSSAOBlurRS(ComPtr<ID3D12Device> device);
-	void CreateSSAOBlurPSO(ComPtr<ID3D12Device> device);
-
-	void CreateBillboardRS(ComPtr<ID3D12Device> device);
-	void CreateBillboardPSO(ComPtr<ID3D12Device> device);
-
-	void CreatePPDefaultRS(ComPtr<ID3D12Device> device);
-	void CreatePPTonemappingPSO(ComPtr<ID3D12Device> device);
-
-	void CreatePPVignettePSO(ComPtr<ID3D12Device> device);
-
-	void CreatePPOutputPSO(ComPtr<ID3D12Device> device);
-
-	void GenerateTreeLights(std::vector<LightConstants>& lightsArray, Vector3 treeBasePosition, float treeHeight, float treeBaseRadius, int count);
-
-	RenderingSystem(ComPtr<ID3D12Device> device, int width, int height, ID3D12Resource* noiseTexture) {
+	RenderingSystem(int width, int height, ID3D12Resource* noiseTexture) {
 		BuildLayouts();
-		CreateOpaqueRS(device);
+		CreateOpaqueRS();
 		CompileShaders();
-		CreateOpaquePSO(device, inputLayout_);
+		CreateOpaquePSO(inputLayout_);
 
-		CreateStreamOutputRS(device);
-		CreateStreamOutputPSO(device, inputLayout_);
-		CreateBakedPSO(device, bakedLayout_);
+		CreateStreamOutputRS();
+		CreateStreamOutputPSO(inputLayout_);
+		CreateBakedPSO(bakedLayout_);
 
-		CreateLightRS(device);
-		CreateLightPSO(device);
+		CreateLightRS();
+		CreateLightPSO();
 
-		CreateWireframeRS(device);
-		CreateWireframePSO(device, wireframeLayout_);
+		CreateWireframeRS();
+		CreateWireframePSO(wireframeLayout_);
 
-		CreateParticleRS(device);
-		CreateParticlePSO(device);
+		CreateParticleRS();
+		CreateParticlePSO();
 
-		CreateParticlesUpdateRS(device);
-		CreateParticlesUpdatePSO(device);
-		CreateParticlesEmitRS(device);
-		CreateParticlesEmitPSO(device);
+		CreateParticlesUpdateRS();
+		CreateParticlesUpdatePSO();
+		CreateParticlesEmitRS();
+		CreateParticlesEmitPSO();
 
-		CreateShadowRS(device);
-		CreateShadowPSO(device, inputLayout_);
+		CreateShadowRS();
+		CreateShadowPSO(inputLayout_);
 
-		CreateSSAORS(device);
-		CreateSSAOPSO(device);
+		CreateSSAORS();
+		CreateSSAOPSO();
 
-		CreateSSAOBlurRS(device);
-		CreateSSAOBlurPSO(device);
+		CreateSSAOBlurRS();
+		CreateSSAOBlurPSO();
 
-		CreateBillboardRS(device);
-		CreateBillboardPSO(device);
+		CreateBillboardRS();
+		CreateBillboardPSO();
 
-		g_buffer = std::make_unique<GBuffer>(width, height, device);
-		post_process = std::make_unique<PostProcess>(width, height, device);
-		ssao = std::make_unique<SSAO>(device, width / 2, height / 2, g_buffer->GetDepthTex().Resource.Get(), g_buffer->GetNormalTex().Resource.Get(), noiseTexture);
+		g_buffer = std::make_unique<GBuffer>(width, height);
+		post_process = std::make_unique<PostProcess>(width, height);
+		ssao = std::make_unique<SSAO>(width / 2, height / 2, g_buffer->GetDepthTex().Resource.Get(), g_buffer->GetNormalTex().Resource.Get(), noiseTexture);
 
 		LightConstants sun = {};
 		sun.lightType = 0; // Directional
@@ -196,13 +201,13 @@ struct RenderingSystem {
 
 		GenerateTreeLights(sceneLights_, { 10.0f, 0.0f, -60.0f }, 350.0f, 100.0f, 500);
 
-		CreateBulbRS(device);
-		CreateBulbPSO(device, inputLayout_);
+		CreateBulbRS();
+		CreateBulbPSO(inputLayout_);
 
-		CreatePPDefaultRS(device);
-		CreatePPTonemappingPSO(device);
-		CreatePPVignettePSO(device);
-		CreatePPOutputPSO(device);
+		CreatePPDefaultRS();
+		CreatePPTonemappingPSO();
+		CreatePPVignettePSO();
+		CreatePPOutputPSO();
 
 
 

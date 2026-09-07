@@ -30,6 +30,7 @@
 #include "particle.h"
 #include "shadow_map.h"
 #include "ssao.h"
+#include "singletone_device.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -59,22 +60,22 @@ public:
 
 	void sortLODs();
 	void Draw();
-	void DrawShadows(ComPtr <ID3D12GraphicsCommandList> m_command_list_);
+	void DrawShadows();
 	void DrawSSAO();
 	void BlurSSAO();
-	void DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
-	void DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
+	void DrawToGBuffer();
+	void DrawLights();
 	void DrawNYBalls();
-	void DrawToStreamOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
-	void DrawWireframe(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
-	void DrawParticles(ComPtr<ID3D12GraphicsCommandList> m_command_list_);
+	void DrawToStreamOutput();
+	void DrawWireframe();
+	void DrawParticles();
 	void ComputeParticles();
 	void EmitParticles();
 	void InitEmitter();
 
-	void DrawPPTonemap(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readHDR);
-	void DrawPPVignette(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readLDR, MyTexture* writeLDR);
-	void DrawPPOutput(ComPtr<ID3D12GraphicsCommandList> m_command_list_, MyTexture* readLDR);
+	void DrawPPTonemap(MyTexture* readHDR);
+	void DrawPPVignette(MyTexture* readLDR, MyTexture* writeLDR);
+	void DrawPPOutput(MyTexture* readLDR);
 
 	void FlushCommandQueue();
 

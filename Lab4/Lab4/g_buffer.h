@@ -7,6 +7,7 @@
 #include <SimpleMath.h>
 #include <DirectXColors.h>
 #include "throw_if_failed.h"
+#include "singletone_device.h"
 
 using namespace Microsoft::WRL;
 using namespace DirectX;
@@ -31,24 +32,26 @@ private:
 	ComPtr<ID3D12DescriptorHeap> srvDescriptorHeap;
 	ComPtr<ID3D12DescriptorHeap> dsvDescriptorHeap;
 
-	void CreateHeaps(ComPtr<ID3D12Device> device);
-	void CreateTextures(int width, int height, ComPtr<ID3D12Device> device);
-	void CreateSRV(ComPtr<ID3D12Device> device);
-	void CreateRTVandDSV(ComPtr<ID3D12Device> device);
+	ComPtr<ID3D12Device> device = SingletonDevice::GetDevice();
 
+	void CreateHeaps();
+	void CreateTextures(int width, int height);
+	void CreateSRV();
+	void CreateRTVandDSV();
+	void ResetTextures();
 public:
 
-	GBuffer(int width, int height, ComPtr<ID3D12Device> device) {
-		CreateHeaps(device);
-		CreateTextures(width, height, device);
-		CreateSRV(device);
-		CreateRTVandDSV(device);
+	GBuffer(int width, int height) {
+		CreateHeaps();
+		CreateTextures(width, height);
+		CreateSRV();
+		CreateRTVandDSV();
 	};
 
 	void TransitToOpaqueRenderingState(ComPtr<ID3D12GraphicsCommandList> commandList);
 	void TransitToLightsRenderingState(ComPtr<ID3D12GraphicsCommandList> commandList);
 
-	void OnResize(int width, int height, ComPtr<ID3D12Device> device);
+	void OnResize(int width, int height);
 	void ClearGBuffer(ComPtr<ID3D12GraphicsCommandList> commandList);
 
 	GBufferTexture& GetDiffuseTex() { 

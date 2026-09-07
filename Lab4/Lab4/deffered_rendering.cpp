@@ -9,7 +9,7 @@ void DX12App::InitRenderSystem() {
 	if (iter != textures.end()) {
 		noiseTexResource = iter->second->Resource.Get();
 	}
-	renderSystem = new RenderingSystem(device, clientWidth, clientHeight, noiseTexResource);
+	renderSystem = new RenderingSystem(clientWidth, clientHeight, noiseTexResource);
 
 	CreateStructuredBuffersSRV();
 }
@@ -40,7 +40,7 @@ void DX12App::sortLODs(){
 	}
 }
 
-void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
+void DX12App::DrawShadows() {
 
 	UINT totalInstances = 0;
 	for (auto& sm : submeshes) {
@@ -56,26 +56,26 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 
 	if (totalInstances == 0) return;
 
-	m_command_list_->SetPipelineState(renderSystem->shadowPSO_.Get());
-	m_command_list_->SetGraphicsRootSignature(renderSystem->shadowRS_.Get());
-	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_command_list_->IASetVertexBuffers(0, 1, &vertexBuffers[0]);
-	m_command_list_->IASetIndexBuffer(&indexBufferView);
+	commandList->SetPipelineState(renderSystem->shadowPSO_.Get());
+	commandList->SetGraphicsRootSignature(renderSystem->shadowRS_.Get());
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->IASetVertexBuffers(0, 1, &vertexBuffers[0]);
+	commandList->IASetIndexBuffer(&indexBufferView);
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { cbvSrvHeap.Get(), renderSystem->samplerHeap.Get() };
-	m_command_list_->SetDescriptorHeaps(2, descriptorHeaps);
+	commandList->SetDescriptorHeaps(2, descriptorHeaps);
 
 	CD3DX12_RESOURCE_BARRIER barriers[] = {
 		CD3DX12_RESOURCE_BARRIER::Transition(shadowMap->Resource(), D3D12_RESOURCE_STATE_GENERIC_READ, D3D12_RESOURCE_STATE_DEPTH_WRITE),
 	};
-	m_command_list_->ResourceBarrier(_countof(barriers), barriers);
+	commandList->ResourceBarrier(_countof(barriers), barriers);
 
 	D3D12_VIEWPORT vp = shadowMap->Viewport();
-	m_command_list_->RSSetViewports(1, &vp);
+	commandList->RSSetViewports(1, &vp);
 	D3D12_RECT rect = shadowMap->ScissorRect();
-	m_command_list_->RSSetScissorRects(1, &rect);
+	commandList->RSSetScissorRects(1, &rect);
 
-	m_command_list_->SetGraphicsRootShaderResourceView(1, instanceBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootShaderResourceView(1, instanceBuffer->Resource()->GetGPUVirtualAddress());
 
 	const D3D12_GPU_VIRTUAL_ADDRESS shadowCbBaseAddress = shadowBuffer->Resource()->GetGPUVirtualAddress();
 	const UINT shadowElementSize = ALIGN_256(sizeof(ShadowConstants));
@@ -86,16 +86,16 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	const int numCascades = shadowMap->GetNumCascades();
 
 	for (int i = 0; i < numCascades; ++i) {
-		m_command_list_->ClearDepthStencilView(shadowMap->Dsv(i), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
+		commandList->ClearDepthStencilView(shadowMap->Dsv(i), D3D12_CLEAR_FLAG_DEPTH, 1.0f, 0, 0, nullptr);
 		CD3DX12_CPU_DESCRIPTOR_HANDLE dsv = shadowMap->Dsv(i);
-		m_command_list_->OMSetRenderTargets(0, nullptr, false, &dsv);
+		commandList->OMSetRenderTargets(0, nullptr, false, &dsv);
 
-		m_command_list_->SetGraphicsRootConstantBufferView(0, shadowCbBaseAddress + i * shadowElementSize);
+		commandList->SetGraphicsRootConstantBufferView(0, shadowCbBaseAddress + i * shadowElementSize);
 
 		for (auto& sm : submeshes) {
 			if (sm.sorted_lod0.empty()) continue;
 
-			m_command_list_->DrawIndexedInstanced(
+			commandList->DrawIndexedInstanced(
 				sm.indexCount,
 				static_cast<UINT>(sm.sorted_lod0.size()),
 				sm.startIndiceIndex,
@@ -108,10 +108,10 @@ void DX12App::DrawShadows(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	CD3DX12_RESOURCE_BARRIER backBarriers[] = {
 		CD3DX12_RESOURCE_BARRIER::Transition(shadowMap->Resource(), D3D12_RESOURCE_STATE_DEPTH_WRITE, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE),
 	};
-	m_command_list_->ResourceBarrier(_countof(backBarriers), backBarriers);
+	commandList->ResourceBarrier(_countof(backBarriers), backBarriers);
 }
 
-void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
+void DX12App::DrawToGBuffer() {
 	visibleIndices.clear();
 
 	if (camera.isFrustumCullingEnabled)
@@ -123,24 +123,24 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		visibleIndices.resize(submeshes.size());
 		std::iota(visibleIndices.begin(), visibleIndices.end(), 0);
 	}
-	m_command_list_->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
+	commandList->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvs[] = {
 		renderSystem->g_buffer->GetDiffuseTex().rtvHandle, renderSystem->g_buffer->GetNormalTex().rtvHandle
 	};
 	D3D12_CPU_DESCRIPTOR_HANDLE dsv = renderSystem->g_buffer->GetDepthTex().dsvHandle;
-	m_command_list_->OMSetRenderTargets(2, rtvs, true, &dsv);
+	commandList->OMSetRenderTargets(2, rtvs, true, &dsv);
 
 	ID3D12DescriptorHeap* descriptorHeaps[] = { cbvSrvHeap.Get(), samplerHeap.Get() };
-	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	m_command_list_->SetGraphicsRootSignature(renderSystem->opaqueRS_.Get());
+	commandList->SetGraphicsRootSignature(renderSystem->opaqueRS_.Get());
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE cbvHandle(cbvSrvHeap->GetGPUDescriptorHandleForHeapStart());
 	CD3DX12_GPU_DESCRIPTOR_HANDLE samplerHandle(samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
-	m_command_list_->IASetVertexBuffers(0, 1, &vertexBuffers[0]);
-	m_command_list_->IASetIndexBuffer(&indexBufferView);
+	commandList->IASetVertexBuffers(0, 1, &vertexBuffers[0]);
+	commandList->IASetIndexBuffer(&indexBufferView);
 
 	UINT currentInstanceOffset = 0;
 	Vector3 cameraPos = camera.mCameraPos;
@@ -148,18 +148,18 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	{
 		auto& sm = submeshes[idx];
 
-		m_command_list_->SetGraphicsRootSignature(renderSystem->opaqueRS_.Get());
-		m_command_list_->SetPipelineState(renderSystem->opaquePSO_.Get());
-		m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+		commandList->SetGraphicsRootSignature(renderSystem->opaqueRS_.Get());
+		commandList->SetPipelineState(renderSystem->opaquePSO_.Get());
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
-		m_command_list_->SetGraphicsRootDescriptorTable(0, cbvHandle); 
-		m_command_list_->SetGraphicsRootDescriptorTable(2, samplerHandle); 
-		m_command_list_->SetGraphicsRootConstantBufferView(6, hullBuffer->Resource()->GetGPUVirtualAddress());
+		commandList->SetGraphicsRootDescriptorTable(0, cbvHandle); 
+		commandList->SetGraphicsRootDescriptorTable(2, samplerHandle); 
+		commandList->SetGraphicsRootConstantBufferView(6, hullBuffer->Resource()->GetGPUVirtualAddress());
 
 		UINT matIndex = sm.materialIndex;
 		UINT matSize = d3dUtil::CalcConstantBufferSize(sizeof(MaterialConstants));
 		D3D12_GPU_VIRTUAL_ADDRESS matAddress = materialBuffer->Resource()->GetGPUVirtualAddress() + matIndex * matSize;
-		m_command_list_->SetGraphicsRootConstantBufferView(3, matAddress);
+		commandList->SetGraphicsRootConstantBufferView(3, matAddress);
 
 		treeIsVisible = materialData[matIndex].isTree == 1;
 		int texHeapIndex = materialData[matIndex].diffuseTextureIndex + 1;
@@ -169,7 +169,7 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 			texHeapIndex,
 			cbvDescriptorSize);
 
-		m_command_list_->SetGraphicsRootDescriptorTable(1, srvHandle);
+		commandList->SetGraphicsRootDescriptorTable(1, srvHandle);
 
 		int normHeapIndex = materialData[matIndex].normalTextureIndex + 1;
 
@@ -184,34 +184,34 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 			cbvSrvHeap->GetGPUDescriptorHandleForHeapStart(),
 			dispHeapIndex,
 			cbvDescriptorSize);
-		m_command_list_->SetGraphicsRootDescriptorTable(5, dispHandle);
+		commandList->SetGraphicsRootDescriptorTable(5, dispHandle);
 
-		m_command_list_->SetGraphicsRootDescriptorTable(4, normHandle);
+		commandList->SetGraphicsRootDescriptorTable(4, normHandle);
 
 		if (!sm.sorted_lod0.empty()) {
 			for (size_t i = 0; i < sm.sorted_lod0.size(); i++) {
 				instanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod0[i]);
 			}
-			m_command_list_->SetGraphicsRootShaderResourceView(7, instanceBuffer->Resource()->GetGPUVirtualAddress());
+			commandList->SetGraphicsRootShaderResourceView(7, instanceBuffer->Resource()->GetGPUVirtualAddress());
 
 			if (sm.name_.find("Sketchfab") != std::string::npos)
 			{
-				m_command_list_->SetPipelineState(renderSystem->bakedPSO_.Get());
+				commandList->SetPipelineState(renderSystem->bakedPSO_.Get());
 				D3D12_VERTEX_BUFFER_VIEW bakedVbv;
 				bakedVbv.BufferLocation = streamOutputBuffer->GetGPUVirtualAddress();
 				bakedVbv.StrideInBytes = sizeof(BakedVertex);
 				bakedVbv.SizeInBytes = streamOutputMesh.SOVertexCount * sizeof(BakedVertex);
 
-				m_command_list_->IASetVertexBuffers(0, 1, &bakedVbv);
-				m_command_list_->DrawInstanced(
+				commandList->IASetVertexBuffers(0, 1, &bakedVbv);
+				commandList->DrawInstanced(
 					streamOutputMesh.SOVertexCount,
 					sm.InstanceCount,
 					0,
 					currentInstanceOffset);
-				m_command_list_->IASetVertexBuffers(0, 1, &vertexBuffers[0]);
+				commandList->IASetVertexBuffers(0, 1, &vertexBuffers[0]);
 			}
 			else {
-				m_command_list_->DrawIndexedInstanced(
+				commandList->DrawIndexedInstanced(
 					sm.indexCount,
 					static_cast<UINT>(sm.sorted_lod0.size()),
 					sm.startIndiceIndex,
@@ -225,9 +225,9 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 			for (size_t i = 0; i < sm.sorted_lod1.size(); i++) {
 				instanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod1[i]);
 			}
-			m_command_list_->SetGraphicsRootShaderResourceView(7, instanceBuffer->Resource()->GetGPUVirtualAddress());
+			commandList->SetGraphicsRootShaderResourceView(7, instanceBuffer->Resource()->GetGPUVirtualAddress());
 
-			m_command_list_->DrawIndexedInstanced(
+			commandList->DrawIndexedInstanced(
 				sm.indexCountLOD1,
 				static_cast<UINT>(sm.sorted_lod1.size()),
 				sm.startIndiceIndexLOD1,
@@ -238,20 +238,20 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 		}
 		
 		if (!sm.sorted_billboards.empty()) {
-			m_command_list_->SetGraphicsRootSignature(renderSystem->billboardRS_.Get());
-			m_command_list_->SetPipelineState(renderSystem->billboardPSO_.Get());
-			m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+			commandList->SetGraphicsRootSignature(renderSystem->billboardRS_.Get());
+			commandList->SetPipelineState(renderSystem->billboardPSO_.Get());
+			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 			for (size_t i = 0; i < sm.sorted_billboards.size(); i++) {
 				instanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_billboards[i]);
 			}
-			m_command_list_->SetGraphicsRootShaderResourceView(0, instanceBuffer->Resource()->GetGPUVirtualAddress());
-			m_command_list_->SetGraphicsRootConstantBufferView(1, cameraBuffer->Resource()->GetGPUVirtualAddress());
-			m_command_list_->SetGraphicsRootConstantBufferView(2, objectsUploadBuffer->Resource()->GetGPUVirtualAddress());
+			commandList->SetGraphicsRootShaderResourceView(0, instanceBuffer->Resource()->GetGPUVirtualAddress());
+			commandList->SetGraphicsRootConstantBufferView(1, cameraBuffer->Resource()->GetGPUVirtualAddress());
+			commandList->SetGraphicsRootConstantBufferView(2, objectsUploadBuffer->Resource()->GetGPUVirtualAddress());
 			int bTextureIndex = materialData[matIndex].billboardTextureIndex + 1;
 			CD3DX12_GPU_DESCRIPTOR_HANDLE bHandle(cbvSrvHeap->GetGPUDescriptorHandleForHeapStart(), bTextureIndex, cbvDescriptorSize);
-			m_command_list_->SetGraphicsRootDescriptorTable(3, bHandle);
-			m_command_list_->SetGraphicsRootDescriptorTable(4, samplerHeap->GetGPUDescriptorHandleForHeapStart());
-			m_command_list_->DrawInstanced(
+			commandList->SetGraphicsRootDescriptorTable(3, bHandle);
+			commandList->SetGraphicsRootDescriptorTable(4, samplerHeap->GetGPUDescriptorHandleForHeapStart());
+			commandList->DrawInstanced(
 				4,
 				static_cast<UINT>(sm.sorted_billboards.size()),
 				0,
@@ -263,32 +263,32 @@ void DX12App::DrawToGBuffer(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
 	}
 }
 
-void DX12App::DrawLights(ComPtr<ID3D12GraphicsCommandList> m_command_list_) {
-	m_command_list_->SetPipelineState(renderSystem->lightPSO_.Get());
-	m_command_list_->SetGraphicsRootSignature(renderSystem->lightRS_.Get());
+void DX12App::DrawLights() {
+	commandList->SetPipelineState(renderSystem->lightPSO_.Get());
+	commandList->SetGraphicsRootSignature(renderSystem->lightRS_.Get());
 
 	for (int i = 0; i < renderSystem->sceneLights_.size(); ++i) {
 		lightBuffer->CopyData(i, renderSystem->sceneLights_[i]);
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->GetHdrTextureA().rtvHandle;
-	m_command_list_->OMSetRenderTargets(1, &rtv, true, nullptr);
+	commandList->OMSetRenderTargets(1, &rtv, true, nullptr);
 	ID3D12DescriptorHeap* descriptorHeaps[] = { renderSystem->g_buffer->GetSrvHeap().Get(), renderSystem->samplerHeap.Get()};
-	m_command_list_->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
+	commandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
-	m_command_list_->SetGraphicsRootConstantBufferView(0, cameraBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(0, cameraBuffer->Resource()->GetGPUVirtualAddress());
 	UINT count = (UINT)renderSystem->sceneLights_.size();
-	m_command_list_->SetGraphicsRoot32BitConstant(1, count, 0);
-	m_command_list_->SetGraphicsRootDescriptorTable(2, renderSystem->g_buffer->GetSrvHeap()->GetGPUDescriptorHandleForHeapStart());
-	m_command_list_->SetGraphicsRootDescriptorTable(3, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
-	m_command_list_->SetGraphicsRootDescriptorTable(4, shadowMap->Srv());
-	m_command_list_->SetGraphicsRootConstantBufferView(5, shadowBuffer->Resource()->GetGPUVirtualAddress());
-	m_command_list_->SetGraphicsRootConstantBufferView(6, matricesBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRoot32BitConstant(1, count, 0);
+	commandList->SetGraphicsRootDescriptorTable(2, renderSystem->g_buffer->GetSrvHeap()->GetGPUDescriptorHandleForHeapStart());
+	commandList->SetGraphicsRootDescriptorTable(3, renderSystem->samplerHeap->GetGPUDescriptorHandleForHeapStart());
+	commandList->SetGraphicsRootDescriptorTable(4, shadowMap->Srv());
+	commandList->SetGraphicsRootConstantBufferView(5, shadowBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(6, matricesBuffer->Resource()->GetGPUVirtualAddress());
 
-	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
-	m_command_list_->DrawInstanced(3, 1, 0, 0);
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+	commandList->DrawInstanced(3, 1, 0, 0);
 	CD3DX12_RESOURCE_BARRIER backBarriers[] = { CD3DX12_RESOURCE_BARRIER::Transition(shadowMap->Resource(), D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE, D3D12_RESOURCE_STATE_GENERIC_READ)};
-	m_command_list_->ResourceBarrier(_countof(backBarriers), backBarriers);
+	commandList->ResourceBarrier(_countof(backBarriers), backBarriers);
 }
 
 void DX12App::DrawNYBalls()
@@ -319,7 +319,7 @@ void DX12App::Draw()
 	ThrowIfFailed(commandAllocator->Reset());
 	ThrowIfFailed(commandList->Reset(commandAllocator.Get(), renderSystem->opaquePSO_.Get()));
 	sortLODs();
-	DrawShadows(commandList);
+	DrawShadows();
 	commandList->RSSetViewports(1, &viewport);
 	commandList->RSSetScissorRects(1, &scissorRect);
 
@@ -336,18 +336,16 @@ void DX12App::Draw()
 	treeIsVisible = false;
 
 	if (isFirstFrame) {
-		DrawToStreamOutput(commandList);
+		DrawToStreamOutput();
 		ThrowIfFailed(commandList->Reset(commandAllocator.Get(), renderSystem->opaquePSO_.Get()));
 		isFirstFrame = false;
 	}
-	DrawToGBuffer(commandList);
-	DrawSSAO();
-	BlurSSAO();
+	DrawToGBuffer();
 	renderSystem->g_buffer->TransitToLightsRenderingState(commandList);
 	CD3DX12_RESOURCE_BARRIER barrier = CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET);
 	commandList->ResourceBarrier(1, &barrier);
-	DrawLights(commandList);
+	DrawLights();
 
 	if (treeIsVisible) DrawNYBalls();
 
@@ -359,24 +357,24 @@ void DX12App::Draw()
 			break;
 		}
 	}
-	DrawWireframe(commandList);
+	DrawWireframe();
 	EmitParticles();
 	ComputeParticles();
 	if (isEmitterInside) {
-		DrawParticles(commandList);
+		DrawParticles();
 	}
 
 	//Здесь будут шейдеры до тонмаппинга
 
 	d3dUtil::SwapTextures(commandList, ppWriteTexture, ppReadTexture);
-	DrawPPTonemap(commandList, ppReadTexture);
+	DrawPPTonemap(ppReadTexture);
 	ppReadTexture = &renderSystem->post_process->GetLdrTextureB();
 	ppWriteTexture = &renderSystem->post_process->GetLdrTextureA();
 	d3dUtil::SwapTextures(commandList, ppWriteTexture, ppReadTexture);
 
-	DrawPPVignette(commandList, ppReadTexture, ppWriteTexture);
+	DrawPPVignette(ppReadTexture, ppWriteTexture);
 	d3dUtil::SwapTextures(commandList, ppWriteTexture, ppReadTexture);
-	DrawPPOutput(commandList, ppReadTexture);
+	DrawPPOutput(ppReadTexture);
 
 	CD3DX12_RESOURCE_BARRIER barrierBack = CD3DX12_RESOURCE_BARRIER::Transition(
 		CurrentBackBuffer(),

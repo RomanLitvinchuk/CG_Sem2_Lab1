@@ -5,7 +5,7 @@
 #include <iostream>
 #include <random>
 
-void RenderingSystem::CreateOpaqueRS(ComPtr<ID3D12Device> device) {
+void RenderingSystem::CreateOpaqueRS() {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[8];
 	CD3DX12_DESCRIPTOR_RANGE cbvTable;
 	cbvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_CBV, 1, 0);
@@ -75,7 +75,6 @@ void RenderingSystem::CompileShaders() {
 	DS_ = d3dUtil::CompileShader(L"shaders/DomainShader.hlsl", nullptr, "DS", "ds_5_0");
 
 	tessVS_ = d3dUtil::CompileShader(L"shaders/tess.hlsl", nullptr, "TessVS", "vs_5_0");
-	//tessPS_ = d3dUtil::CompileShader(L"shaders/tess.hlsl", nullptr, "TessPS", "ps_5_0");
 
 	bakedVS_ = d3dUtil::CompileShader(L"shaders/baked.hlsl", nullptr, "BakedVS", "vs_5_0");
 
@@ -101,7 +100,7 @@ void RenderingSystem::CompileShaders() {
 	pp_outputPS_ = d3dUtil::CompileShader(L"shaders/PPOutput.hlsl", nullptr, "PS", "ps_5_0");
 }
 
-void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
+void RenderingSystem::CreateOpaquePSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
 	psoDesc.InputLayout = { layout.data(), (UINT)layout.size() };
@@ -125,7 +124,7 @@ void RenderingSystem::CreateOpaquePSO(ComPtr<ID3D12Device> device, std::vector<D
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&opaquePSO_)));
 }
 
-void RenderingSystem::CreateLightRS(ComPtr<ID3D12Device> device) {
+void RenderingSystem::CreateLightRS() {
 	CD3DX12_ROOT_PARAMETER rootParameter[7];
 	CD3DX12_DESCRIPTOR_RANGE srvTable[4];
 	srvTable[0].Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
@@ -161,7 +160,7 @@ void RenderingSystem::CreateLightRS(ComPtr<ID3D12Device> device) {
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(&lightRS_)));
 }
 
-void RenderingSystem::CreateLightPSO(ComPtr<ID3D12Device> device) {
+void RenderingSystem::CreateLightPSO() {
 	D3D12_RENDER_TARGET_BLEND_DESC RTBDesc;
 	RTBDesc.BlendEnable = true;
 	RTBDesc.LogicOpEnable = false;
@@ -236,7 +235,7 @@ void RenderingSystem::GenerateTreeLights(std::vector<LightConstants>& lightsArra
 	}
 }
 
-void RenderingSystem::CreateBulbRS(ComPtr<ID3D12Device> device) {
+void RenderingSystem::CreateBulbRS() {
 	CD3DX12_ROOT_PARAMETER rootParameter[2];
 	CD3DX12_DESCRIPTOR_RANGE srvTable;
 	srvTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
@@ -257,7 +256,7 @@ void RenderingSystem::CreateBulbRS(ComPtr<ID3D12Device> device) {
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(), IID_PPV_ARGS(&bulbRS_)));
 }
 
-void RenderingSystem::CreateBulbPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
+void RenderingSystem::CreateBulbPSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout) {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	psoDesc.InputLayout = { layout.data(), (UINT)layout.size() };
 	psoDesc.pRootSignature = bulbRS_.Get(); 
@@ -283,7 +282,7 @@ void RenderingSystem::CreateBulbPSO(ComPtr<ID3D12Device> device, std::vector<D3D
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&bulbPSO_)));
 }
 
-void RenderingSystem::CreateStreamOutputRS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateStreamOutputRS()
 {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[8];
 	CD3DX12_DESCRIPTOR_RANGE cbvTable;
@@ -334,7 +333,7 @@ void RenderingSystem::CreateStreamOutputRS(ComPtr<ID3D12Device> device)
 	));
 }
 
-void RenderingSystem::CreateStreamOutputPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
+void RenderingSystem::CreateStreamOutputPSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
 {
 	D3D12_SO_DECLARATION_ENTRY soDecl[] =
 	{
@@ -382,7 +381,7 @@ void RenderingSystem::CreateStreamOutputPSO(ComPtr<ID3D12Device> device, std::ve
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&streamOutputPSODesc, IID_PPV_ARGS(&streamOutputPSO_)));
 }
 
-void RenderingSystem::CreateBakedPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
+void RenderingSystem::CreateBakedPSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -407,7 +406,7 @@ void RenderingSystem::CreateBakedPSO(ComPtr<ID3D12Device> device, std::vector<D3
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&bakedPSO_)));
 }
 
-void RenderingSystem::CreateWireframeRS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateWireframeRS()
 {
 	CD3DX12_ROOT_PARAMETER slotRootParameter[2];
 	slotRootParameter[0].InitAsConstantBufferView(0);
@@ -427,7 +426,7 @@ void RenderingSystem::CreateWireframeRS(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&wireframeRS_)));
 }
 
-void RenderingSystem::CreateWireframePSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
+void RenderingSystem::CreateWireframePSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -456,7 +455,7 @@ void RenderingSystem::CreateWireframePSO(ComPtr<ID3D12Device> device, std::vecto
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&wireframePSO_)));
 }
 
-void RenderingSystem::CreateParticleRS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateParticleRS()
 {
 	CD3DX12_ROOT_PARAMETER rootParameter[2];
 	rootParameter[0].InitAsConstantBufferView(0);
@@ -476,7 +475,7 @@ void RenderingSystem::CreateParticleRS(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&particleRS_)));
 }
 
-void RenderingSystem::CreateParticlePSO(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateParticlePSO()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -502,7 +501,7 @@ void RenderingSystem::CreateParticlePSO(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&particlePSO_)));
 }
 
-void RenderingSystem::CreateParticlesUpdateRS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateParticlesUpdateRS()
 {
 	CD3DX12_ROOT_PARAMETER rootParameter[3];
 	CD3DX12_DESCRIPTOR_RANGE uavTable[2];
@@ -526,7 +525,7 @@ void RenderingSystem::CreateParticlesUpdateRS(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&particlesUpdateRS_)));
 }
 
-void RenderingSystem::CreateParticlesUpdatePSO(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateParticlesUpdatePSO()
 {
 	D3D12_COMPUTE_PIPELINE_STATE_DESC particleUpdatePSO = {};
 	particleUpdatePSO.pRootSignature = particlesUpdateRS_.Get();
@@ -535,7 +534,7 @@ void RenderingSystem::CreateParticlesUpdatePSO(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateComputePipelineState(&particleUpdatePSO, IID_PPV_ARGS(&particlesUpdatePSO_)));
 }
 
-void RenderingSystem::CreateParticlesEmitRS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateParticlesEmitRS()
 {
 	CD3DX12_ROOT_PARAMETER rootParameter[2];
 	CD3DX12_DESCRIPTOR_RANGE uavTable;
@@ -557,7 +556,7 @@ void RenderingSystem::CreateParticlesEmitRS(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&particlesEmitRS_)));
 }
 
-void RenderingSystem::CreateParticlesEmitPSO(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateParticlesEmitPSO()
 {
 	D3D12_COMPUTE_PIPELINE_STATE_DESC particleEmitPSO = {};
 	particleEmitPSO.pRootSignature = particlesEmitRS_.Get();
@@ -566,7 +565,7 @@ void RenderingSystem::CreateParticlesEmitPSO(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateComputePipelineState(&particleEmitPSO, IID_PPV_ARGS(&particlesEmitPSO_)));
 }
 
-void RenderingSystem::CreateShadowRS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateShadowRS()
 {
 	CD3DX12_ROOT_PARAMETER rootParameter[2];
 	rootParameter[0].InitAsConstantBufferView(0);
@@ -586,7 +585,7 @@ void RenderingSystem::CreateShadowRS(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&shadowRS_)));
 }
 
-void RenderingSystem::CreateShadowPSO(ComPtr<ID3D12Device> device, std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
+void RenderingSystem::CreateShadowPSO(std::vector<D3D12_INPUT_ELEMENT_DESC>& layout)
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -612,7 +611,7 @@ void RenderingSystem::CreateShadowPSO(ComPtr<ID3D12Device> device, std::vector<D
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&shadowPSO_)));
 }
 
-void RenderingSystem::CreateSSAORS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateSSAORS()
 {
 	CD3DX12_ROOT_PARAMETER rootParameter[5];
 	CD3DX12_DESCRIPTOR_RANGE texTable[3];
@@ -642,7 +641,7 @@ void RenderingSystem::CreateSSAORS(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&SsaoRS_)));
 }
 
-void RenderingSystem::CreateSSAOPSO(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateSSAOPSO()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -672,7 +671,7 @@ void RenderingSystem::CreateSSAOPSO(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&SsaoPSO_)));
 }
 
-void RenderingSystem::CreateSSAOBlurRS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateSSAOBlurRS()
 {
 	CD3DX12_ROOT_PARAMETER rootParameter[4];
 	CD3DX12_DESCRIPTOR_RANGE ssaoTable;
@@ -700,7 +699,7 @@ void RenderingSystem::CreateSSAOBlurRS(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&SsaoBlurRS_)));
 }
 
-void RenderingSystem::CreateSSAOBlurPSO(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateSSAOBlurPSO()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -730,7 +729,7 @@ void RenderingSystem::CreateSSAOBlurPSO(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&SsaoBlurPSO_)));
 }
 
-void RenderingSystem::CreateBillboardRS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateBillboardRS()
 {
 	CD3DX12_ROOT_PARAMETER rootParameter[5];
 	rootParameter[0].InitAsShaderResourceView(0);
@@ -757,7 +756,7 @@ void RenderingSystem::CreateBillboardRS(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&billboardRS_)));
 }
 
-void RenderingSystem::CreateBillboardPSO(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreateBillboardPSO()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -782,7 +781,7 @@ void RenderingSystem::CreateBillboardPSO(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&billboardPSO_)));
 }
 
-void RenderingSystem::CreatePPDefaultRS(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreatePPDefaultRS()
 {
 	CD3DX12_ROOT_PARAMETER rootParameter[2];
 	CD3DX12_DESCRIPTOR_RANGE srvTable;
@@ -806,7 +805,7 @@ void RenderingSystem::CreatePPDefaultRS(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateRootSignature(0, serializedRootDesc->GetBufferPointer(), serializedRootDesc->GetBufferSize(), IID_PPV_ARGS(&pp_defaultRS_)));
 }
 
-void RenderingSystem::CreatePPTonemappingPSO(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreatePPTonemappingPSO()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -837,7 +836,7 @@ void RenderingSystem::CreatePPTonemappingPSO(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pp_tonemappingPSO_)));
 }
 
-void RenderingSystem::CreatePPVignettePSO(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreatePPVignettePSO()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));
@@ -868,7 +867,7 @@ void RenderingSystem::CreatePPVignettePSO(ComPtr<ID3D12Device> device)
 	ThrowIfFailed(device->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pp_vignettePSO_)));
 }
 
-void RenderingSystem::CreatePPOutputPSO(ComPtr<ID3D12Device> device)
+void RenderingSystem::CreatePPOutputPSO()
 {
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc;
 	ZeroMemory(&psoDesc, sizeof(D3D12_GRAPHICS_PIPELINE_STATE_DESC));

@@ -28,8 +28,7 @@ void DX12App::InitializeDevice() {
 	EnableDebug();
 	ThrowIfFailed(CreateDXGIFactory1(IID_PPV_ARGS(&DXGIFactory)));
 
-	ThrowIfFailed(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&device)));
-	std::cout << "DEVICE CREATED: " << std::endl;
+	device = SingletonDevice::GetDevice();
 
 	ThrowIfFailed(device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&fence)));
 	std::cout << "FENCE CREATED" << std::endl;
@@ -282,14 +281,14 @@ void DX12App::OnResize() {
 	currentBackBuffer = 0;
 	CreateRTV();
 	CreateDSV();
-	renderSystem->g_buffer->OnResize(clientWidth, clientHeight, device);
-	renderSystem->post_process->OnResize(clientWidth, clientHeight, device);
+	renderSystem->g_buffer->OnResize(clientWidth, clientHeight);
+	renderSystem->post_process->OnResize(clientWidth, clientHeight);
 	ID3D12Resource* noiseTexResource = nullptr;
 	auto iter = textures.find(L"noise");
 	if (iter != textures.end()) {
 		noiseTexResource = iter->second->Resource.Get();
 	}
-	renderSystem->ssao->OnResize(device, clientWidth / 2, clientHeight / 2,
+	renderSystem->ssao->OnResize(clientWidth / 2, clientHeight / 2,
 		renderSystem->g_buffer->GetDepthTex().Resource.Get(),
 		renderSystem->g_buffer->GetNormalTex().Resource.Get(),
 		noiseTexResource);

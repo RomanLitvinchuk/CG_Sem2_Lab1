@@ -1,19 +1,19 @@
 #include "DX12App.h"
 
-void DX12App::DrawWireframe(ComPtr<ID3D12GraphicsCommandList> m_command_list_)
+void DX12App::DrawWireframe()
 {
-	m_command_list_->SetPipelineState(renderSystem->wireframePSO_.Get());
-	m_command_list_->SetGraphicsRootSignature(renderSystem->wireframeRS_.Get());
-	m_command_list_->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+	commandList->SetPipelineState(renderSystem->wireframePSO_.Get());
+	commandList->SetGraphicsRootSignature(renderSystem->wireframeRS_.Get());
+	commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
 	
-	m_command_list_->IASetVertexBuffers(0, 1, &wireframeVertexBufferView);
-	m_command_list_->IASetIndexBuffer(&wireframeIndexBufferView);
+	commandList->IASetVertexBuffers(0, 1, &wireframeVertexBufferView);
+	commandList->IASetIndexBuffer(&wireframeIndexBufferView);
 
-	m_command_list_->SetGraphicsRootConstantBufferView(0, objectsUploadBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootConstantBufferView(0, objectsUploadBuffer->Resource()->GetGPUVirtualAddress());
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtv = renderSystem->post_process->GetHdrTextureA().rtvHandle;
 	auto dsv = renderSystem->g_buffer->GetDepthTex().dsvHandle;
-	m_command_list_->OMSetRenderTargets(1, &rtv, true, &dsv);
+	commandList->OMSetRenderTargets(1, &rtv, true, &dsv);
 
 	std::vector<BVHNode*> allNodes;
 	octree.GetAllNodes(allNodes);
@@ -31,7 +31,7 @@ void DX12App::DrawWireframe(ComPtr<ID3D12GraphicsCommandList> m_command_list_)
 		wireframeInstanceBuffer->CopyData(i, data);
 	}
 
-	m_command_list_->SetGraphicsRootShaderResourceView(1, wireframeInstanceBuffer->Resource()->GetGPUVirtualAddress());
+	commandList->SetGraphicsRootShaderResourceView(1, wireframeInstanceBuffer->Resource()->GetGPUVirtualAddress());
 
-	m_command_list_->DrawIndexedInstanced(24, numInstances, 0, 0, 0);
+	commandList->DrawIndexedInstanced(24, numInstances, 0, 0, 0);
 }
