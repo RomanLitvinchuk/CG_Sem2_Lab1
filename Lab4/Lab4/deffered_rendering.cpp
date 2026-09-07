@@ -112,17 +112,7 @@ void DX12App::DrawShadows() {
 }
 
 void DX12App::DrawToGBuffer() {
-	visibleIndices.clear();
-
-	if (camera.isFrustumCullingEnabled)
-	{
-		octree.GetVisibleObjects(camera.planes, submeshes, visibleIndices);
-	}
-	else
-	{
-		visibleIndices.resize(submeshes.size());
-		std::iota(visibleIndices.begin(), visibleIndices.end(), 0);
-	}
+	GetVisibleObjects();
 	commandList->ClearDepthStencilView(GetDSV(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvs[] = {
@@ -188,78 +178,105 @@ void DX12App::DrawToGBuffer() {
 
 		commandList->SetGraphicsRootDescriptorTable(4, normHandle);
 
-		if (!sm.sorted_lod0.empty()) {
-			for (size_t i = 0; i < sm.sorted_lod0.size(); i++) {
-				instanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod0[i]);
-			}
-			commandList->SetGraphicsRootShaderResourceView(7, instanceBuffer->Resource()->GetGPUVirtualAddress());
+		DrawLOD0ToGBuffer(currentInstanceOffset, sm);
+		DrawLOD1ToGBuffer(currentInstanceOffset, sm);
+		DrawBillboardsToGBuffer(currentInstanceOffset, sm);
+	}
+}
 
-			if (sm.name_.find("Sketchfab") != std::string::npos)
-			{
-				commandList->SetPipelineState(renderSystem->bakedPSO_.Get());
-				D3D12_VERTEX_BUFFER_VIEW bakedVbv;
-				bakedVbv.BufferLocation = streamOutputBuffer->GetGPUVirtualAddress();
-				bakedVbv.StrideInBytes = sizeof(BakedVertex);
-				bakedVbv.SizeInBytes = streamOutputMesh.SOVertexCount * sizeof(BakedVertex);
+void DX12App::GetVisibleObjects() {
+	visibleIndices.clear();
+	if (camera.isFrustumCullingEnabled)
+	{
+		octree.GetVisibleObjects(camera.planes, submeshes, visibleIndices);
+	}
+	else
+	{
+		visibleIndices.resize(submeshes.size());
+		std::iota(visibleIndices.begin(), visibleIndices.end(), 0);
+	}
+}
 
-				commandList->IASetVertexBuffers(0, 1, &bakedVbv);
-				commandList->DrawInstanced(
-					streamOutputMesh.SOVertexCount,
-					sm.InstanceCount,
-					0,
-					currentInstanceOffset);
-				commandList->IASetVertexBuffers(0, 1, &vertexBuffers[0]);
-			}
-			else {
-				commandList->DrawIndexedInstanced(
-					sm.indexCount,
-					static_cast<UINT>(sm.sorted_lod0.size()),
-					sm.startIndiceIndex,
-					sm.startVerticeIndex,
-					currentInstanceOffset);
-			}
-			currentInstanceOffset += static_cast<UINT>(sm.sorted_lod0.size());
+void DX12App::DrawLOD0ToGBuffer(UINT& currentInstanceOffset, Submesh& sm) {
+	if (!sm.sorted_lod0.empty()) {
+		for (size_t i = 0; i < sm.sorted_lod0.size(); i++) {
+			instanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod0[i]);
 		}
+		commandList->SetGraphicsRootShaderResourceView(7, instanceBuffer->Resource()->GetGPUVirtualAddress());
 
-		if (!sm.sorted_lod1.empty()) {
-			for (size_t i = 0; i < sm.sorted_lod1.size(); i++) {
-				instanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod1[i]);
-			}
-			commandList->SetGraphicsRootShaderResourceView(7, instanceBuffer->Resource()->GetGPUVirtualAddress());
-
+		if (sm.name_.find("Sketchfab") != std::string::npos) {
+			DrawBakedMeshToGBuffer(currentInstanceOffset, sm);
+		}
+		else {
 			commandList->DrawIndexedInstanced(
-				sm.indexCountLOD1,
-				static_cast<UINT>(sm.sorted_lod1.size()),
-				sm.startIndiceIndexLOD1,
-				sm.startVerticeIndexLOD1,
+				sm.indexCount,
+				static_cast<UINT>(sm.sorted_lod0.size()),
+				sm.startIndiceIndex,
+				sm.startVerticeIndex,
 				currentInstanceOffset);
-
-			currentInstanceOffset += static_cast<UINT>(sm.sorted_lod1.size());
 		}
-		
-		if (!sm.sorted_billboards.empty()) {
-			commandList->SetGraphicsRootSignature(renderSystem->billboardRS_.Get());
-			commandList->SetPipelineState(renderSystem->billboardPSO_.Get());
-			commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-			for (size_t i = 0; i < sm.sorted_billboards.size(); i++) {
-				instanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_billboards[i]);
-			}
-			commandList->SetGraphicsRootShaderResourceView(0, instanceBuffer->Resource()->GetGPUVirtualAddress());
-			commandList->SetGraphicsRootConstantBufferView(1, cameraBuffer->Resource()->GetGPUVirtualAddress());
-			commandList->SetGraphicsRootConstantBufferView(2, objectsUploadBuffer->Resource()->GetGPUVirtualAddress());
-			int bTextureIndex = materialData[matIndex].billboardTextureIndex + 1;
-			CD3DX12_GPU_DESCRIPTOR_HANDLE bHandle(cbvSrvHeap->GetGPUDescriptorHandleForHeapStart(), bTextureIndex, cbvDescriptorSize);
-			commandList->SetGraphicsRootDescriptorTable(3, bHandle);
-			commandList->SetGraphicsRootDescriptorTable(4, samplerHeap->GetGPUDescriptorHandleForHeapStart());
-			commandList->DrawInstanced(
-				4,
-				static_cast<UINT>(sm.sorted_billboards.size()),
-				0,
-				currentInstanceOffset
-			);
+		currentInstanceOffset += static_cast<UINT>(sm.sorted_lod0.size());
+	}
+}
 
-			currentInstanceOffset += static_cast<UINT>(sm.sorted_billboards.size());
+void DX12App::DrawBakedMeshToGBuffer(UINT& currentInstanceOffset, Submesh& sm) {
+	commandList->SetPipelineState(renderSystem->bakedPSO_.Get());
+	D3D12_VERTEX_BUFFER_VIEW bakedVbv;
+	bakedVbv.BufferLocation = streamOutputBuffer->GetGPUVirtualAddress();
+	bakedVbv.StrideInBytes = sizeof(BakedVertex);
+	bakedVbv.SizeInBytes = streamOutputMesh.SOVertexCount * sizeof(BakedVertex);
+
+	commandList->IASetVertexBuffers(0, 1, &bakedVbv);
+	commandList->DrawInstanced(
+		streamOutputMesh.SOVertexCount,
+		sm.InstanceCount,
+		0,
+		currentInstanceOffset);
+	commandList->IASetVertexBuffers(0, 1, &vertexBuffers[0]);
+}
+
+void DX12App::DrawLOD1ToGBuffer(UINT& currentInstanceOffset, Submesh& sm) {
+	if (!sm.sorted_lod1.empty()) {
+		for (size_t i = 0; i < sm.sorted_lod1.size(); i++) {
+			instanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_lod1[i]);
 		}
+		commandList->SetGraphicsRootShaderResourceView(7, instanceBuffer->Resource()->GetGPUVirtualAddress());
+
+		commandList->DrawIndexedInstanced(
+			sm.indexCountLOD1,
+			static_cast<UINT>(sm.sorted_lod1.size()),
+			sm.startIndiceIndexLOD1,
+			sm.startVerticeIndexLOD1,
+			currentInstanceOffset);
+
+		currentInstanceOffset += static_cast<UINT>(sm.sorted_lod1.size());
+	}
+}
+
+void DX12App::DrawBillboardsToGBuffer(UINT& currentInstanceOffset, Submesh& sm) {
+	if (!sm.sorted_billboards.empty()) {
+		commandList->SetGraphicsRootSignature(renderSystem->billboardRS_.Get());
+		commandList->SetPipelineState(renderSystem->billboardPSO_.Get());
+		commandList->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+		for (size_t i = 0; i < sm.sorted_billboards.size(); i++) {
+			instanceBuffer->CopyData(currentInstanceOffset + i, sm.sorted_billboards[i]);
+		}
+		commandList->SetGraphicsRootShaderResourceView(0, instanceBuffer->Resource()->GetGPUVirtualAddress());
+		commandList->SetGraphicsRootConstantBufferView(1, cameraBuffer->Resource()->GetGPUVirtualAddress());
+		commandList->SetGraphicsRootConstantBufferView(2, objectsUploadBuffer->Resource()->GetGPUVirtualAddress());
+		int matIndex = sm.materialIndex;
+		int bTextureIndex = materialData[matIndex].billboardTextureIndex + 1;
+		CD3DX12_GPU_DESCRIPTOR_HANDLE bHandle(cbvSrvHeap->GetGPUDescriptorHandleForHeapStart(), bTextureIndex, cbvDescriptorSize);
+		commandList->SetGraphicsRootDescriptorTable(3, bHandle);
+		commandList->SetGraphicsRootDescriptorTable(4, samplerHeap->GetGPUDescriptorHandleForHeapStart());
+		commandList->DrawInstanced(
+			4,
+			static_cast<UINT>(sm.sorted_billboards.size()),
+			0,
+			currentInstanceOffset
+		);
+
+		currentInstanceOffset += static_cast<UINT>(sm.sorted_billboards.size());
 	}
 }
 

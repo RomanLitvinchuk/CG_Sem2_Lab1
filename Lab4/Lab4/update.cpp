@@ -10,11 +10,21 @@ void DX12App::OnMouseUp() {
 
 void DX12App::Update() {
 	camera.UpdateCameraPos(m_key_states, gt);
+	camera.UpdateViewMatrix();
+	UpdateMatricesData();
+	UpdateParticleData();
+	UpdateFrustumData();
+	UpdateCameraConstants();
+	UpdateObjectsBuffer();
+	UpdateHullBuffer();
+	UpdateTextureAnimation();
+	UpdateTreesLights();
 
-	camera.mView_ = Matrix::CreateLookAt(camera.mCameraPos, camera.mCameraPos + camera.mCameraTarget, camera.mCameraUp);
+	UpdateCascades();
+	UpdateShadowData();
+}
 
-	std::cout << "CameraPos:" << camera.mCameraPos.x << " " << camera.mCameraPos.y << " " << camera.mCameraPos.z << std::endl;
-
+void DX12App::UpdateMatricesData() {
 	Matrices matricesData;
 	matricesData.Proj = camera.mProj_.Transpose();
 	matricesData.View = camera.mView_.Transpose();
@@ -25,14 +35,18 @@ void DX12App::Update() {
 	invProj = invProj.Invert();
 	matricesData.invProj = invProj;
 	matricesBuffer->CopyData(0, matricesData);
-	Matrix ViewProj = camera.mView_ * camera.mProj_;
+}
 
+void DX12App::UpdateParticleData() {
 	ParticleConstants particleData;
 	particleData.deltaTime = gt.DeltaTime();
 	particleData.CameraPos = camera.mCameraPos;
 	particleData.particlesCount = PARTICLE_COUNT;
 	particleConstantsBuffer->CopyData(0, particleData);
+}
 
+void DX12App::UpdateFrustumData() {
+	Matrix ViewProj = camera.mView_ * camera.mProj_;
 	if (camera.isFrustumCullingEnabled) {
 		XMMATRIX M = ViewProj;
 		XMFLOAT4X4 m;
@@ -47,27 +61,29 @@ void DX12App::Update() {
 
 		for (int i = 0; i < 6; ++i) camera.planes[i] = XMPlaneNormalize(camera.planes[i]);
 	}
+}
 
-	Matrix InvViewProj = ViewProj.Invert();
-	ViewProj = ViewProj.Transpose();
-	InvViewProj = InvViewProj.Transpose();
-
+void DX12App::UpdateObjectsBuffer() {
 	ObjectConstants obj;
 	Matrix TWorld = camera.mWorld_.Transpose();
 	obj.View = camera.mView_.Transpose();
 	obj.Proj = camera.mProj_.Transpose();
 	obj.gTime = gt.TotalTime();
 	objectsUploadBuffer->CopyData(0, obj);
+}
 
-	for (int i = 0; i < materialData.size(); ++i) {
-		materialBuffer->CopyData(i, materialData[i]);
-	}
-
+void DX12App::UpdateCameraConstants() {
+	Matrix ViewProj = camera.mView_ * camera.mProj_;
+	Matrix InvViewProj = ViewProj.Invert();
+	ViewProj = ViewProj.Transpose();
+	InvViewProj = InvViewProj.Transpose();
 	CameraConstants camConst;
 	camConst.invViewProj = InvViewProj;
 	camConst.cameraPos = camera.mCameraPos;
 	cameraBuffer->CopyData(0, camConst);
+}
 
+void DX12App::UpdateHullBuffer() {
 	HullBuffer hullConst;
 	hullConst.CameraPos = camera.mCameraPos;
 	hullConst.gMinTess = 1;
@@ -75,9 +91,10 @@ void DX12App::Update() {
 	hullConst.gMinDist = 10.0f;
 	hullConst.gMaxDist = 200.0f;
 	hullBuffer->CopyData(0, hullConst);
+}
 
+void DX12App::UpdateTextureAnimation() {
 	for (int i = 0; i < materialData.size(); ++i) {
-		//materialData[i].MatTransform = Matrix::Identity;
 		if (materialData[i].isTree == 1) {
 			float tu = materialData[i].MatTransform(1, 0);
 			float tv = materialData[i].MatTransform(1, 1);
@@ -93,7 +110,9 @@ void DX12App::Update() {
 		}
 		materialBuffer->CopyData(i, materialData[i]);
 	}
+}
 
+void DX12App::UpdateTreesLights() {
 	static float timeAccumulator = 0.0f;
 	timeAccumulator += gt.DeltaTime();
 
@@ -109,8 +128,9 @@ void DX12App::Update() {
 			lightBuffer->CopyData(i, renderSystem->sceneLights_[i]);
 		}
 	}
+}
 
-	UpdateCascades();
+void DX12App::UpdateShadowData() {
 	int numCascades = shadowMap->GetNumCascades();
 	for (int i = 0; i < numCascades; ++i) {
 		ShadowConstants shadowData = {};

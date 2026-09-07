@@ -24,6 +24,7 @@ struct Camera {
 	void UpdateCameraPos(const bool* keys, const GameTimer& gt);
 	void UpdateCameraTarget(WPARAM btnState, int dx, int dy);
 	void UpdateFrustumCullingState();
+	void UpdateViewMatrix();
 
 	float mCameraYaw;
 	float mCameraPitch;

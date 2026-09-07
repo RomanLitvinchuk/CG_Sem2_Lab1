@@ -40,3 +40,8 @@ void Camera::UpdateCameraTarget(WPARAM btnState, int dx, int dy) {
 void Camera::UpdateFrustumCullingState() {
 	isFrustumCullingEnabled = !isFrustumCullingEnabled;
 }
+
+void Camera::UpdateViewMatrix()
+{
+	mView_ = Matrix::CreateLookAt(mCameraPos, mCameraPos + mCameraTarget, mCameraUp);
+}

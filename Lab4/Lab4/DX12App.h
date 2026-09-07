@@ -132,6 +132,22 @@ public:
 
 private:
 	void EnableDebug();
+	void GetVisibleObjects();
+	void DrawLOD0ToGBuffer(UINT& currentInstanceOffset, Submesh& sm);
+	void DrawBakedMeshToGBuffer(UINT& currentInstanceOffset, Submesh& sm);
+	void DrawLOD1ToGBuffer(UINT& currentInstanceOffset, Submesh& sm);
+	void DrawBillboardsToGBuffer(UINT& currentInstanceOffset, Submesh& sm);
+
+	void UpdateParticleData();
+	void UpdateMatricesData();
+	void UpdateFrustumData();
+	void UpdateTextureAnimation();
+	void UpdateTreesLights();
+	void UpdateShadowData();
+	void UpdateHullBuffer();
+	void UpdateObjectsBuffer();
+	void UpdateCameraConstants();
+
 	GameTimer gt;
 	DXGI_FORMAT backBufferFormat = DXGI_FORMAT_R8G8B8A8_UNORM;
 	DXGI_FORMAT depthStencilFormat = DXGI_FORMAT_D24_UNORM_S8_UINT;
